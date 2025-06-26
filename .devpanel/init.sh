@@ -62,7 +62,7 @@ fi
 #== Install Drupal.
 echo
 if [ -z "$(mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p$DB_PASSWORD $DB_NAME -e 'show tables')" ]; then
-  time drush -n si
+  time drush site:install --db-url=mysql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?module=mysql#tableprefix --account-name=admin --account-pass admin --existing-config
 
   echo
   echo 'Tell Automatic Updates about patches.'
