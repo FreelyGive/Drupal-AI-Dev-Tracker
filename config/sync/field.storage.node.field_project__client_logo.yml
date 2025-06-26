@@ -1,0 +1,22 @@
+uuid: 006941f0-91e3-417d-97f4-9115ac8e9963
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+    - node
+_core:
+  default_config_hash: EY0SxIKYdNhHh43i_FM6qsCDqKX_I5Z5LH6puw3zGW8
+id: node.field_project__client_logo
+field_name: field_project__client_logo
+entity_type: node
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

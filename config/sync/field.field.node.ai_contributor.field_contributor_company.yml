@@ -1,0 +1,24 @@
+uuid: 19c9c9d1-c015-451e-b768-fb256025da2d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_contributor_company
+    - node.type.ai_company
+    - node.type.ai_contributor
+id: node.ai_contributor.field_contributor_company
+field_name: field_contributor_company
+entity_type: node
+bundle: ai_contributor
+label: Company
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      - ai_company
+field_type: entity_reference

@@ -1,0 +1,11 @@
+uuid: 8ccd89ac-253c-47ff-943a-fc3b84746fbd
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Company'
+type: ai_company
+description: 'Companies that contribute to AI modules'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

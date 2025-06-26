@@ -1,0 +1,27 @@
+uuid: acf9571d-110c-4b87-b150-fbde5c419845
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_contributor_type
+field_name: field_contributor_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: dev
+      label: Developer
+    -
+      value: non_dev
+      label: Non-Developer
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

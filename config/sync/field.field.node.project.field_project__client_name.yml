@@ -1,0 +1,21 @@
+uuid: 74fb9b54-625d-429b-bb24-579391e0b5a4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_project__client_name
+    - node.type.project
+_core:
+  default_config_hash: U23LOJM_mGUGaNDw48HmGikisGjC32cx4RqkUN3tsxg
+id: node.project.field_project__client_name
+field_name: field_project__client_name
+entity_type: node
+bundle: project
+label: 'Client name'
+description: 'Include the name of the client or organization.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

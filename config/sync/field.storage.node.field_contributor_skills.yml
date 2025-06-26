@@ -1,0 +1,21 @@
+uuid: 0111c168-c7b3-4a30-9127-7f65eac6612c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_contributor_skills
+field_name: field_contributor_skills
+entity_type: node
+type: string
+settings:
+  max_length: 255
+  case_sensitive: false
+  is_ascii: false
+module: core
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

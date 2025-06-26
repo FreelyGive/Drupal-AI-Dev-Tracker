@@ -1,0 +1,19 @@
+uuid: 34c4f02c-3d55-4474-88d8-1728807424b2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_company_color
+    - node.type.ai_company
+id: node.ai_company.field_company_color
+field_name: field_company_color
+entity_type: node
+bundle: ai_company
+label: 'Company Color'
+description: 'Hex color code for the company (e.g., #0073bb)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

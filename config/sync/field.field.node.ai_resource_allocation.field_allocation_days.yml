@@ -1,0 +1,23 @@
+uuid: 5c6db7cc-8a2a-4cbf-a9f4-d19dc567b8c1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_allocation_days
+    - node.type.ai_resource_allocation
+id: node.ai_resource_allocation.field_allocation_days
+field_name: field_allocation_days
+entity_type: node
+bundle: ai_resource_allocation
+label: 'Days Allocated'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: 7.0
+  prefix: ''
+  suffix: ''
+field_type: decimal

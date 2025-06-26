@@ -1,0 +1,19 @@
+uuid: 2b3079d6-3510-4da8-be5c-90a346e9667c
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_allocation_contributor
+field_name: field_allocation_contributor
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,21 @@
+uuid: 8ee8a99d-5d48-4fa7-9f7f-ada3c478da10
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_module_category
+    - node.type.ai_module
+  module:
+    - options
+id: node.ai_module.field_module_category
+field_name: field_module_category
+entity_type: node
+bundle: ai_module
+label: Category
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

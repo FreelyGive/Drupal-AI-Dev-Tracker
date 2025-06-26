@@ -1,0 +1,24 @@
+uuid: 74ab5a17-af83-4b3e-b1fd-f74d8f8d9df8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_module
+    - node.type.ai_issue
+    - node.type.ai_module
+id: node.ai_issue.field_issue_module
+field_name: field_issue_module
+entity_type: node
+bundle: ai_issue
+label: Module
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      - ai_module
+field_type: entity_reference

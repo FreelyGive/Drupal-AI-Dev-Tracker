@@ -1,0 +1,21 @@
+uuid: 6608de7a-b8c7-4633-972a-8fcacd82c656
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_date_filter
+    - node.type.ai_import_config
+  module:
+    - datetime
+id: node.ai_import_config.field_import_date_filter
+field_name: field_import_date_filter
+entity_type: node
+bundle: ai_import_config
+label: 'Import From Date'
+description: 'Only import issues created after this date'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

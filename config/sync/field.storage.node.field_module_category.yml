@@ -1,0 +1,36 @@
+uuid: 44b79362-92fd-42b0-a74c-7f9cccc02ee1
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_module_category
+field_name: field_module_category
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: core_ai
+      label: 'Core AI'
+    -
+      value: provider
+      label: 'AI Provider'
+    -
+      value: integration
+      label: 'AI Integration'
+    -
+      value: utility
+      label: 'AI Utility'
+    -
+      value: related
+      label: 'Related Module'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

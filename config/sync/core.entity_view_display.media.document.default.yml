@@ -1,0 +1,28 @@
+uuid: 5249e228-447a-4de3-a44a-8cb6b3784e90
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.media.document.field_media_document
+    - media.type.document
+  module:
+    - file
+_core:
+  default_config_hash: Ue2D9UBZwS3Brs8Z06aU9o2B8a6OLpSbd83kmX9bkfU
+id: media.document.default
+targetEntityType: media
+bundle: document
+mode: default
+content:
+  field_media_document:
+    type: file_default
+    label: visually_hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  created: true
+  name: true
+  thumbnail: true
+  uid: true

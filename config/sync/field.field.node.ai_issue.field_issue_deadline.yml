@@ -1,0 +1,21 @@
+uuid: 39f86b43-a131-426d-ba00-13c832a979b6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_deadline
+    - node.type.ai_issue
+  module:
+    - datetime
+id: node.ai_issue.field_issue_deadline
+field_name: field_issue_deadline
+entity_type: node
+bundle: ai_issue
+label: 'Issue Deadline'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

@@ -1,0 +1,15 @@
+_core:
+  default_config_hash: HlN7eAN2N4JIHsYv56V4E7sqC9bS609KwvGFjyD_mgk
+langcode: en
+uuid: 3a86f410-6004-418f-97fe-002957104b26
+name: 'My Drupal CMS site'
+mail: jamie@freelygive.org.uk
+slogan: ''
+page:
+  403: /user/login
+  404: ''
+  front: /ai-dashboard/calendar
+admin_compact_mode: false
+weight_select_max: 100
+default_langcode: en
+mail_notification: null

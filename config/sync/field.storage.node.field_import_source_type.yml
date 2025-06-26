@@ -1,0 +1,30 @@
+uuid: 370a9c78-d17f-41d2-9d80-feb03ea05ce7
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_import_source_type
+field_name: field_import_source_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: drupal_org
+      label: Drupal.org
+    -
+      value: gitlab
+      label: GitLab
+    -
+      value: github
+      label: GitHub
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

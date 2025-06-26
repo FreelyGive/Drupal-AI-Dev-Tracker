@@ -1,0 +1,21 @@
+uuid: 14de90f2-bdfa-481f-8082-00284625f7de
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_filter_tags
+    - node.type.ai_import_config
+id: node.ai_import_config.field_import_filter_tags
+field_name: field_import_filter_tags
+entity_type: node
+bundle: ai_import_config
+label: 'Filter Tags'
+description: 'Tags to filter by, comma-separated (e.g., "AIInitiative, AI Core, Provider Integration")'
+required: false
+translatable: false
+default_value:
+  -
+    value: AIInitiative
+default_value_callback: ''
+settings: {  }
+field_type: string

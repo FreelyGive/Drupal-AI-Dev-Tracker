@@ -1,0 +1,19 @@
+uuid: b1063ec5-3cde-4be3-9ec8-a23c00061839
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_issue_module
+field_name: field_issue_module
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

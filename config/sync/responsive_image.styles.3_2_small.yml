@@ -1,0 +1,23 @@
+uuid: dd2071f5-9f60-4cee-beea-f1a993d96d69
+langcode: en
+status: true
+dependencies:
+  config:
+    - image.style.3_2_300x200_focal_point_webp
+  theme:
+    - olivero
+_core:
+  default_config_hash: xnztAPpGg0kU1AWGeqTM5Lw0jtj78wizlcMTGYBfUbM
+id: 3_2_small
+label: '3:2 Small'
+image_style_mappings:
+  -
+    image_mapping_type: sizes
+    image_mapping:
+      sizes: 100vw
+      sizes_image_styles:
+        - 3_2_300x200_focal_point_webp
+    breakpoint_id: olivero.sm
+    multiplier: 1x
+breakpoint_group: olivero
+fallback_image_style: 3_2_300x200_focal_point_webp

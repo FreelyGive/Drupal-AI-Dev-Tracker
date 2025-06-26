@@ -1,0 +1,23 @@
+uuid: 59741742-dca1-4278-9fda-eacd5afc7d76
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_weekly_commitment
+    - node.type.ai_contributor
+id: node.ai_contributor.field_weekly_commitment
+field_name: field_weekly_commitment
+entity_type: node
+bundle: ai_contributor
+label: 'Weekly Commitment (Days)'
+description: 'Number of days per week committed to AI work (0-5)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: decimal

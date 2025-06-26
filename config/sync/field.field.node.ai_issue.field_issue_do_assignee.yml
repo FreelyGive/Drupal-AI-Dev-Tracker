@@ -1,0 +1,19 @@
+uuid: c90d0371-1eff-4d86-9183-a6211d6a5932
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_do_assignee
+    - node.type.ai_issue
+id: node.ai_issue.field_issue_do_assignee
+field_name: field_issue_do_assignee
+entity_type: node
+bundle: ai_issue
+label: 'Drupal.org Assignee'
+description: 'Username of the person assigned to this issue on drupal.org'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

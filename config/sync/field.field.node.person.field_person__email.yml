@@ -1,0 +1,21 @@
+uuid: 2806b7ca-77ab-443d-bc44-5a5c65dae4ee
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_person__email
+    - node.type.person
+_core:
+  default_config_hash: iMD_2Ppazk0uoUoaRVpaTkcm-1UkaoMT-CNzU3nMK9Y
+id: node.person.field_person__email
+field_name: field_person__email
+entity_type: node
+bundle: person
+label: Email
+description: 'Include up to 5 email addresses.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: email

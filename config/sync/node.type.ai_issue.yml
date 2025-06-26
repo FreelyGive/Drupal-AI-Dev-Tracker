@@ -1,0 +1,11 @@
+uuid: 94d64878-b3f6-4967-a4e1-f4fc371d39f2
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Issue'
+type: ai_issue
+description: 'Drupal.org issues for AI modules'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

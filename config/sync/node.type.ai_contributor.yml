@@ -1,0 +1,11 @@
+uuid: 21c118e5-650c-4b0c-89a5-a0bf8c2a5ac7
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Contributor'
+type: ai_contributor
+description: 'Individual contributors to AI modules'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

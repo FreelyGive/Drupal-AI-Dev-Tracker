@@ -1,0 +1,42 @@
+uuid: aeba0dbb-65b3-4258-a167-50de155ffb77
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_tag_mapping.field_source_tag
+    - field.field.node.ai_tag_mapping.field_mapping_type
+    - field.field.node.ai_tag_mapping.field_mapped_value
+    - node.type.ai_tag_mapping
+  module:
+    - options
+    - user
+id: node.ai_tag_mapping.default
+targetEntityType: node
+bundle: ai_tag_mapping
+mode: default
+content:
+  field_mapped_value:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_mapping_type:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_source_tag:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  links: true

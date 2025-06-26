@@ -1,0 +1,19 @@
+uuid: da90394f-a952-49f3-8c52-260c3526e3de
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_drupal_username
+    - node.type.ai_contributor
+id: node.ai_contributor.field_drupal_username
+field_name: field_drupal_username
+entity_type: node
+bundle: ai_contributor
+label: 'Drupal.org Username'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -1,0 +1,23 @@
+uuid: 1c5841e8-efdd-4f6a-940d-47d26e62eac0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_status_filter
+    - node.type.ai_import_config
+  module:
+    - options
+id: node.ai_import_config.field_import_status_filter
+field_name: field_import_status_filter
+entity_type: node
+bundle: ai_import_config
+label: 'Status Filter'
+description: 'Select which issue statuses to import. "All Open Issues" excludes only closed statuses.'
+required: false
+translatable: false
+default_value:
+  -
+    value: all_open
+default_value_callback: ''
+settings: {  }
+field_type: list_string

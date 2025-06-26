@@ -1,0 +1,21 @@
+uuid: f2132d84-d5ce-448e-859b-91fe99d93998
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_status
+    - node.type.ai_issue
+  module:
+    - options
+id: node.ai_issue.field_issue_status
+field_name: field_issue_status
+entity_type: node
+bundle: ai_issue
+label: Status
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

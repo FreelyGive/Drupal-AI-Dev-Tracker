@@ -1,0 +1,45 @@
+uuid: 63e66b1e-e942-4d8f-a364-2ade764964fd
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_issue_category
+field_name: field_issue_category
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: xb_ai_agents
+      label: 'XB AI Agents'
+    -
+      value: agentic_search
+      label: 'Agentic Search'
+    -
+      value: ai_logging
+      label: 'AI Logging'
+    -
+      value: field_widget_actions
+      label: 'Field Widget Actions'
+    -
+      value: ai_providers
+      label: 'AI Providers'
+    -
+      value: ai_integration
+      label: 'AI Integration'
+    -
+      value: ai_testing
+      label: 'AI Testing'
+    -
+      value: ai_documentation
+      label: 'AI Documentation'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

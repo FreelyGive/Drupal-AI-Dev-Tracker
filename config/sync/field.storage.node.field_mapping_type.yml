@@ -1,0 +1,38 @@
+uuid: dba5befc-c08b-4afd-ab0e-c461430f0697
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_mapping_type
+field_name: field_mapping_type
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: category
+      label: Category
+    -
+      value: month
+      label: Month
+    -
+      value: priority
+      label: Priority
+    -
+      value: status
+      label: Status
+    -
+      value: module
+      label: Module
+    -
+      value: custom
+      label: Custom
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

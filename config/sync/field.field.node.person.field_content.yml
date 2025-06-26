@@ -1,0 +1,26 @@
+uuid: dcefffa5-4cf4-4fc5-b7b7-461a01297a81
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_content
+    - filter.format.content_format
+    - node.type.person
+  module:
+    - text
+_core:
+  default_config_hash: NIYC48Sz8y5eDAWIRKHjX8fFkAn-3M0QpYWyjkgXiHc
+id: node.person.field_content
+field_name: field_content
+entity_type: node
+bundle: person
+label: Biography
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats:
+    - content_format
+field_type: text_long

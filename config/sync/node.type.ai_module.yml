@@ -1,0 +1,11 @@
+uuid: cfcc6b35-b1ec-4cff-99bc-dde932473b52
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Module'
+type: ai_module
+description: 'AI and related modules being tracked'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

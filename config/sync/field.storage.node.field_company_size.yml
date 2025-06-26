@@ -1,0 +1,36 @@
+uuid: b2eac0f7-3932-4c71-9437-831c952a7d18
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_company_size
+field_name: field_company_size
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: startup
+      label: 'Startup (1-10)'
+    -
+      value: small
+      label: 'Small (11-50)'
+    -
+      value: medium
+      label: 'Medium (51-200)'
+    -
+      value: large
+      label: 'Large (201-1000)'
+    -
+      value: enterprise
+      label: 'Enterprise (1000+)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

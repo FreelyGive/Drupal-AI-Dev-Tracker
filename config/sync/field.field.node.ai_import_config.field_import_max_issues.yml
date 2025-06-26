@@ -1,0 +1,23 @@
+uuid: 1eecb601-69e4-45eb-a1d0-032107a6dfbc
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_max_issues
+    - node.type.ai_import_config
+id: node.ai_import_config.field_import_max_issues
+field_name: field_import_max_issues
+entity_type: node
+bundle: ai_import_config
+label: 'Maximum Issues'
+description: 'Maximum number of issues to import (leave blank for 1000)'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 1
+  max: 5000
+  prefix: ''
+  suffix: ''
+field_type: integer

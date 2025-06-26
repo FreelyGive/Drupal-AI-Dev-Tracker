@@ -1,0 +1,22 @@
+uuid: a32aa85c-0dfa-4eec-bc56-75cf0e019d11
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+    - node
+_core:
+  default_config_hash: A9yu9K-r86PT93oGzSd9ChQ9i5p9ssH29fTb9DhN_wo
+id: node.field_case_study__client_logo
+field_name: field_case_study__client_logo
+entity_type: node
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

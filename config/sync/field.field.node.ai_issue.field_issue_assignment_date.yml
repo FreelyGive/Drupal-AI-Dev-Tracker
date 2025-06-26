@@ -1,0 +1,21 @@
+uuid: 3e7736be-4f5d-4420-a6db-6baa0cd50435
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_assignment_date
+    - node.type.ai_issue
+  module:
+    - datetime
+id: node.ai_issue.field_issue_assignment_date
+field_name: field_issue_assignment_date
+entity_type: node
+bundle: ai_issue
+label: 'Assignment Weeks'
+description: 'The weeks when this issue is assigned to developers. You can assign to multiple weeks.'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

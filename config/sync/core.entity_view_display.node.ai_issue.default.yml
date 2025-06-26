@@ -1,0 +1,106 @@
+uuid: 81290afe-a265-4efe-8dc8-6e88a62723a3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_issue.field_issue_assignees
+    - field.field.node.ai_issue.field_issue_assignment_date
+    - field.field.node.ai_issue.field_issue_category
+    - field.field.node.ai_issue.field_issue_deadline
+    - field.field.node.ai_issue.field_issue_do_assignee
+    - field.field.node.ai_issue.field_issue_module
+    - field.field.node.ai_issue.field_issue_number
+    - field.field.node.ai_issue.field_issue_priority
+    - field.field.node.ai_issue.field_issue_status
+    - field.field.node.ai_issue.field_issue_tags
+    - field.field.node.ai_issue.field_issue_url
+    - node.type.ai_issue
+  module:
+    - datetime
+    - link
+    - options
+    - user
+id: node.ai_issue.default
+targetEntityType: node
+bundle: ai_issue
+mode: default
+content:
+  field_issue_assignees:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 6
+    region: content
+  field_issue_category:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  field_issue_deadline:
+    type: datetime_default
+    label: above
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+    weight: 7
+    region: content
+  field_issue_module:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_issue_number:
+    type: number_integer
+    label: above
+    settings:
+      thousand_separator: ''
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_issue_priority:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  field_issue_status:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_issue_tags:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 8
+    region: content
+  field_issue_url:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: _blank
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  field_issue_assignment_date: true
+  field_issue_do_assignee: true
+  links: true

@@ -1,0 +1,20 @@
+uuid: 04252446-f389-44df-9742-d09c9a5337c7
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_allocation_days
+field_name: field_allocation_days
+entity_type: node
+type: decimal
+settings:
+  precision: 3
+  scale: 1
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

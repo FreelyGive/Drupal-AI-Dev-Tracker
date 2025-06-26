@@ -1,0 +1,19 @@
+uuid: 0f90f28b-848f-4a85-8dba-fceec6c063ea
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_allocation_issues
+field_name: field_allocation_issues
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

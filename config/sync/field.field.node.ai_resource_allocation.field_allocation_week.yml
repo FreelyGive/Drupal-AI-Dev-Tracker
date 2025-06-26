@@ -1,0 +1,21 @@
+uuid: a3505d43-f0eb-4b0b-aef3-c56d86aeec11
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_allocation_week
+    - node.type.ai_resource_allocation
+  module:
+    - datetime
+id: node.ai_resource_allocation.field_allocation_week
+field_name: field_allocation_week
+entity_type: node
+bundle: ai_resource_allocation
+label: 'Week Starting'
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

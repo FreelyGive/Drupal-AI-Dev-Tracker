@@ -1,0 +1,11 @@
+uuid: b2c3ad5e-7000-4072-ad7f-50086955ada7
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Resource Allocation'
+type: ai_resource_allocation
+description: 'Weekly resource commitments by contributors'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

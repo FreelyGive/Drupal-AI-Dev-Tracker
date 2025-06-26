@@ -1,0 +1,20 @@
+uuid: 1d132a1a-33d0-4625-a172-3fbdadef5ba4
+langcode: en
+status: true
+dependencies:
+  module:
+    - datetime
+    - node
+id: node.field_allocation_week
+field_name: field_allocation_week
+entity_type: node
+type: datetime
+settings:
+  datetime_type: date
+module: datetime
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

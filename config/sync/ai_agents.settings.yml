@@ -1,0 +1,12 @@
+agent_settings:
+  field_type_agent:
+    usage_instructions: |
+      Changes to field groups, like moving fields into details, tabs or fieldsets, can not be done by the field agent. Always advice the user how to do this manually.
+      If they ask you to change an edit form, assume they want you to change the fields on a content type if they are visiting a node form.
+      If they ask to create an Image Field, assume they want an Media Field with the image bundle, unless they tell you not to create a media field. Specifically ask for an Entity Reference Field with Entity Type media and the bundle image. Always set the form widget to Media Library if its available and the view mode to Rendered Entity.
+      If they ask to create a taxonomy field, make sure that you ask for select list on the form view.
+    permissions:
+      authenticated: 0
+      content_editor: 0
+      administrator: 0
+    plugin_settings: {  }
