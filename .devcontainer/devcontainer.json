@@ -1,0 +1,12 @@
+{
+    "name": "PHP 8.3",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/var/www/html",
+    "shutdownAction": "stopCompose",
+	"forwardPorts": [
+		80
+	],
+    "updateContentCommand": ".devpanel/init.sh",
+    "remoteUser": "www"
+}

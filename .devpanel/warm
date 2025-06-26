@@ -1,0 +1,17 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * @file
+ * Warms the cache for the Drupal CMS installation.
+ */
+
+chdir(dirname(__DIR__) . '/web');
+$_SERVER['SERVER_NAME'] = 'localhost';
+$_SERVER['SERVER_PORT'] = '80';
+$_SERVER['SCRIPT_NAME'] = '/index.php';
+$_SERVER['REQUEST_URI'] = $argv[1] ?? '/';
+ob_start(fn($buffer, $phase) => TRUE, 1);
+require 'index.php';
+ob_end_clean();
+echo "Warmed cache for " . $_SERVER['REQUEST_URI'] . "\n";

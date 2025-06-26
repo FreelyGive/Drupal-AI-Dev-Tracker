@@ -1,0 +1,19 @@
+hooks:
+  # only called when $DP_TOKEN is setup in git provider
+  # and git provider is set up to call the DevPanel git hook
+  git_hooks:
+    push:
+      - branch: "main"
+        # matches release on "master" branch only
+        # run commands or scripts from cmd below... eg:
+        # echo "Hello World"
+        # date >> test.txt
+        cmd: |-
+          composer -n install --no-dev >> /tmp/composer_main.txt
+      - branch: "develop"
+        # matches release on "develop" branch only
+        # run commands or scripts from cmd below... eg:
+        # echo "Hello World"
+        # date >> test.txt
+        cmd: |-
+          composer -n install >> /tmp/composer_develop.txt
