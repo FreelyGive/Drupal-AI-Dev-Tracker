@@ -1,0 +1,10 @@
+#ddev-generated
+#!/bin/bash
+
+## Description: Claude Code!
+## Usage: claude
+## Example: ddev claude [...]
+
+set -e
+
+claude $@

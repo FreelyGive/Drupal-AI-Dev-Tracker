@@ -1,0 +1,168 @@
+ai_dashboard.main:
+  path: '/ai-dashboard'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AiDashboardController::main'
+    _title: 'AI Contribution Dashboard'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.contributors:
+  path: '/ai-dashboard/contributors'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AiDashboardController::contributors'
+    _title: 'Contributors Overview'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.issues:
+  path: '/ai-dashboard/issues'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AiDashboardController::issues'
+    _title: 'Issues Overview'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.resources:
+  path: '/ai-dashboard/resources'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AiDashboardController::resources'
+    _title: 'Resource Allocation'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.calendar:
+  path: '/ai-dashboard/calendar'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::calendarView'
+    _title: 'AI Module Calendar'
+  requirements:
+    _access: 'TRUE'
+
+# Admin routes for content management
+ai_dashboard.admin:
+  path: '/ai-dashboard/admin'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminToolsController::adminToolsLanding'
+    _title: 'AI Dashboard Admin Tools'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.legacy:
+  path: '/admin/ai-dashboard'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminToolsController::adminToolsLanding'
+    _title: 'AI Dashboard Admin Tools'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.contributors:
+  path: '/ai-dashboard/admin/contributors'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::contributorsAdmin'
+    _title: 'Contributors Administration'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.issues:
+  path: '/ai-dashboard/admin/issues'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::issuesAdmin'
+    _title: 'Issues Administration'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.tag_mappings:
+  path: '/ai-dashboard/admin/tag-mappings'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::tagMappingsAdmin'
+    _title: 'Tag Mappings Administration'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.documentation:
+  path: '/ai-dashboard/admin/documentation'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\DocumentationController::view'
+    _title: 'Technical Documentation'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.admin.import:
+  path: '/ai-dashboard/admin/import'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::importManagement'
+    _title: 'Import Management'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.admin.import.run:
+  path: '/ai-dashboard/admin/import/run/{config_id}'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::runImport'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+    config_id: \d+
+
+ai_dashboard.admin.import.run_all:
+  path: '/ai-dashboard/admin/import/run-all'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::runAllImports'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.admin.import.delete_all:
+  path: '/ai-dashboard/admin/import/delete-all'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::deleteAllIssues'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+# CSV Import routes
+ai_dashboard.contributor_csv_import:
+  path: '/ai-dashboard/admin/contributor-import'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::importForm'
+    _title: 'Import Contributors from CSV'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+ai_dashboard.contributor_csv_template:
+  path: '/ai-dashboard/admin/contributor-import/template'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::downloadTemplate'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+ai_dashboard.contributor_csv_upload:
+  path: '/ai-dashboard/admin/contributor-import/upload'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::processImport'
+  requirements:
+    _permission: 'administer ai dashboard content'
+    _csrf_token: 'TRUE'
+  methods: [POST]
+
+# API routes for backlog functionality
+ai_dashboard.api.assign_issue:
+  path: '/ai-dashboard/api/assign-issue'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::assignIssue'
+  requirements:
+    _permission: 'access ai dashboard'
+  methods: [POST]
+
+ai_dashboard.api.copy_week:
+  path: '/ai-dashboard/api/copy-week'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::copyWeekAssignments'
+  requirements:
+    _permission: 'access ai dashboard'
+  methods: [POST]
+
+ai_dashboard.api.unassign_issue:
+  path: '/ai-dashboard/api/unassign-issue'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::unassignIssue'
+  requirements:
+    _permission: 'access ai dashboard'
+  methods: [POST]

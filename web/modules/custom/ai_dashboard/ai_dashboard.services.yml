@@ -1,0 +1,15 @@
+services:
+  ai_dashboard.commands:
+    class: Drupal\ai_dashboard\Commands\AiDashboardCommands
+    arguments: ['@entity_type.manager']
+    tags:
+      - { name: drush.command }
+  ai_dashboard.tag_mapping:
+    class: Drupal\ai_dashboard\Service\TagMappingService
+    arguments: ['@entity_type.manager', '@cache.default']
+  ai_dashboard.issue_import:
+    class: Drupal\ai_dashboard\Service\IssueImportService
+    arguments: ['@entity_type.manager', '@http_client', '@logger.factory', '@ai_dashboard.tag_mapping']
+  ai_dashboard.batch_import:
+    class: Drupal\ai_dashboard\Service\IssueBatchImportService
+    arguments: ['@entity_type.manager', '@logger.factory', '@messenger', '@ai_dashboard.issue_import']

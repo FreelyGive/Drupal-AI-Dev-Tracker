@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mapping_type
+    - node.type.ai_tag_mapping
+  module:
+    - options
+id: node.ai_tag_mapping.field_mapping_type
+field_name: field_mapping_type
+entity_type: node
+bundle: ai_tag_mapping
+label: 'Mapping Type'
+description: 'What type of categorization this tag maps to'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

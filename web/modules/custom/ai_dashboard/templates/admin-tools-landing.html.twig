@@ -1,0 +1,110 @@
+{#
+/**
+ * @file
+ * Template for admin tools landing page.
+ */
+#}
+
+<div class="admin-tools-landing">
+  <div class="admin-header">
+    <h1 class="admin-title">
+      <span class="admin-title-icon">⚙️</span>
+      AI Dashboard Admin Tools
+    </h1>
+    <p class="admin-subtitle">Manage contributors, issues, imports, and system configuration</p>
+  </div>
+
+  <div class="admin-tools-grid">
+    <!-- Contributors Section -->
+    <div class="admin-tool-card">
+      <div class="tool-card-header">
+        <span class="tool-icon">👥</span>
+        <h3 class="tool-title">Contributors</h3>
+      </div>
+      <div class="tool-card-content">
+        <p class="tool-description">Manage team members, roles, and assignments</p>
+        <div class="tool-actions">
+          <a href="/ai-dashboard/admin/contributors" class="btn btn-primary">
+            View Contributors
+          </a>
+          <a href="/ai-dashboard/admin/contributor-import" class="btn btn-outline">
+            Import from CSV
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issues Section -->
+    <div class="admin-tool-card">
+      <div class="tool-card-header">
+        <span class="tool-icon">🐛</span>
+        <h3 class="tool-title">Issues</h3>
+      </div>
+      <div class="tool-card-content">
+        <p class="tool-description">View and manage project issues</p>
+        <div class="tool-actions">
+          <a href="/ai-dashboard/admin/issues" class="btn btn-primary">
+            View Issues
+          </a>
+          <a href="/ai-dashboard/admin/import" class="btn btn-outline">
+            Import Settings
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration Section -->
+    <div class="admin-tool-card">
+      <div class="tool-card-header">
+        <span class="tool-icon">🔧</span>
+        <h3 class="tool-title">Configuration</h3>
+      </div>
+      <div class="tool-card-content">
+        <p class="tool-description">System settings and mappings</p>
+        <div class="tool-actions">
+          <a href="/ai-dashboard/admin/tag-mappings" class="btn btn-primary">
+            Tag Mappings
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Documentation Section -->
+    <div class="admin-tool-card">
+      <div class="tool-card-header">
+        <span class="tool-icon">📄</span>
+        <h3 class="tool-title">Documentation</h3>
+      </div>
+      <div class="tool-card-content">
+        <p class="tool-description">Technical guides and system documentation</p>
+        <div class="tool-actions">
+          <a href="/ai-dashboard/admin/documentation" class="btn btn-primary">
+            View Docs
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-quick-actions">
+    <h3 class="quick-actions-title">Quick Actions</h3>
+    <div class="quick-actions-grid">
+      <a href="/ai-dashboard/calendar" class="quick-action">
+        <span class="quick-action-icon">📅</span>
+        <span class="quick-action-text">Back to Calendar</span>
+      </a>
+      <a href="/ai-dashboard/admin/contributor-import" class="quick-action">
+        <span class="quick-action-icon">📥</span>
+        <span class="quick-action-text">Import Contributors</span>
+      </a>
+      <a href="/ai-dashboard/admin/import" class="quick-action">
+        <span class="quick-action-icon">🔄</span>
+        <span class="quick-action-text">Run Issue Import</span>
+      </a>
+      <a href="/node/add/ai_contributor" class="quick-action">
+        <span class="quick-action-icon">➕</span>
+        <span class="quick-action-text">Add Contributor</span>
+      </a>
+    </div>
+  </div>
+</div>

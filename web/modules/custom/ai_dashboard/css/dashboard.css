@@ -1,0 +1,619 @@
+/* AI Dashboard Styles */
+
+/* Override theme width constraints for full-width dashboard */
+body.path-ai-dashboard .layout-container,
+body.path-ai-dashboard .site-main-wrapper,
+body.path-ai-dashboard .site-main,
+body.path-ai-dashboard .main-content,
+body.path-ai-dashboard .layout-content {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Hide theme sidebars and navigation for cleaner look */
+body.path-ai-dashboard .site-header,
+body.path-ai-dashboard .site-footer,
+body.path-ai-dashboard .site-navigation,
+body.path-ai-dashboard .sidebar {
+  display: none !important;
+}
+
+/* Full-width container for the dashboard */
+body.path-ai-dashboard {
+  margin: 0;
+  padding: 0;
+}
+
+.ai-dashboard-container {
+  width: 100vw;
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, #0073aa, #005a87);
+  color: white;
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.5em;
+  font-weight: 300;
+}
+
+.dashboard-header .subtitle {
+  font-size: 1.1em;
+  opacity: 0.9;
+}
+
+.dashboard-navigation {
+  margin-top: 20px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.9em;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  color: white;
+}
+
+.nav-link.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Table and Action Styles */
+.contributors-table,
+.issues-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+
+.contributors-table th,
+.contributors-table td,
+.issues-table th,
+.issues-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.contributors-table th,
+.issues-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.contributors-table tr:hover,
+.issues-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+.create-actions {
+  margin: 20px 0;
+  text-align: right;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: #0073bb;
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background: #005a87;
+  text-decoration: none;
+  color: white;
+}
+
+.issues-filters {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 20px 0;
+}
+
+.issues-filters .form-item {
+  display: inline-block;
+  margin-right: 20px;
+  vertical-align: top;
+}
+
+.issues-filters label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.issues-filters select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin: 30px 0;
+}
+
+.dashboard-card {
+  background: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0073aa, #005a87);
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.dashboard-card h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.stat-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #0073aa;
+  margin: 10px 0;
+}
+
+.dashboard-card a {
+  color: #0073aa;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dashboard-card a:hover {
+  text-decoration: underline;
+}
+
+/* Tables */
+.contributors-table,
+.issues-table,
+.monthly-resources-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.contributors-table th,
+.issues-table th,
+.monthly-resources-table th,
+.contributors-table td,
+.issues-table td,
+.monthly-resources-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.contributors-table th,
+.issues-table th,
+.monthly-resources-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.contributors-table tr:hover,
+.issues-table tr:hover,
+.monthly-resources-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Filters */
+.issues-filters {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.issues-filters label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.issues-filters select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: white;
+}
+
+/* Recent Activity */
+.recent-activity {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.recent-activity h2 {
+  margin: 0 0 15px 0;
+  color: #333;
+  border-bottom: 2px solid #0073aa;
+  padding-bottom: 5px;
+}
+
+/* Resource Allocation */
+.resource-summary {
+  margin: 20px 0;
+}
+
+.weekly-allocation-chart {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.weekly-allocation-chart h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+/* Status badges */
+.status-active { color: #28a745; }
+.status-needs-review { color: #ffc107; }
+.status-needs-work { color: #dc3545; }
+.status-rtbc { color: #17a2b8; }
+.status-fixed { color: #6c757d; }
+
+.priority-critical { color: #dc3545; font-weight: bold; }
+.priority-major { color: #fd7e14; font-weight: bold; }
+.priority-normal { color: #6c757d; }
+.priority-minor { color: #28a745; }
+
+/* Consolidated Dashboard Styles */
+.companies-overview {
+  margin: 30px 0;
+}
+
+.company-section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+
+.company-header {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.company-logo img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.company-logo-placeholder {
+  width: 120px;
+  height: 80px;
+  background: linear-gradient(135deg, #0073aa, #005a87);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.company-info h2 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.company-stats {
+  color: #666;
+  font-size: 1em;
+}
+
+.contributors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  padding: 25px;
+}
+
+.contributor-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.contributor-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.contributor-info h3 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.contributor-role {
+  color: #0073aa;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.contributor-username {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 15px;
+}
+
+.current-issues h4 {
+  margin: 15px 0 10px 0;
+  color: #333;
+  font-size: 1.1em;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 5px;
+}
+
+.no-issues {
+  color: #999;
+  font-style: italic;
+  padding: 10px 0;
+}
+
+.issues-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.issue-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.issue-item:hover {
+  border-color: #0073aa;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.issue-number {
+  font-weight: bold;
+  color: #0073aa;
+  font-size: 0.9em;
+}
+
+.issue-title {
+  color: #333;
+  font-weight: 500;
+  margin-left: 8px;
+  display: block;
+  margin-top: 2px;
+}
+
+.issue-meta {
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 5px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.issue-link {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #0073aa;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.8em;
+  transition: background 0.2s ease;
+}
+
+.issue-link:hover {
+  background: #005a87;
+  color: white;
+  text-decoration: none;
+}
+
+.issue-link.disabled {
+  background: #6c757d;
+  color: white;
+  cursor: not-allowed;
+}
+
+/* Status indicators */
+.issue-item.status-active {
+  border-left: 4px solid #28a745;
+}
+
+.issue-item.status-needs-review {
+  border-left: 4px solid #ffc107;
+}
+
+.issue-item.status-needs-work {
+  border-left: 4px solid #dc3545;
+}
+
+.issue-item.status-rtbc {
+  border-left: 4px solid #17a2b8;
+}
+
+.issue-status {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.issue-item.status-active .issue-status {
+  background: #d4edda;
+  color: #155724;
+}
+
+.issue-item.status-needs-review .issue-status {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.issue-item.status-needs-work .issue-status {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.issue-item.status-rtbc .issue-status {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.issue-priority {
+  font-weight: 500;
+}
+
+.issue-item.priority-critical .issue-priority {
+  color: #dc3545;
+}
+
+.issue-item.priority-major .issue-priority {
+  color: #fd7e14;
+}
+
+.issue-item.priority-normal .issue-priority {
+  color: #6c757d;
+}
+
+.issue-item.priority-minor .issue-priority {
+  color: #28a745;
+}
+
+.issue-module {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  color: #495057;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .issues-filters {
+    grid-template-columns: 1fr;
+  }
+  
+  .contributors-table,
+  .issues-table,
+  .monthly-resources-table {
+    font-size: 14px;
+  }
+  
+  .contributors-table th,
+  .issues-table th,
+  .monthly-resources-table th,
+  .contributors-table td,
+  .issues-table td,
+  .monthly-resources-table td {
+    padding: 8px;
+  }
+
+  .company-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .contributors-grid {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .contributor-card {
+    padding: 15px;
+  }
+}

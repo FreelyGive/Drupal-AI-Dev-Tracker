@@ -1,0 +1,37 @@
+{#
+/**
+ * @file
+ * Template for admin navigation component.
+ *
+ * Available variables:
+ * - navigation_items: Array of navigation items
+ * - active_page: Current active page identifier
+ */
+#}
+
+<nav class="admin-navigation">
+  <div class="admin-nav-container">
+    <div class="admin-nav-header">
+      <h2 class="admin-nav-title">
+        <span class="admin-nav-icon">⚙️</span>
+        Admin Tools
+      </h2>
+    </div>
+    
+    <div class="admin-nav-items">
+      {% for key, item in navigation_items %}
+        <a href="{{ item.url }}" 
+           class="admin-nav-item {{ key == active_page ? 'active' : '' }} {{ item.is_primary ? 'primary' : '' }}"
+           title="{{ item.description }}">
+          <div class="nav-item-content">
+            <span class="nav-item-icon">{{ item.icon }}</span>
+            <div class="nav-item-text">
+              <span class="nav-item-title">{{ item.title }}</span>
+              <span class="nav-item-description">{{ item.description }}</span>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,14 @@
+name: 'AI Dashboard'
+type: module
+description: 'Dashboard for tracking AI module contributions and contributors'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - drupal:node
+  - drupal:field
+  - drupal:views
+  - drupal:views_ui
+  - drupal:datetime
+  - drupal:link
+  - drupal:text
+  - drupal:options

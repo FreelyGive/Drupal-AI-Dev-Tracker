@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_status_filter
+    - node.type.ai_import_config
+id: node.ai_import_config.field_import_status_filter
+field_name: field_import_status_filter
+entity_type: node
+bundle: ai_import_config
+label: 'Status Filter'
+description: 'Select which issue statuses to import. "All Open Issues" excludes only closed statuses.'
+required: false
+translatable: false
+default_value:
+  - value: '1'
+  - value: '13'  
+  - value: '8'
+  - value: '14'
+  - value: '15'
+  - value: '2'
+  - value: '4'
+  - value: '16'
+default_value_callback: ''
+settings: {  }
+field_type: list_string

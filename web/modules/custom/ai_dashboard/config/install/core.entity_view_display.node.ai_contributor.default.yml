@@ -1,0 +1,83 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_contributor.field_contributor_avatar
+    - field.field.node.ai_contributor.field_contributor_company
+    - field.field.node.ai_contributor.field_contributor_email
+    - field.field.node.ai_contributor.field_contributor_role
+    - field.field.node.ai_contributor.field_contributor_skills
+    - field.field.node.ai_contributor.field_drupal_username
+    - field.field.node.ai_contributor.field_weekly_commitment
+    - node.type.ai_contributor
+  module:
+    - image
+    - link
+    - user
+id: node.ai_contributor.default
+targetEntityType: node
+bundle: ai_contributor
+mode: default
+content:
+  field_contributor_avatar:
+    type: image
+    label: above
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_drupal_username:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  field_contributor_email:
+    type: basic_string
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_contributor_company:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  field_contributor_role:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  field_contributor_skills:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  field_weekly_commitment:
+    type: number_decimal
+    label: above
+    settings:
+      thousand_separator: ''
+      decimal_separator: '.'
+      scale: 1
+      prefix_suffix: true
+    third_party_settings: {  }
+    weight: 6
+    region: content
+hidden:
+  langcode: true
+  links: true

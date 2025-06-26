@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Contains ai_dashboard.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function ai_dashboard_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.ai_dashboard':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('AI Dashboard provides a comprehensive view of AI module contributions.') . '</p>';
+      return $output;
+  }
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function ai_dashboard_theme() {
+  return [
+    'ai_dashboard' => [
+      'variables' => [
+        'companies' => [],
+        'contributors' => [],
+        'issues' => [],
+        'modules' => [],
+      ],
+    ],
+    'ai_calendar_dashboard' => [
+      'variables' => [
+        'calendar_data' => [],
+        'backlog_data' => [],
+        'week_start' => NULL,
+        'week_end' => NULL,
+        'week_offset' => 0,
+      ],
+    ],
+    'admin_navigation' => [
+      'variables' => [
+        'navigation_items' => [],
+        'active_page' => NULL,
+      ],
+    ],
+    'admin_tools_landing' => [
+      'variables' => [],
+    ],
+  ];
+}

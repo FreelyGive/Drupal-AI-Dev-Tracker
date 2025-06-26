@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_source_type
+    - node.type.ai_import_config
+  module:
+    - options
+id: node.ai_import_config.field_import_source_type
+field_name: field_import_source_type
+entity_type: node
+bundle: ai_import_config
+label: 'Source Type'
+description: 'The API source to import from'
+required: true
+translatable: false
+default_value:
+  - value: drupal_org
+default_value_callback: ''
+settings: {  }
+field_type: list_string

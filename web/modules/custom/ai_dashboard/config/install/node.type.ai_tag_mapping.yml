@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Tag Mapping'
+type: ai_tag_mapping
+description: 'Maps drupal.org tags to structured categories in the AI Dashboard'
+help: 'Use this to configure how flat tags from drupal.org should be categorized in your dashboard'
+new_revision: true
+preview_mode: 1
+display_submitted: false

@@ -1,0 +1,24 @@
+ai_dashboard.admin:
+  title: 'AI Dashboard'
+  description: 'Manage AI contribution tracking'
+  route_name: ai_dashboard.main
+  parent: system.admin
+  weight: 50
+
+ai_dashboard.contributors:
+  title: 'Contributors'
+  description: 'Manage AI contributors'
+  route_name: ai_dashboard.contributors
+  parent: ai_dashboard.admin
+
+ai_dashboard.issues:
+  title: 'Issues'
+  description: 'Manage AI issues'
+  route_name: ai_dashboard.issues
+  parent: ai_dashboard.admin
+
+ai_dashboard.resources:
+  title: 'Resource Allocation'
+  description: 'Manage resource allocations'
+  route_name: ai_dashboard.resources
+  parent: ai_dashboard.admin

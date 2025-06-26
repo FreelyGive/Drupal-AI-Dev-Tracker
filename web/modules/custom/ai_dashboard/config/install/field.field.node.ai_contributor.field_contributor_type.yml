@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_contributor_type
+    - node.type.ai_contributor
+id: node.ai_contributor.field_contributor_type
+field_name: field_contributor_type
+entity_type: node
+bundle: ai_contributor
+label: 'Contributor Type'
+description: 'Select whether this person is a developer or non-developer contributor.'
+required: true
+translatable: false
+default_value:
+  -
+    value: dev
+default_value_callback: ''
+settings: {  }
+field_type: list_string

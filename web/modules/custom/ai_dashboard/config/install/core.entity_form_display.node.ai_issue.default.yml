@@ -1,0 +1,112 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_issue.field_issue_assignees
+    - field.field.node.ai_issue.field_issue_category
+    - field.field.node.ai_issue.field_issue_deadline
+    - field.field.node.ai_issue.field_issue_do_assignee
+    - field.field.node.ai_issue.field_issue_module
+    - field.field.node.ai_issue.field_issue_number
+    - field.field.node.ai_issue.field_issue_priority
+    - field.field.node.ai_issue.field_issue_status
+    - field.field.node.ai_issue.field_issue_tags
+    - field.field.node.ai_issue.field_issue_url
+    - node.type.ai_issue
+  module:
+    - datetime
+    - link
+    - options
+    - path
+id: node.ai_issue.default
+targetEntityType: node
+bundle: ai_issue
+mode: default
+content:
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Enter issue title'
+    third_party_settings: {  }
+  field_issue_number:
+    type: number
+    weight: 1
+    region: content
+    settings:
+      placeholder: 'e.g. 3412340'
+    third_party_settings: {  }
+  field_issue_url:
+    type: link_default
+    weight: 2
+    region: content
+    settings:
+      placeholder_url: 'https://drupal.org/project/ai/issues/3412340'
+      placeholder_title: 'Issue #3412340'
+    third_party_settings: {  }
+  field_issue_module:
+    type: options_select
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_status:
+    type: options_select
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_priority:
+    type: options_select
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_category:
+    type: options_select
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_assignees:
+    type: options_buttons
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_do_assignee:
+    type: string_textfield
+    weight: 8
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Drupal.org username (auto-filled from API)'
+    third_party_settings: {  }
+  field_issue_deadline:
+    type: datetime_default
+    weight: 9
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_issue_tags:
+    type: string_textfield
+    weight: 10
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. AI Logging, June, Critical (comma separated)'
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 11
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  promote: true
+  status: true
+  sticky: true
+  uid: true

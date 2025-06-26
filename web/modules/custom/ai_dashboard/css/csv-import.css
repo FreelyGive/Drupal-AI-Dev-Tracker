@@ -1,0 +1,299 @@
+/* CSV Import Form Styles */
+.contributor-csv-import-form {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #0073bb 0%, #005a8b 100%);
+  color: white;
+  padding: 2rem;
+  margin-bottom: 0;
+}
+
+.page-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.875rem;
+  font-weight: 600;
+}
+
+.page-description {
+  margin: 0;
+  font-size: 1.125rem;
+  opacity: 0.9;
+}
+
+/* Instructions Section */
+.instructions-section {
+  margin: 2rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.instructions-section summary {
+  padding: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  background: #f1f5f9;
+  border-radius: 6px 6px 0 0;
+}
+
+.instruction-steps {
+  padding: 1rem;
+}
+
+.instruction-steps h3 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+.instruction-steps ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.instruction-steps li {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+/* Template Section */
+.template-section {
+  margin: 2rem;
+  padding: 1.5rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.download-template-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #0073bb;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+  margin-bottom: 1rem;
+}
+
+.download-template-btn:hover {
+  background: #005a8b;
+  color: white;
+  text-decoration: none;
+}
+
+.template-info {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.875rem;
+}
+
+/* Format Info Section */
+.format-info-section {
+  margin: 2rem;
+}
+
+.format-info-section summary {
+  padding: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.csv-format-info {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: white;
+}
+
+.csv-format-info h4 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+.csv-format-info ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.csv-format-info li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+/* Upload Section */
+.upload-section {
+  margin: 2rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 2rem;
+  background: #f8fafc;
+  transition: border-color 0.2s;
+}
+
+.upload-section:hover {
+  border-color: #0073bb;
+}
+
+.upload-section legend {
+  padding: 0 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: white;
+  border-radius: 4px;
+}
+
+.csv-file-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 1rem;
+}
+
+.csv-file-input:focus {
+  outline: none;
+  border-color: #0073bb;
+  box-shadow: 0 0 0 2px rgba(0, 115, 187, 0.2);
+}
+
+.selected-file {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  color: #047857;
+  font-size: 0.875rem;
+}
+
+/* Form Actions */
+.form-actions {
+  margin: 2rem;
+  text-align: center;
+}
+
+.import-btn {
+  padding: 0.875rem 2rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 200px;
+}
+
+.import-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.import-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Results Section */
+.import-results {
+  margin: 2rem;
+}
+
+.import-results.hidden {
+  display: none;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.alert h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.alert p {
+  margin: 0;
+}
+
+.alert details {
+  margin-top: 1rem;
+}
+
+.alert summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.alert ul {
+  margin: 0.5rem 0 0 1rem;
+  padding: 0;
+}
+
+.alert li {
+  margin-bottom: 0.25rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contributor-csv-import-form {
+    margin: 1rem;
+    border-radius: 0;
+  }
+  
+  .page-header {
+    padding: 1.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .instructions-section,
+  .template-section,
+  .format-info-section,
+  .upload-section,
+  .form-actions,
+  .import-results {
+    margin: 1rem;
+  }
+}

@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - datetime
+id: node.field_issue_assignment_date
+field_name: field_issue_assignment_date
+entity_type: node
+type: datetime
+settings:
+  datetime_type: date
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

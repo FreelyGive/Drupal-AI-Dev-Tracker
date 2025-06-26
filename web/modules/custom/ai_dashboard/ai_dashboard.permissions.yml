@@ -1,0 +1,12 @@
+access ai dashboard:
+  title: 'Access AI Dashboard'
+  description: 'Allow users to view the AI contribution dashboard'
+
+administer ai dashboard:
+  title: 'Administer AI Dashboard'
+  description: 'Allow users to configure the AI dashboard settings'
+
+administer ai dashboard imports:
+  title: 'Administer AI Dashboard Imports'
+  description: 'Manage API imports, configure sources, and run import operations'
+  restrict access: true

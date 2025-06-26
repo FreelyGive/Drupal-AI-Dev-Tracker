@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mapped_value
+    - node.type.ai_tag_mapping
+id: node.ai_tag_mapping.field_mapped_value
+field_name: field_mapped_value
+entity_type: node
+bundle: ai_tag_mapping
+label: 'Mapped Value'
+description: 'The structured value this tag should map to in your dashboard (e.g. "ai_integration", "2024-06", "critical")'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

@@ -1,0 +1,355 @@
+/* Admin Tools Styles */
+
+/* Calendar View Admin Button */
+.admin-tools-btn {
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
+  color: white !important;
+  margin-left: 0.5rem;
+}
+
+.admin-tools-btn:hover {
+  background: #6d28d9 !important;
+  border-color: #6d28d9 !important;
+  color: white !important;
+}
+
+/* Admin Navigation */
+.admin-navigation {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.admin-nav-container {
+  padding: 0;
+}
+
+.admin-nav-header {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+}
+
+.admin-nav-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-nav-icon {
+  font-size: 1.75rem;
+}
+
+.admin-nav-items {
+  display: grid;
+  gap: 0;
+}
+
+.admin-nav-item {
+  display: block;
+  padding: 1rem 2rem;
+  color: #374151;
+  text-decoration: none;
+  border-bottom: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.admin-nav-item:hover {
+  background: #f9fafb;
+  color: #111827;
+  text-decoration: none;
+}
+
+.admin-nav-item.active {
+  background: #ede9fe;
+  color: #7c3aed;
+  border-left: 4px solid #7c3aed;
+}
+
+.admin-nav-item.primary {
+  background: #f3f4f6;
+  color: #0073bb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.admin-nav-item.primary:hover {
+  background: #e5e7eb;
+  color: #005a8b;
+}
+
+.nav-item-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-item-icon {
+  font-size: 1.25rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.nav-item-text {
+  flex: 1;
+}
+
+.nav-item-title {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.nav-item-description {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.admin-nav-item.active .nav-item-description {
+  color: #a855f7;
+}
+
+.admin-nav-item.primary .nav-item-description {
+  color: #0891b2;
+}
+
+/* Admin Tools Landing Page */
+.admin-tools-landing {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.admin-title {
+  margin: 0 0 1rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.admin-title-icon {
+  font-size: 3rem;
+}
+
+.admin-subtitle {
+  margin: 0;
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+/* Tool Cards Grid */
+.admin-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.admin-tool-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.admin-tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.tool-card-header {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tool-icon {
+  font-size: 2rem;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tool-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.tool-card-content {
+  padding: 1.5rem;
+}
+
+.tool-description {
+  margin: 0 0 1.5rem 0;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.tool-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Quick Actions */
+.admin-quick-actions {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quick-actions-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #374151;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quick-action:hover {
+  background: #e2e8f0;
+  color: #1f2937;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.quick-action-icon {
+  font-size: 1.5rem;
+}
+
+.quick-action-text {
+  font-weight: 500;
+}
+
+/* Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.btn-primary:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+  color: white;
+  text-decoration: none;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.btn-outline:hover {
+  background: #7c3aed;
+  color: white;
+  text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-header {
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .admin-title {
+    font-size: 2rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .admin-title-icon {
+    font-size: 2.5rem;
+  }
+  
+  .admin-subtitle {
+    font-size: 1.125rem;
+  }
+  
+  .admin-tools-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .admin-nav-item {
+    padding: 1rem;
+  }
+  
+  .nav-item-content {
+    gap: 0.75rem;
+  }
+  
+  .tool-actions {
+    flex-direction: column;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,56 @@
+dashboard:
+  version: 1.x
+  css:
+    theme:
+      css/dashboard.css: {}
+  js:
+    js/dashboard.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+calendar_dashboard:
+  version: 1.x
+  css:
+    theme:
+      css/calendar-dashboard.css: {}
+  js:
+    js/calendar-backlog.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+csv_import:
+  version: 1.x
+  css:
+    theme:
+      css/csv-import.css: {}
+  js:
+    js/csv-import.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+admin_forms:
+  version: 1.x
+  css:
+    theme:
+      css/admin-forms.css: {}
+  dependencies:
+    - core/drupal
+
+admin_tools:
+  version: 1.x
+  css:
+    theme:
+      css/admin-tools.css: {}
+  dependencies:
+    - core/drupal
+
+admin_navigation:
+  version: 1.x
+  css:
+    theme:
+      css/admin-navigation.css: {}
+  dependencies:
+    - core/drupal

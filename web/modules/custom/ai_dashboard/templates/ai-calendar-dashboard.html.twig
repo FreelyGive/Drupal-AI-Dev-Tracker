@@ -1,0 +1,345 @@
+{#
+/**
+ * @file
+ * Template for the AI Calendar Dashboard.
+ *
+ * Available variables:
+ * - calendar_data: Array of calendar data organized by companies
+ * - week_start: DateTime object for the start of the week
+ * - week_end: DateTime object for the end of the week
+ * - week_offset: Integer offset for current week
+ */
+#}
+
+<div class="ai-calendar-dashboard">
+  <!-- Header -->
+  <div class="calendar-header">
+    <div class="header-content">
+      <div class="week-info">
+        <h1 class="page-title">AI Module Issue Calendar</h1>
+        <h2 class="week-range">
+          {{ week_start|date('M j') }} - {{ week_end|date('j, Y') }}
+          {% if week_offset == 0 %}
+            <span class="current-week">(Current)</span>
+          {% endif %}
+        </h2>
+      </div>
+      
+      <div class="week-controls">
+        <div class="issue-count">
+          {{ calendar_data.week_summary.active + calendar_data.week_summary.needs_review + calendar_data.week_summary.needs_work + calendar_data.week_summary.fixed }} issues
+        </div>
+        
+        <div class="nav-buttons">
+          <a href="/ai-dashboard/calendar?week={{ week_offset - 1 }}" class="btn btn-outline">
+            <span class="chevron-left">‹</span>
+          </a>
+          
+          {% if week_offset != 0 %}
+            <a href="/ai-dashboard/calendar" class="btn btn-outline">
+              <span class="calendar-icon">📅</span> Now
+            </a>
+          {% endif %}
+          
+          <a href="/ai-dashboard/calendar?week={{ week_offset + 1 }}" class="btn btn-outline">
+            <span class="chevron-right">›</span>
+          </a>
+          
+          <a href="/ai-dashboard/admin" class="btn btn-primary admin-tools-btn">
+            <span class="admin-icon">⚙️</span> Admin Tools
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week Summary -->
+  <div class="week-summary">
+    <h3 class="summary-title">Week Summary</h3>
+    <p class="summary-legend">
+      <span class="legend-item">
+        <span class="dot committed"></span> Committed days
+      </span>
+      <span class="legend-item">
+        <span class="dot available"></span> Available days
+      </span>
+    </p>
+    
+    <div class="summary-grid">
+      <div class="summary-card active">
+        <div class="summary-number">{{ calendar_data.week_summary.active }}</div>
+        <div class="summary-label">Active</div>
+      </div>
+      
+      <div class="summary-card review">
+        <div class="summary-number">{{ calendar_data.week_summary.needs_review }}</div>
+        <div class="summary-label">Review</div>
+      </div>
+      
+      <div class="summary-card work">
+        <div class="summary-number">{{ calendar_data.week_summary.needs_work }}</div>
+        <div class="summary-label">Work</div>
+      </div>
+      
+      <div class="summary-card fixed">
+        <div class="summary-number">{{ calendar_data.week_summary.fixed }}</div>
+        <div class="summary-label">Fixed</div>
+      </div>
+      
+      <div class="summary-card capacity">
+        <div class="summary-number">
+          {{ calendar_data.week_summary.total_commitment }}
+          <span class="capacity-total">/{{ calendar_data.week_summary.total_capacity }}</span>
+        </div>
+        <div class="summary-label">Team Capacity</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Company Groups -->
+  <div class="company-groups">
+    {% for company in calendar_data.companies %}
+      <div class="company-group" data-company-id="{{ company.id }}">
+        
+        <!-- Company Header -->
+        <div class="company-header">
+          <div class="company-info">
+            {% if company.logo_url %}
+              <img src="{{ company.logo_url }}" alt="{{ company.name }} logo" class="company-logo">
+            {% endif %}
+            <h3 class="company-name">{{ company.name }}</h3>
+            <span class="developer-count">{{ company.developers|length }}</span>
+          </div>
+        </div>
+
+        <!-- Developer Rows -->
+        <div class="developer-rows">
+          {% for developer in company.developers %}
+            <div class="developer-row" data-developer-id="{{ developer.id }}">
+              
+              <!-- Developer Info -->
+              <div class="developer-info">
+                <div class="developer-profile">
+                  {% if developer.avatar_url %}
+                    <img src="{{ developer.avatar_url }}" alt="{{ developer.name }} avatar" class="developer-avatar">
+                  {% else %}
+                    <div class="developer-avatar fallback">
+                      {{ developer.name|split(' ')|map(name => name|first)|join('') }}
+                    </div>
+                  {% endif %}
+                  
+                  <div class="developer-details">
+                    <h4 class="developer-name">{{ developer.name }}</h4>
+                    <div class="developer-meta">
+                      <div class="weekly-commitment">
+                        {% for i in 1..5 %}
+                          {% set commitment_level = 'empty' %}
+                          {% if developer.weekly_commitment >= i %}
+                            {% set commitment_level = 'filled' %}
+                          {% elseif developer.weekly_commitment > (i - 1) %}
+                            {% set commitment_level = 'half' %}
+                          {% endif %}
+                          <div class="commitment-pip {{ commitment_level }}"></div>
+                        {% endfor %}
+                      </div>
+                      <div class="developer-stats">
+                        <div class="issue-count">
+                          <span class="count-number">{{ developer.issues|length }}</span>
+                          <span class="count-label">issue{{ developer.issues|length != 1 ? 's' : '' }}</span>
+                        </div>
+                        {% set can_edit_contributors = user.hasPermission('edit any ai_contributor content') %}
+                        {% if can_edit_contributors and developer.nid %}
+                          <a href="/node/{{ developer.nid }}/edit" class="developer-edit-link" title="Edit contributor">
+                            <span class="edit-icon">⚙</span>
+                          </a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Issues Grid -->
+              <div class="issues-grid">
+                {% if developer.issues|length > 0 %}
+                  {% for issue in developer.issues %}
+                    <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }}" data-issue-id="{{ issue.id }}">
+                      <div class="issue-header">
+                        <span class="issue-category">{{ issue.category|replace({'_': ' '})|title }}</span>
+                        <div class="issue-actions">
+                          {% if issue.url != '#' %}
+                            <a href="{{ issue.url }}" target="_blank" class="issue-link">
+                              <span class="external-icon">↗</span>
+                            </a>
+                          {% endif %}
+                          {% set can_edit_issues = user.hasPermission('edit any ai_issue content') %}
+                          {% if can_edit_issues and issue.nid %}
+                            <button class="issue-remove-btn" data-issue-id="{{ issue.id }}" title="Remove from this week">
+                              <span class="remove-icon">✕</span>
+                            </button>
+                            <a href="/node/{{ issue.nid }}/edit" class="issue-edit-link" title="Edit issue">
+                              <span class="edit-icon">⚙</span>
+                            </a>
+                          {% endif %}
+                        </div>
+                      </div>
+                      
+                      <h5 class="issue-title">{{ issue.title }}</h5>
+                      
+                      <div class="issue-footer">
+                        <div class="issue-meta">
+                          <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
+                          {% if issue.issue_number %}
+                            <span class="issue-number">#{{ issue.issue_number }}</span>
+                          {% endif %}
+                        </div>
+                        
+                        {% if issue.deadline %}
+                          {% set deadline_date = issue.deadline|date('Y-m-d') %}
+                          {% set today = 'now'|date('Y-m-d') %}
+                          {% set is_overdue = deadline_date < today %}
+                          {% set days_diff = (deadline_date|date('U') - today|date('U')) / 86400 %}
+                          {% set is_due_soon = days_diff <= 3 and days_diff >= 0 %}
+                          
+                          <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}">
+                            <span class="clock-icon">⏰</span>
+                            <span class="deadline-text">{{ issue.deadline|date('M j') }}</span>
+                          </div>
+                        {% endif %}
+                        
+                        {% if issue.has_conflict %}
+                          <div class="assignment-conflict">
+                            <span class="warning-icon">⚠️</span>
+                            <span class="conflict-text">Assignment conflict on d.o</span>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="no-issues">
+                    <div class="no-issues-content">
+                      <span class="calendar-icon">📅</span>
+                      <p class="no-issues-text">Available</p>
+                    </div>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Backlog Drawer -->
+  <div id="backlog-drawer" class="backlog-drawer">
+    <div class="backlog-header">
+      <h3>📋 Issue Backlog</h3>
+      <div class="backlog-controls">
+        {% if week_offset != 0 %}
+          <button id="copy-previous-week" class="btn btn-secondary" title="Add assignments from previous week to this week">
+            📋 Add Previous Week
+          </button>
+        {% endif %}
+        <button id="close-backlog" class="btn btn-close" title="Close backlog">✕</button>
+      </div>
+    </div>
+
+    <div class="backlog-filters">
+      <div class="filter-group">
+        <label for="module-filter">Module:</label>
+        <select id="module-filter" class="filter-select">
+          <option value="">All Modules</option>
+          {% for module_id, module_name in backlog_data.modules %}
+            <option value="{{ module_id }}">{{ module_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="tag-filter">Tag:</label>
+        <select id="tag-filter" class="filter-select">
+          <option value="">All Tags</option>
+          {% for tag in backlog_data.tags %}
+            <option value="{{ tag }}">{{ tag }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="priority-filter">Priority:</label>
+        <select id="priority-filter" class="filter-select">
+          <option value="">All Priorities</option>
+          <option value="critical">Critical</option>
+          <option value="major">Major</option>
+          <option value="normal">Normal</option>
+          <option value="minor">Minor</option>
+          <option value="trivial">Trivial</option>
+        </select>
+      </div>
+      
+      <button id="clear-filters" class="btn btn-secondary">Clear Filters</button>
+    </div>
+
+    <div class="backlog-content">
+      <div class="backlog-count">
+        <span id="showing-count">{{ backlog_data.issues|length|default(0) }}</span> unassigned issues
+      </div>
+      
+      <div class="backlog-issues" id="backlog-issues">
+        {% if backlog_data.issues is defined and backlog_data.issues|length > 0 %}
+          {% for issue in backlog_data.issues %}
+            <div class="backlog-issue" 
+                 data-issue-id="{{ issue.id }}"
+                 data-module-id="{{ issue.module_id }}" 
+                 data-tags="{{ issue.tags|join(',') }}"
+                 data-priority="{{ issue.priority }}"
+                 draggable="true">
+              <div class="issue-header">
+                <span class="issue-number">#{{ issue.number }}</span>
+                <span class="issue-priority priority-{{ issue.priority }}">{{ issue.priority|title }}</span>
+                {% if issue.url != '#' %}
+                  <a href="{{ issue.url }}" target="_blank" class="issue-external-link" title="View on external site">🔗</a>
+                {% endif %}
+              </div>
+              
+              <h4 class="issue-title">{{ issue.title }}</h4>
+              
+              <div class="issue-meta">
+                <span class="issue-module">📦 {{ issue.module }}</span>
+                <span class="issue-status status-{{ issue.status|replace({'_': '-'}) }}">{{ issue.status|replace({'_': ' '})|title }}</span>
+              </div>
+              
+              {% if issue.tags|length > 0 %}
+                <div class="issue-tags">
+                  {% for tag in issue.tags %}
+                    <span class="tag">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-backlog-issues" style="text-align: center; padding: 2rem; color: #6b7280;">
+            <p>🔍 No unassigned issues found</p>
+            <p style="font-size: 0.75rem;">Issues that are assigned to developers won't appear here.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Backlog Toggle Button -->
+  <button id="show-backlog" class="backlog-toggle" title="Show Issue Backlog">
+    📋 Backlog ({{ backlog_data.issues|length }})
+  </button>
+
+  <!-- Drop Zone Indicator -->
+  <div id="drop-indicator" class="drop-indicator">
+    <div class="drop-indicator-content">
+      <div class="drop-icon">📌</div>
+      <div class="drop-text">Drop here to assign</div>
+    </div>
+  </div>
+</div>

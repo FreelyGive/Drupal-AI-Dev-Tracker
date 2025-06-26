@@ -1,0 +1,58 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_tag_mapping.field_source_tag
+    - field.field.node.ai_tag_mapping.field_mapping_type
+    - field.field.node.ai_tag_mapping.field_mapped_value
+    - node.type.ai_tag_mapping
+  module:
+    - options
+    - path
+id: node.ai_tag_mapping.default
+targetEntityType: node
+bundle: ai_tag_mapping
+mode: default
+content:
+  field_source_tag:
+    type: string_textfield
+    weight: 1
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. AI Logging, June, Critical'
+    third_party_settings: {  }
+  field_mapping_type:
+    type: options_select
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_mapped_value:
+    type: string_textfield
+    weight: 3
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. ai_integration, 2024-06, critical'
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. Map "AI Logging" to Category'
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  promote: true
+  status: true
+  sticky: true
+  uid: true

@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_import_active
+    - node.type.ai_import_config
+id: node.ai_import_config.field_import_active
+field_name: field_import_active
+entity_type: node
+bundle: ai_import_config
+label: 'Active'
+description: 'Whether this import configuration is active'
+required: false
+translatable: false
+default_value:
+  - value: 1
+default_value_callback: ''
+settings:
+  on_label: 'Active'
+  off_label: 'Inactive'
+field_type: boolean

@@ -1,0 +1,417 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for AI Dashboard module.
+ */
+
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Entity\EntityTypeInterface;
+
+/**
+ * Implements hook_install().
+ */
+function ai_dashboard_install() {
+  // Create content types and fields programmatically
+  ai_dashboard_create_content_types();
+  // Fields will be created via configuration files instead
+}
+
+/**
+ * Create content types for the AI Dashboard.
+ */
+function ai_dashboard_create_content_types() {
+  $types = [
+    'ai_company' => [
+      'name' => 'AI Company',
+      'description' => 'Companies that contribute to AI modules',
+    ],
+    'ai_contributor' => [
+      'name' => 'AI Contributor',
+      'description' => 'Individual contributors to AI modules',
+    ],
+    'ai_module' => [
+      'name' => 'AI Module',
+      'description' => 'AI and related modules being tracked',
+    ],
+    'ai_issue' => [
+      'name' => 'AI Issue',
+      'description' => 'Drupal.org issues for AI modules',
+    ],
+    'ai_resource_allocation' => [
+      'name' => 'AI Resource Allocation',
+      'description' => 'Weekly resource commitments by contributors',
+    ],
+  ];
+
+  foreach ($types as $type_id => $type_info) {
+    $type = \Drupal\node\Entity\NodeType::create([
+      'type' => $type_id,
+      'name' => $type_info['name'],
+      'description' => $type_info['description'],
+      'new_revision' => TRUE,
+      'preview_mode' => DRUPAL_OPTIONAL,
+      'display_submitted' => FALSE,
+    ]);
+    $type->save();
+  }
+}
+
+/**
+ * Create fields for the AI Dashboard content types.
+ */
+function ai_dashboard_create_fields() {
+  $field_configs = ai_dashboard_get_field_configs();
+  
+  foreach ($field_configs as $config) {
+    ai_dashboard_create_field($config);
+  }
+}
+
+/**
+ * Get field configurations for all content types.
+ */
+function ai_dashboard_get_field_configs() {
+  return [
+    // AI Company fields
+    [
+      'field_name' => 'field_company_website',
+      'entity_type' => 'node',
+      'bundle' => 'ai_company',
+      'field_type' => 'link',
+      'label' => 'Website',
+      'required' => FALSE,
+    ],
+    [
+      'field_name' => 'field_company_size',
+      'entity_type' => 'node',
+      'bundle' => 'ai_company',
+      'field_type' => 'list_string',
+      'label' => 'Company Size',
+      'required' => FALSE,
+      'settings' => [
+        'allowed_values' => [
+          'startup' => 'Startup (1-10)',
+          'small' => 'Small (11-50)',
+          'medium' => 'Medium (51-200)',
+          'large' => 'Large (201-1000)',
+          'enterprise' => 'Enterprise (1000+)',
+        ],
+      ],
+    ],
+    
+    // AI Contributor fields
+    [
+      'field_name' => 'field_drupal_username',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'string',
+      'label' => 'Drupal.org Username',
+      'required' => TRUE,
+    ],
+    [
+      'field_name' => 'field_contributor_company',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'entity_reference',
+      'label' => 'Company',
+      'required' => FALSE,
+      'settings' => [
+        'target_type' => 'node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_company'],
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_contributor_role',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'string',
+      'label' => 'Role/Title',
+      'required' => FALSE,
+    ],
+    [
+      'field_name' => 'field_contributor_email',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'email',
+      'label' => 'Email',
+      'required' => FALSE,
+    ],
+    
+    // AI Module fields
+    [
+      'field_name' => 'field_module_machine_name',
+      'entity_type' => 'node',
+      'bundle' => 'ai_module',
+      'field_type' => 'string',
+      'label' => 'Machine Name',
+      'required' => TRUE,
+    ],
+    [
+      'field_name' => 'field_module_project_url',
+      'entity_type' => 'node',
+      'bundle' => 'ai_module',
+      'field_type' => 'link',
+      'label' => 'Drupal.org Project URL',
+      'required' => FALSE,
+    ],
+    [
+      'field_name' => 'field_module_category',
+      'entity_type' => 'node',
+      'bundle' => 'ai_module',
+      'field_type' => 'list_string',
+      'label' => 'Category',
+      'required' => FALSE,
+      'settings' => [
+        'allowed_values' => [
+          'core_ai' => 'Core AI',
+          'provider' => 'AI Provider',
+          'integration' => 'AI Integration',
+          'utility' => 'AI Utility',
+          'related' => 'Related Module',
+        ],
+      ],
+    ],
+    
+    // AI Issue fields
+    [
+      'field_name' => 'field_issue_number',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'integer',
+      'label' => 'Issue Number',
+      'required' => TRUE,
+    ],
+    [
+      'field_name' => 'field_issue_url',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'link',
+      'label' => 'Issue URL',
+      'required' => TRUE,
+    ],
+    [
+      'field_name' => 'field_issue_module',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'entity_reference',
+      'label' => 'Module',
+      'required' => TRUE,
+      'settings' => [
+        'target_type' => 'node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_module'],
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_issue_assignees',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'entity_reference',
+      'label' => 'Assignees',
+      'required' => FALSE,
+      'cardinality' => -1,
+      'settings' => [
+        'target_type' => 'node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_contributor'],
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_issue_status',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'list_string',
+      'label' => 'Status',
+      'required' => TRUE,
+      'settings' => [
+        'allowed_values' => [
+          'active' => 'Active',
+          'needs_review' => 'Needs Review',
+          'needs_work' => 'Needs Work',
+          'rtbc' => 'Reviewed & Tested by the Community',
+          'fixed' => 'Fixed',
+          'closed_duplicate' => 'Closed (Duplicate)',
+          'closed_outdated' => 'Closed (Outdated)',
+          'closed_wontfix' => 'Closed (Won\'t Fix)',
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_issue_priority',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'list_string',
+      'label' => 'Priority',
+      'required' => TRUE,
+      'settings' => [
+        'allowed_values' => [
+          'critical' => 'Critical',
+          'major' => 'Major',
+          'normal' => 'Normal',
+          'minor' => 'Minor',
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_issue_tags',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'field_type' => 'string',
+      'label' => 'Tags',
+      'required' => FALSE,
+      'cardinality' => -1,
+    ],
+    
+    // AI Resource Allocation fields
+    [
+      'field_name' => 'field_allocation_contributor',
+      'entity_type' => 'node',
+      'bundle' => 'ai_resource_allocation',
+      'field_type' => 'entity_reference',
+      'label' => 'Contributor',
+      'required' => TRUE,
+      'settings' => [
+        'target_type' => 'node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_contributor'],
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_allocation_week',
+      'entity_type' => 'node',
+      'bundle' => 'ai_resource_allocation',
+      'field_type' => 'datetime',
+      'label' => 'Week Starting',
+      'required' => TRUE,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ],
+    [
+      'field_name' => 'field_allocation_days',
+      'entity_type' => 'node',
+      'bundle' => 'ai_resource_allocation',
+      'field_type' => 'decimal',
+      'label' => 'Days Allocated',
+      'required' => TRUE,
+      'settings' => [
+        'precision' => 3,
+        'scale' => 1,
+        'min' => 0,
+        'max' => 7,
+      ],
+    ],
+    [
+      'field_name' => 'field_allocation_issues',
+      'entity_type' => 'node',
+      'bundle' => 'ai_resource_allocation',
+      'field_type' => 'entity_reference',
+      'label' => 'Related Issues',
+      'required' => FALSE,
+      'cardinality' => -1,
+      'settings' => [
+        'target_type' => 'node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_issue'],
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Create a field based on configuration.
+ */
+function ai_dashboard_create_field($config) {
+  $field_name = $config['field_name'];
+  $entity_type = $config['entity_type'];
+  $bundle = $config['bundle'];
+  
+  // Create field storage if it doesn't exist
+  $field_storage = \Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name);
+  if (!$field_storage) {
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'type' => $config['field_type'],
+      'cardinality' => $config['cardinality'] ?? 1,
+      'settings' => $config['settings'] ?? [],
+    ]);
+    $field_storage->save();
+  }
+  
+  // Create field instance
+  $field = \Drupal\field\Entity\FieldConfig::loadByName($entity_type, $bundle, $field_name);
+  if (!$field) {
+    $field = \Drupal\field\Entity\FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => $bundle,
+      'label' => $config['label'],
+      'required' => $config['required'] ?? FALSE,
+      'settings' => $config['settings'] ?? [],
+    ]);
+    $field->save();
+  }
+  
+  // Set up form display
+  $form_display = \Drupal\Core\Entity\Entity\EntityFormDisplay::load($entity_type . '.' . $bundle . '.default');
+  if ($form_display && !$form_display->getComponent($field_name)) {
+    $form_display->setComponent($field_name, [
+      'type' => ai_dashboard_get_widget_type($config['field_type']),
+      'weight' => 10,
+    ])->save();
+  }
+  
+  // Set up view display
+  $view_display = \Drupal\Core\Entity\Entity\EntityViewDisplay::load($entity_type . '.' . $bundle . '.default');
+  if ($view_display && !$view_display->getComponent($field_name)) {
+    $view_display->setComponent($field_name, [
+      'type' => ai_dashboard_get_formatter_type($config['field_type']),
+      'weight' => 10,
+    ])->save();
+  }
+}
+
+/**
+ * Get appropriate widget type for field type.
+ */
+function ai_dashboard_get_widget_type($field_type) {
+  $widget_map = [
+    'string' => 'string_textfield',
+    'text' => 'text_textarea',
+    'integer' => 'number',
+    'decimal' => 'number',
+    'email' => 'email_default',
+    'link' => 'link_default',
+    'datetime' => 'datetime_default',
+    'list_string' => 'options_select',
+    'entity_reference' => 'entity_reference_autocomplete',
+  ];
+  
+  return $widget_map[$field_type] ?? 'string_textfield';
+}
+
+/**
+ * Get appropriate formatter type for field type.
+ */
+function ai_dashboard_get_formatter_type($field_type) {
+  $formatter_map = [
+    'string' => 'string',
+    'text' => 'text_default',
+    'integer' => 'number_integer',
+    'decimal' => 'number_decimal',
+    'email' => 'basic_string',
+    'link' => 'link',
+    'datetime' => 'datetime_default',
+    'list_string' => 'list_default',
+    'entity_reference' => 'entity_reference_label',
+  ];
+  
+  return $formatter_map[$field_type] ?? 'string';
+}

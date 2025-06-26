@@ -1,0 +1,46 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_import_status_filter
+field_name: field_import_status_filter
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - label: 'All Open Issues'
+      value: 'all_open'
+    - label: 'Active'
+      value: '1'
+    - label: 'Needs review (maintainer)'
+      value: '7'
+    - label: 'Needs review'
+      value: '8'
+    - label: 'Needs work'
+      value: '13'
+    - label: 'Reviewed & tested by the community'
+      value: '14'
+    - label: 'Patch (to be ported)'
+      value: '15'
+    - label: 'Needs tests'
+      value: '17'
+    - label: 'Fixed'
+      value: '2'
+    - label: 'Needs clarification'
+      value: '5'
+    - label: 'Postponed'
+      value: '4'
+    - label: 'Postponed (maintainer needs more info)'
+      value: '16'
+    - label: 'Closed (fixed)'
+      value: '3'
+  allowed_values_function: ''
+module: core
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
