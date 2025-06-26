@@ -43,6 +43,11 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
+    "scripts": {
+        "prl": [
+            "composer install --no-dev --optimize-autoloader"
+        ]
+    },
     "config": {
         "allow-plugins": {
             "composer/installers": true,
