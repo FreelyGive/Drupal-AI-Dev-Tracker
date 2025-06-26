@@ -79,7 +79,7 @@ function importIssueFromDrupalOrg($issue_data) {
     'field_issue_category' => $mapped_tags['category'] ?? 'general',
     'field_issue_priority' => $mapped_tags['priority'] ?? 'normal',
     'field_issue_status' => $mapped_tags['status'] ?? 'active',
-    'field_issue_tags' => $drupal_org_tags, // Keep original tags too
+    'field_issue_tags' => implode(', ', $drupal_org_tags), // Convert to comma-separated string
     // ... other fields
   ]);
   $issue->save();

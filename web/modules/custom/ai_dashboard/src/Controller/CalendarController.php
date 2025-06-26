@@ -107,13 +107,11 @@ class CalendarController extends ControllerBase {
         '@trace' => $e->getTraceAsString(),
       ]);
       
-      // Return a simple error message
+      // Return a generic error message (don't expose system details)
       return [
         '#markup' => '<div style="padding: 20px; background: #fee; border: 1px solid #f00; color: #900;">
           <h2>Calendar Error</h2>
-          <p><strong>Error:</strong> ' . $e->getMessage() . '</p>
-          <p><strong>Line:</strong> ' . $e->getLine() . '</p>
-          <p><strong>File:</strong> ' . $e->getFile() . '</p>
+          <p>Unable to load calendar view. Please try again or contact an administrator if the problem persists.</p>
           <a href="/ai-dashboard">← Back to Dashboard</a>
         </div>',
       ];

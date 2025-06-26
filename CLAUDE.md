@@ -123,6 +123,25 @@ Key recipe components:
 - Use `drush cex/cim` for configuration import/export
 - Recipe configuration uses YAML actions for programmatic updates
 
+## Field Customizations
+
+### Tag Fields
+Tag fields across all content types have been customized for clean UX:
+
+- **Field Descriptions**: Removed from recipe configurations to eliminate helper text clutter
+  - Files: `recipes/*/config/field.field.node.*.field_tags.yml`
+  - Changed: `description: 'Include tags for relevant topics.'` → `description: ''`
+  - Also updated: `recipes/drupal_cms_content_type_base/config/taxonomy.vocabulary.tags.yml`
+
+- **Placeholder Text**: Removed from form display configurations to keep input fields clean
+  - Files: `config/sync/core.entity_form_display.node.*.default.yml`
+  - Changed: Removed `placeholder: ''` setting from all tagify widget configurations
+  - Special case: `ai_issue` entity used `string_textfield` widget with placeholder `'e.g. AI Logging, June, Critical (comma separated)'` - also removed
+
+- **Theme Setup**: Site uses **Gin theme** for both frontend and admin (not Olivero)
+  - Frontend theme: `gin` 
+  - Admin theme: `gin`
+
 ## Testing
 - PHPUnit configuration in `web/core/phpunit.xml.dist`
 - Recipe-specific tests in `recipes/*/tests/`

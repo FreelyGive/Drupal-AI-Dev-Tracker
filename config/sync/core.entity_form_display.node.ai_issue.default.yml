@@ -88,7 +88,6 @@ content:
     region: content
     settings:
       size: 60
-      placeholder: 'e.g. AI Logging, June, Critical (comma separated)'
     third_party_settings: {  }
   field_issue_url:
     type: link_default

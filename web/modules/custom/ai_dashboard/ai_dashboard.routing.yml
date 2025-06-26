@@ -149,6 +149,7 @@ ai_dashboard.api.assign_issue:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::assignIssue'
   requirements:
     _permission: 'access ai dashboard'
+    _csrf_token: 'TRUE'
   methods: [POST]
 
 ai_dashboard.api.copy_week:
@@ -157,6 +158,7 @@ ai_dashboard.api.copy_week:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::copyWeekAssignments'
   requirements:
     _permission: 'access ai dashboard'
+    _csrf_token: 'TRUE'
   methods: [POST]
 
 ai_dashboard.api.unassign_issue:
@@ -165,4 +167,5 @@ ai_dashboard.api.unassign_issue:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::unassignIssue'
   requirements:
     _permission: 'access ai dashboard'
+    _csrf_token: 'TRUE'
   methods: [POST]

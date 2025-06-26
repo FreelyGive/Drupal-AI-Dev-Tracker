@@ -47,6 +47,10 @@ The AI Dashboard module provides a comprehensive project management system for t
 - **Documentation Accessibility**: Comprehensive documentation available in Admin Tools
 - **Form Validation**: Enhanced validation for CSV imports with clear error messages
 - **Standard Form Processing**: Improved CSV import reliability using standard Drupal form submission
+- **Clean Tag Field Interface**: Removed placeholder text from all tag input fields for cleaner UX
+  - Removed helper text descriptions from recipe configurations
+  - Eliminated placeholder text from form display configurations
+  - Special handling for ai_issue entity (used string_textfield widget with specific placeholder)
 
 ## Current Implementation
 
@@ -78,7 +82,7 @@ The AI Dashboard module provides a comprehensive project management system for t
 - Administrative interface for managing mappings
 
 #### ✅ Import Systems
-- **CSV Import** (`/ai-dashboard/admin/contributors/import`) - Bulk contributor import with template download
+- **CSV Import** (`/ai-dashboard/admin/contributor-import`) - Bulk contributor import with template download
   - Required fields: full_name, drupal_username (email removed)
   - Auto-creates companies if they don't exist
   - Duplicate detection via drupal_username
@@ -102,22 +106,44 @@ The AI Dashboard module provides a comprehensive project management system for t
 ai_dashboard/
 ├── src/
 │   ├── Controller/
-│   │   ├── AiDashboardController.php    # Main dashboard logic
-│   │   └── CalendarController.php       # Calendar view logic
+│   │   ├── AiDashboardController.php       # Main dashboard logic
+│   │   ├── CalendarController.php          # Calendar view logic
+│   │   ├── AdminToolsController.php        # Admin tools landing
+│   │   ├── AdminViewsController.php        # Admin views controllers
+│   │   ├── DocumentationController.php     # Documentation display
+│   │   ├── ImportAdminController.php       # Import management
+│   │   └── ContributorCsvController.php    # CSV import handling
 │   ├── Service/
-│   │   └── TagMappingService.php        # Tag mapping service
+│   │   ├── TagMappingService.php           # Tag mapping service
+│   │   ├── IssueImportService.php          # API import service
+│   │   └── IssueBatchImportService.php     # Batch import processing
+│   ├── Form/
+│   │   └── ContributorCsvImportForm.php    # CSV import form
 │   └── Commands/
-│       └── AiDashboardCommands.php      # Drush commands
-├── config/install/                      # Content type & field configs
+│       └── AiDashboardCommands.php         # Drush commands
+├── config/install/                         # Content type & field configs
 ├── templates/
-│   └── ai-calendar-dashboard.html.twig  # Calendar template
+│   ├── ai-calendar-dashboard.html.twig     # Calendar template
+│   ├── admin-tools-landing.html.twig       # Admin tools page
+│   └── admin-navigation.html.twig          # Admin navigation
 ├── css/
-│   └── calendar-dashboard.css           # Dashboard styling
-└── ai_dashboard.routing.yml             # Route definitions
+│   ├── calendar-dashboard.css              # Calendar styling
+│   ├── dashboard.css                       # Main dashboard styling
+│   ├── admin-tools.css                     # Admin interface styling
+│   ├── admin-navigation.css                # Admin navigation styling
+│   ├── admin-forms.css                     # Admin form styling
+│   └── csv-import.css                      # CSV import styling
+├── js/
+│   ├── dashboard.js                        # Dashboard interactions
+│   ├── calendar-backlog.js                 # Calendar functionality
+│   └── csv-import.js                       # CSV import handling
+└── ai_dashboard.routing.yml                # Route definitions
 ```
 
 ### Service Architecture
 - **TagMappingService**: Cached service for mapping external tags to structured data
+- **IssueImportService**: Handles API imports from external sources (drupal.org, GitLab, GitHub)
+- **IssueBatchImportService**: Manages batch processing for large imports
 - **Entity Type Manager**: Standard Drupal entity management
 - **Controllers**: Route handling and data aggregation
 - **Views Integration**: Administrative interfaces with exposed filters
@@ -159,7 +185,8 @@ ai_dashboard/
 - `field_issue_assignees`: Multiple references to contributors
 - `field_issue_do_assignee`: Drupal.org assignee username
 - `field_issue_deadline`: Due date
-- `field_issue_tags`: Original tags from external source (unlimited values)
+- `field_issue_tags`: Original tags from external source (comma-separated string)
+- `field_issue_assignment_date`: Date when issue was assigned to contributor
 
 **Module Auto-Creation**: The `field_issue_module` automatically creates new AI Module nodes during import based on the import configuration name, eliminating the need for manual module setup.
 
@@ -495,7 +522,7 @@ gitlab_mapping:
 1. **Create Companies**: Add organizations at `/node/add/ai_company`
 2. **Add Contributors**: 
    - Manually create at `/node/add/ai_contributor` 
-   - Or use CSV import at `/ai-dashboard/admin/contributors/import`
+   - Or use CSV import at `/ai-dashboard/admin/contributor-import`
 3. **Configure Import Sources**: Set up import configurations at `/node/add/ai_import_config`
    - Configure status filtering (defaults are optimized)
    - Set project IDs and source types
@@ -564,11 +591,64 @@ class CustomDashboardController extends ControllerBase {
 - **Queue System**: Background processing for imports
 - **Database Indexing**: Optimized queries for dashboard views
 
+## Security Considerations
+
+### Security Audit Summary
+The AI Dashboard module has been audited for security vulnerabilities and follows Drupal security best practices:
+
+#### ✅ Security Features Implemented
+- **Access Control**: All routes protected with appropriate permissions
+  - `access ai dashboard`: Basic dashboard access
+  - `administer ai dashboard imports`: Import management (restricted access)
+- **CSRF Protection**: All POST endpoints include CSRF token validation
+- **Input Validation**: File uploads limited to CSV format with size restrictions (2MB)
+- **SQL Injection Prevention**: Uses entity queries and parameterized database calls
+- **HTML Escaping**: User content properly escaped in documentation display
+- **Error Handling**: Generic error messages prevent information disclosure
+
+#### 🔒 Permission Model
+```
+access ai dashboard:
+  - View dashboard pages
+  - Use calendar functionality
+  - API access for issue assignment
+
+administer ai dashboard imports:
+  - Configure import sources
+  - Run import operations
+  - Delete all issues (restricted access)
+
+administer ai dashboard content:
+  - CSV import functionality
+  - Manage contributors and issues
+```
+
+#### 🛡️ Data Protection
+- **File Upload Security**: CSV imports restricted to validated file types
+- **API Security**: All API endpoints require authentication and CSRF tokens
+- **Error Logging**: Sensitive information logged securely, generic errors shown to users
+- **Input Sanitization**: All user inputs validated and sanitized
+
+#### ⚠️ Security Recommendations
+1. **Regular Updates**: Keep Drupal core and contributed modules updated
+2. **Permission Auditing**: Regularly review user permissions and access levels
+3. **File System**: Ensure proper file system permissions for CSV uploads
+4. **API Monitoring**: Monitor API endpoints for unusual activity
+5. **Import Validation**: Review imported data for accuracy and completeness
+
+#### 📋 Security Checklist for Administrators
+- [ ] Assign `administer ai dashboard imports` permission only to trusted users
+- [ ] Configure proper file upload directories with appropriate permissions
+- [ ] Monitor logs for import failures or security-related events
+- [ ] Regularly backup import configurations and tag mappings
+- [ ] Test CSV imports in development before production use
+
 ---
 
 **Module Version**: 1.0.0  
 **Drupal Compatibility**: 11.x  
 **Last Updated**: January 2025  
+**Security Audit**: January 2025  
 **Maintainer**: AI Dashboard Team
 
 For questions or contributions, see the project repository or contact the development team.
