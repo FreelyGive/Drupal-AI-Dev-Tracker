@@ -5,7 +5,7 @@ fi
 set -eu -o pipefail
 cd $APP_ROOT
 
-LOG_FILE="logs/init-$(date +%F-%T).log"
+LOG_FILE=".logs/init-$(date +%F-%T).log"
 exec > >(tee $LOG_FILE) 2>&1
 
 TIMEFORMAT=%lR
