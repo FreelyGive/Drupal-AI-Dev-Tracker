@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Controller;
 
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\file\Entity\File;
@@ -92,7 +93,7 @@ class CalendarController extends ControllerBase {
               'weekOffset' => $week_offset,
               'weekStart' => $week_start->format('Y-m-d'),
               'weekEnd' => $week_end->format('Y-m-d'),
-              'csrfToken' => \Drupal::csrfToken()->get('ai_dashboard_api'),
+              'csrfToken' => \Drupal::csrfToken()->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY),
             ],
           ],
         ],
