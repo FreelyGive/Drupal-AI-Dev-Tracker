@@ -398,6 +398,9 @@ class IssueBatchImportService {
         '@errors' => $errors,
         '@operations' => $total_operations,
       ]);
+      
+      // Invalidate caches after batch import completion
+      static::invalidateBatchImportCaches();
 
     } else {
       $message = t('❌ Import completed with some errors.');
@@ -519,6 +522,26 @@ class IssueBatchImportService {
       }
     }
     return $statuses;
+  }
+
+  /**
+   * Invalidate caches after batch import operations.
+   */
+  protected static function invalidateBatchImportCaches() {
+    // Invalidate specific cache tags for dashboard data
+    $cache_tags = [
+      'ai_dashboard:calendar',
+      'node_list:ai_issue',
+      'node_list:ai_contributor',
+      'ai_dashboard:import',
+    ];
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
+    
+    // Invalidate dynamic page cache for dashboard pages
+    \Drupal::service('cache.dynamic_page_cache')->deleteAll();
+    
+    // Invalidate render cache for views and blocks
+    \Drupal::service('cache.render')->deleteAll();
   }
 
 }

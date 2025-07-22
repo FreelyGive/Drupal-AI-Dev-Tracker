@@ -837,6 +837,7 @@ class IssueImportService {
     ]);
     
     $issue->save();
+    $this->invalidateImportCaches();
     return $issue;
   }
 
@@ -858,6 +859,7 @@ class IssueImportService {
     $issue->setChangedTime($mapped_data['changed']);
     
     $issue->save();
+    $this->invalidateImportCaches();
     return $issue;
   }
 
@@ -919,6 +921,9 @@ class IssueImportService {
       
       // Clean up any orphaned field data
       $this->cleanupOrphanedFieldData();
+      
+      // Invalidate caches after bulk deletion
+      $this->invalidateImportCaches();
       
       return count($issues);
     }
@@ -1038,6 +1043,26 @@ class IssueImportService {
       ]);
       return null;
     }
+  }
+
+  /**
+   * Invalidate caches after import operations.
+   */
+  protected function invalidateImportCaches() {
+    // Invalidate specific cache tags for dashboard data
+    $cache_tags = [
+      'ai_dashboard:calendar',
+      'node_list:ai_issue',
+      'node_list:ai_contributor',
+      'ai_dashboard:import',
+    ];
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
+    
+    // Invalidate dynamic page cache for dashboard pages
+    \Drupal::service('cache.dynamic_page_cache')->deleteAll();
+    
+    // Invalidate render cache for views and blocks
+    \Drupal::service('cache.render')->deleteAll();
   }
 
 }

@@ -503,12 +503,23 @@ class CalendarController extends ControllerBase {
       
       $issue->save();
       
-      return new JsonResponse([
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers for CloudFlare
+      $response = new JsonResponse([
         'success' => true,
         'message' => 'Issue assigned successfully',
         'issue_id' => $issue_id,
         'developer_id' => $developer_id,
       ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
     }
     catch (\Exception $e) {
       \Drupal::logger('ai_dashboard')->error('Assignment error: @message', ['@message' => $e->getMessage()]);
@@ -586,11 +597,22 @@ class CalendarController extends ControllerBase {
         }
       }
       
-      return new JsonResponse([
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers for CloudFlare
+      $response = new JsonResponse([
         'success' => true,
         'message' => "Added {$copied_count} issues from week {$from_week} to week {$to_week}",
         'copied_count' => $copied_count,
       ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
     }
     catch (\Exception $e) {
       \Drupal::logger('ai_dashboard')->error('Copy week error: @message', ['@message' => $e->getMessage()]);
@@ -654,11 +676,22 @@ class CalendarController extends ControllerBase {
       
       $issue->save();
       
-      return new JsonResponse([
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers for CloudFlare
+      $response = new JsonResponse([
         'success' => true,
         'message' => 'Issue unassigned successfully',
         'issue_id' => $issue_id,
       ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
     }
     catch (\Exception $e) {
       \Drupal::logger('ai_dashboard')->error('Unassignment error: @message', ['@message' => $e->getMessage()]);
@@ -666,6 +699,28 @@ class CalendarController extends ControllerBase {
     }
   }
 
-  
+  /**
+   * Invalidate caches related to calendar and dashboard.
+   */
+  private function invalidateCalendarCaches() {
+    // Invalidate page cache
+    \Drupal::service('page_cache_kill_switch')->trigger();
+    
+    // Invalidate dynamic page cache
+    \Drupal::service('cache.render')->invalidateAll();
+    \Drupal::service('cache.dynamic_page_cache')->invalidateAll();
+    
+    // Invalidate specific cache tags
+    $cache_tags = [
+      'ai_dashboard:calendar',
+      'node_list:ai_issue',
+      'node_list:ai_contributor',
+    ];
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
+    
+    // Clear all caches if needed (aggressive approach)
+    \Drupal::service('cache.bootstrap')->deleteAll();
+    \Drupal::service('cache.config')->deleteAll();
+  }
 
 }
