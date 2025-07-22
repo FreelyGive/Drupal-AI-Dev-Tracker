@@ -187,3 +187,7 @@ run_enhanced_data.sh
 .gitignore.backup
 /recipes/
 .claude/settings.local.json
+
+# DevPanel Ignores
+
+/.devpanel/salt.txt
