@@ -514,8 +514,8 @@ class IssueBatchImportService {
       foreach ($config->get('field_import_status_filter') as $item) {
         if (!empty($item->value)) {
           if ($item->value === 'all_open') {
-            // Return all open statuses (exclude only closed statuses)
-            return ['1', '7', '8', '13', '14', '15', '17', '2', '5'];
+            // Return statuses that match drupal.org's complete open filter including postponed
+            return ['1', '13', '8', '14', '15', '2', '4', '16'];
           }
           $statuses[] = $item->value;
         }

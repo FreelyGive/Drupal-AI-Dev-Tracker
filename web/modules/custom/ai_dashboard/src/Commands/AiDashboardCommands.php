@@ -481,4 +481,88 @@ class AiDashboardCommands extends DrushCommands {
     return $allocations;
   }
 
+  /**
+   * Clean up unsupported status filters from configurations.
+   *
+   * @command ai-dashboard:clean-status-filters
+   * @aliases aidash:clean-status
+   */
+  public function cleanStatusFilters() {
+    $config_factory = \Drupal::configFactory();
+    
+    // Update field storage configuration
+    $field_storage_config = $config_factory->getEditable('field.storage.node.field_import_status_filter');
+    if ($field_storage_config && !$field_storage_config->isNew()) {
+      $allowed_values = $field_storage_config->get('settings.allowed_values');
+      
+      // Remove unsupported status values
+      $unsupported_values = ['7', '17', '5']; // Need review (maintainer), Needs tests, Needs clarification
+      $updated_values = [];
+      $removed_count = 0;
+      
+      foreach ($allowed_values as $value) {
+        if (!in_array($value['value'], $unsupported_values)) {
+          $updated_values[] = $value;
+        } else {
+          $removed_count++;
+          $this->output()->writeln("Removing unsupported status: {$value['label']} ({$value['value']})");
+        }
+      }
+      
+      if ($removed_count > 0) {
+        $field_storage_config->set('settings.allowed_values', $updated_values);
+        $field_storage_config->save();
+        $this->output()->writeln("Updated field storage configuration.");
+      }
+    }
+    
+    // Update existing ai_import_config nodes to remove unsupported status values
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    $query = $node_storage->getQuery()
+      ->condition('type', 'ai_import_config')
+      ->accessCheck(FALSE);
+    
+    $nids = $query->execute();
+    $updated_nodes = 0;
+    
+    if (!empty($nids)) {
+      $nodes = $node_storage->loadMultiple($nids);
+      $unsupported_values = ['7', '17', '5'];
+      
+      foreach ($nodes as $node) {
+        if ($node->hasField('field_import_status_filter') && !$node->get('field_import_status_filter')->isEmpty()) {
+          $updated_values = [];
+          $has_changes = FALSE;
+          
+          foreach ($node->get('field_import_status_filter') as $item) {
+            if (!in_array($item->value, $unsupported_values)) {
+              $updated_values[] = ['value' => $item->value];
+            } else {
+              $has_changes = TRUE;
+            }
+          }
+          
+          if ($has_changes) {
+            $node->set('field_import_status_filter', $updated_values);
+            $node->save();
+            $updated_nodes++;
+            $this->output()->writeln("Updated import config: {$node->getTitle()}");
+          }
+        }
+      }
+    }
+    
+    // Clear field and form caches
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+    \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+    
+    // Clear all caches to ensure the changes take effect
+    drupal_flush_all_caches();
+    
+    $this->output()->writeln("✅ Cleanup completed!");
+    $this->output()->writeln("Updated {$updated_nodes} import configuration nodes.");
+    $this->output()->writeln("Removed unsupported status filters: Need review (maintainer), Needs tests, Needs clarification");
+  }
+
 }
