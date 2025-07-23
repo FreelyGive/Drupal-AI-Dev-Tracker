@@ -178,3 +178,21 @@ ai_dashboard.api.sync_drupal_assignments:
     _permission: 'access ai dashboard'
     _csrf_request_header_token: 'TRUE'
   methods: [POST]
+
+ai_dashboard.api.sync_all_drupal_assignments:
+  path: '/ai-dashboard/api/sync-all-drupal-assignments'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::syncAllDrupalAssignments'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.remove_all_week_issues:
+  path: '/ai-dashboard/api/remove-all-week-issues'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::removeAllWeekIssues'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]

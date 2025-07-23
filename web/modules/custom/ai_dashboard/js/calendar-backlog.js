@@ -27,8 +27,11 @@
       // Initialize remove buttons
       self.initRemoveButtons();
       
-      // Initialize drupal.org sync buttons
-      self.initSyncButtons();
+      // Initialize drupal.org sync button
+      self.initSyncAllButton();
+      
+      // Initialize remove all issues button
+      self.initRemoveAllButton();
     },
 
     /**
@@ -446,6 +449,134 @@
     },
 
     /**
+     * Initialize sync all button for drupal.org assignments.
+     */
+    initSyncAllButton: function() {
+      var self = this;
+      
+      // Remove any existing event handlers to prevent double modals
+      $('#sync-all-drupal-assignments').off('click').on('click', function(e) {
+        e.preventDefault();
+        
+        var $button = $(this);
+        var weekOffset = parseInt(drupalSettings.aiDashboard.weekOffset || 0);
+        
+        if (!confirm('Sync all assigned issues from drupal.org for this week? This will add any issues currently assigned to contributors with drupal.org usernames.')) {
+          return;
+        }
+        
+        // Show loading state
+        $button.addClass('syncing').prop('disabled', true);
+        var originalText = $button.text();
+        $button.text('🔄 Syncing...');
+        
+        // Get CSRF token
+        var csrfToken = drupalSettings.aiDashboard ? drupalSettings.aiDashboard.csrfToken : null;
+        if (!csrfToken) {
+          console.error('CSRF token not available');
+          $button.removeClass('syncing').prop('disabled', false).text(originalText);
+          return;
+        }
+        
+        // Make API request to sync all developers
+        $.ajax({
+          url: '/ai-dashboard/api/sync-all-drupal-assignments',
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          data: {
+            week_offset: weekOffset
+          },
+          success: function(response) {
+            if (response.success) {
+              // Show success message
+              self.showMessage('✅ ' + response.message, 'success');
+              
+              // Reload the page to show updated assignments
+              setTimeout(function() {
+                window.location.reload();
+              }, 1500);
+            } else {
+              self.showMessage('❌ ' + (response.message || 'Sync failed'), 'error');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Sync all request failed:', error);
+            self.showMessage('❌ Failed to sync assignments from drupal.org', 'error');
+          },
+          complete: function() {
+            $button.removeClass('syncing').prop('disabled', false).text(originalText);
+          }
+        });
+      });
+    },
+
+    /**
+     * Initialize remove all issues button.
+     */
+    initRemoveAllButton: function() {
+      var self = this;
+      
+      // Remove any existing event handlers to prevent double modals
+      $('#remove-all-week-issues').off('click').on('click', function(e) {
+        e.preventDefault();
+        
+        var $button = $(this);
+        var weekOffset = parseInt(drupalSettings.aiDashboard.weekOffset || 0);
+        
+        if (!confirm('Remove ALL issues from this week? This will unassign all issues from all developers for this week only. The issues will not be deleted, just moved back to the backlog.')) {
+          return;
+        }
+        
+        // Show loading state
+        $button.addClass('removing').prop('disabled', true);
+        var originalText = $button.text();
+        $button.text('🗑️ Removing...');
+        
+        // Get CSRF token
+        var csrfToken = drupalSettings.aiDashboard ? drupalSettings.aiDashboard.csrfToken : null;
+        if (!csrfToken) {
+          console.error('CSRF token not available');
+          $button.removeClass('removing').prop('disabled', false).text(originalText);
+          return;
+        }
+        
+        // Make API request to remove all issues from this week
+        $.ajax({
+          url: '/ai-dashboard/api/remove-all-week-issues',
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          data: {
+            week_offset: weekOffset
+          },
+          success: function(response) {
+            if (response.success) {
+              // Show success message
+              self.showMessage('✅ ' + response.message, 'success');
+              
+              // Reload the page to show updated assignments
+              setTimeout(function() {
+                window.location.reload();
+              }, 1500);
+            } else {
+              self.showMessage('❌ ' + (response.message || 'Remove all failed'), 'error');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Remove all request failed:', error);
+            self.showMessage('❌ Failed to remove issues from this week', 'error');
+          },
+          complete: function() {
+            $button.removeClass('removing').prop('disabled', false).text(originalText);
+          }
+        });
+      });
+    },
+
+    /**
      * Show a temporary message to the user.
      */
     showMessage: function(message, type) {
@@ -546,101 +677,6 @@
       });
     },
 
-    /**
-     * Initialize drupal.org sync buttons.
-     */
-    initSyncButtons: function() {
-      var self = this;
-      
-      $(document).on('click', '.sync-drupal-issues-btn', function(e) {
-        e.preventDefault();
-        
-        var $button = $(this);
-        var developerId = $button.data('developer-id');
-        var username = $button.data('username');
-        var weekOffset = parseInt($('body').data('week-offset') || 0);
-        
-        if (!developerId || !username) {
-          console.error('Missing developer data for sync');
-          return;
-        }
-        
-        // Show loading state
-        $button.addClass('syncing').prop('disabled', true);
-        
-        // Get CSRF token
-        var csrfToken = drupalSettings.aiDashboard ? drupalSettings.aiDashboard.csrfToken : null;
-        if (!csrfToken) {
-          console.error('CSRF token not available');
-          $button.removeClass('syncing').prop('disabled', false);
-          return;
-        }
-        
-        // Make API request
-        $.ajax({
-          url: '/ai-dashboard/api/sync-drupal-assignments',
-          method: 'POST',
-          headers: {
-            'X-CSRF-Token': csrfToken
-          },
-          data: {
-            developer_id: developerId,
-            username: username,
-            week_offset: weekOffset
-          },
-          success: function(response) {
-            if (response.success) {
-              // Show success message
-              self.showMessage('✅ ' + response.message, 'success');
-              
-              // Reload the page to show updated assignments
-              setTimeout(function() {
-                window.location.reload();
-              }, 1000);
-            } else {
-              self.showMessage('❌ ' + (response.message || 'Sync failed'), 'error');
-            }
-          },
-          error: function(xhr, status, error) {
-            console.error('Sync request failed:', error);
-            self.showMessage('❌ Failed to sync assignments from drupal.org', 'error');
-          },
-          complete: function() {
-            $button.removeClass('syncing').prop('disabled', false);
-          }
-        });
-      });
-    },
-
-    /**
-     * Show a temporary message to the user.
-     */
-    showMessage: function(message, type) {
-      var $message = $('<div class="sync-message ' + (type || 'info') + '">')
-        .text(message)
-        .css({
-          position: 'fixed',
-          top: '100px',
-          right: '20px',
-          padding: '12px 20px',
-          borderRadius: '4px',
-          backgroundColor: type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#6b7280'),
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: '500',
-          zIndex: 10000,
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          opacity: 0
-        })
-        .appendTo('body')
-        .animate({ opacity: 1 }, 200);
-
-      setTimeout(function() {
-        $message.animate({ opacity: 0 }, 200, function() {
-          $message.remove();
-        });
-      }, 4000);
-    }
   };
 
 })(jQuery, Drupal);

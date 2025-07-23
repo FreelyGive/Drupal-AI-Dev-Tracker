@@ -844,6 +844,222 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Sync all assigned issues from drupal.org for all developers for the current week.
+   */
+  public function syncAllDrupalAssignments(Request $request) {
+    try {
+      $week_offset = (int) $request->request->get('week_offset', 0);
+      
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      
+      // Calculate the current week date
+      $assignment_date = new \DateTime();
+      if ($week_offset !== 0) {
+        $assignment_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
+      }
+      $assignment_date->modify('Monday this week');
+      $assignment_date_string = $assignment_date->format('Y-m-d');
+      
+      // Get all contributors with drupal.org usernames
+      $contributor_query = $node_storage->getQuery()
+        ->condition('type', 'ai_contributor')
+        ->condition('field_drupal_username', '', '!=')
+        ->accessCheck(FALSE);
+      
+      $contributor_ids = $contributor_query->execute();
+      
+      if (empty($contributor_ids)) {
+        return new JsonResponse([
+          'success' => false, 
+          'message' => 'No contributors found with drupal.org usernames'
+        ]);
+      }
+      
+      $contributors = $node_storage->loadMultiple($contributor_ids);
+      $total_synced = 0;
+      $developers_synced = 0;
+      
+      // For each contributor, find their assigned issues on drupal.org
+      foreach ($contributors as $contributor) {
+        $username = $contributor->get('field_drupal_username')->value;
+        if (empty($username)) {
+          continue;
+        }
+        
+        // Find all AI issues assigned to this contributor on drupal.org
+        $issue_query = $node_storage->getQuery()
+          ->condition('type', 'ai_issue')
+          ->condition('field_issue_do_assignee', $username)
+          ->condition('field_issue_status', ['active', 'needs_review', 'needs_work', 'rtbc'], 'IN') // Only open issues
+          ->accessCheck(FALSE);
+        
+        $issue_ids = $issue_query->execute();
+        
+        if (empty($issue_ids)) {
+          continue;
+        }
+        
+        $issues = $node_storage->loadMultiple($issue_ids);
+        $contributor_synced = 0;
+        
+        foreach ($issues as $issue) {
+          // Check if issue is already assigned to this contributor for this week
+          $already_assigned = false;
+          
+          if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
+            foreach ($issue->get('field_issue_assignees') as $assignee) {
+              if ($assignee->target_id == $contributor->id()) {
+                // Check if already assigned for this week
+                if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
+                  foreach ($issue->get('field_issue_assignment_date') as $date_item) {
+                    if ($date_item->value === $assignment_date_string) {
+                      $already_assigned = true;
+                      break 2;
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+          
+          if (!$already_assigned) {
+            // Assign the issue to this contributor
+            $issue->set('field_issue_assignees', [['target_id' => $contributor->id()]]);
+            
+            // Add assignment date
+            $existing_dates = [];
+            if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
+              foreach ($issue->get('field_issue_assignment_date') as $date_item) {
+                $existing_dates[] = $date_item->value;
+              }
+            }
+            
+            if (!in_array($assignment_date_string, $existing_dates)) {
+              $existing_dates[] = $assignment_date_string;
+              $date_values = array_map(function($date) {
+                return ['value' => $date];
+              }, $existing_dates);
+              $issue->set('field_issue_assignment_date', $date_values);
+            }
+            
+            $issue->save();
+            $contributor_synced++;
+            $total_synced++;
+          }
+        }
+        
+        if ($contributor_synced > 0) {
+          $developers_synced++;
+        }
+      }
+      
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers
+      $response = new JsonResponse([
+        'success' => true,
+        'message' => "Synced {$total_synced} issue" . ($total_synced != 1 ? 's' : '') . " from drupal.org for {$developers_synced} developer" . ($developers_synced != 1 ? 's' : ''),
+        'total_synced' => $total_synced,
+        'developers_synced' => $developers_synced,
+      ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->error('Sync all drupal assignments error: @message', ['@message' => $e->getMessage()]);
+      return new JsonResponse(['success' => false, 'message' => 'Sync all failed']);
+    }
+  }
+
+  /**
+   * Remove all issues from the current week (unassign all).
+   */
+  public function removeAllWeekIssues(Request $request) {
+    try {
+      $week_offset = (int) $request->request->get('week_offset', 0);
+      
+      // Calculate the target week date
+      $target_date = new \DateTime();
+      if ($week_offset !== 0) {
+        $target_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
+      }
+      $target_date->modify('Monday this week');
+      $target_date_string = $target_date->format('Y-m-d');
+      
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      
+      // Find all AI issues that have assignments for this specific week
+      $query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('field_issue_assignment_date', $target_date_string)
+        ->accessCheck(FALSE);
+      
+      $issue_ids = $query->execute();
+      $removed_count = 0;
+      
+      if (!empty($issue_ids)) {
+        $issues = $node_storage->loadMultiple($issue_ids);
+        
+        foreach ($issues as $issue) {
+          $updated = false;
+          
+          // Remove the specific assignment date
+          if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
+            $remaining_dates = [];
+            foreach ($issue->get('field_issue_assignment_date') as $date_item) {
+              if ($date_item->value !== $target_date_string) {
+                $remaining_dates[] = ['value' => $date_item->value];
+              }
+            }
+            
+            $issue->set('field_issue_assignment_date', $remaining_dates);
+            $updated = true;
+          }
+          
+          // If no assignment dates remain, also clear assignees
+          if (empty($remaining_dates)) {
+            $issue->set('field_issue_assignees', []);
+            $updated = true;
+          }
+          
+          if ($updated) {
+            $issue->save();
+            $removed_count++;
+          }
+        }
+      }
+      
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers
+      $response = new JsonResponse([
+        'success' => true,
+        'message' => "Removed {$removed_count} issue" . ($removed_count != 1 ? 's' : '') . " from this week",
+        'removed_count' => $removed_count,
+      ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->error('Remove all week issues error: @message', ['@message' => $e->getMessage()]);
+      return new JsonResponse(['success' => false, 'message' => 'Remove all failed']);
+    }
+  }
+
+  /**
    * Invalidate caches related to calendar and dashboard.
    */
   private function invalidateCalendarCaches() {

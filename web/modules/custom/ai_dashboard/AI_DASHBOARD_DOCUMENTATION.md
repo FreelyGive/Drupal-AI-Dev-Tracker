@@ -42,6 +42,27 @@ The AI Dashboard module provides a comprehensive project management system for t
 - **Flexible Import Limits**: Made maximum issues field optional - leave empty to import all matching issues
 - **Module Auto-Creation**: Automatically creates module nodes during import based on configuration name
 - **Real-time Progress**: Import management interface with progress feedback and error reporting
+- **Assignee Import**: Fixed issue import to properly capture assignee information from drupal.org
+  - Extracts `field_issue_assigned` data from API responses
+  - Resolves user IDs to usernames automatically
+  - Stores assignee information in `field_issue_do_assignee` field
+  - Enables proper sync functionality with assigned issues
+
+### Calendar & Sync Features
+- **Drupal.org Sync Integration**: Added comprehensive sync functionality for assigned issues
+  - "Sync All from Drupal.org" button in calendar backlog drawer
+  - Syncs all assigned issues from drupal.org for contributors with drupal.org usernames
+  - Automatically assigns issues to the correct week based on current view
+  - Real-time progress indication and success/error messaging
+- **Remove All Issues**: Added bulk removal functionality for weekly assignments
+  - "Remove All from Week" button with confirmation dialog
+  - Removes all issue assignments from current week only (other weeks preserved)
+  - Issues move back to backlog without deletion
+  - Proper cache invalidation and UI updates
+- **Enhanced JavaScript**: Fixed double modal issues and improved event handling
+  - Prevents duplicate event handlers using `.off()` before attachment
+  - Proper error handling and CSRF token management
+  - Consistent loading states and user feedback
 
 ### User Experience Improvements
 - **Documentation Accessibility**: Comprehensive documentation available in Admin Tools
@@ -51,6 +72,7 @@ The AI Dashboard module provides a comprehensive project management system for t
   - Removed helper text descriptions from recipe configurations
   - Eliminated placeholder text from form display configurations
   - Special handling for ai_issue entity (used string_textfield widget with specific placeholder)
+- **Improved Modal Handling**: Fixed JavaScript modal dialogs to appear only once and respond to single clicks
 
 ## Current Implementation
 
@@ -268,13 +290,25 @@ $processed = $tag_mapping_service->processTags($tags);
 
 ### Calendar View (`CalendarController::calendarView()`)
 **Route**: `/ai-dashboard/calendar` 
-**Purpose**: Weekly resource allocation view
+**Purpose**: Weekly resource allocation view with comprehensive issue management
 **Features**:
 - Week navigation with offset parameters
-- Company/contributor grouping
-- Issue assignment visualization
-- Weekly commitment tracking
+- Company/contributor grouping with AI Maker indicators
+- Issue assignment visualization with drag-and-drop functionality
+- Weekly commitment tracking and capacity management
 - Real-time edit capabilities for admins
+- **Backlog Drawer**: Side panel for unassigned issue management
+  - Filter by module, tag, and priority
+  - Drag-and-drop assignment to developers
+  - Issue count and metadata display
+- **Sync Integration**: Direct integration with drupal.org
+  - "Sync All from Drupal.org" button for bulk sync of assigned issues
+  - Automatic matching with contributor drupal.org usernames
+  - Week-specific assignment with proper date handling
+- **Bulk Operations**: Administrative bulk actions
+  - "Remove All from Week" for clearing weekly assignments
+  - "Add Previous Week" for copying assignments between weeks
+  - All operations with proper confirmation dialogs and progress feedback
 
 ### Administrative Views
 Built using Drupal Views with exposed filters:
@@ -302,6 +336,19 @@ GET /node.json?type=project_issue&field_project={PROJECT_NID}
 &sort=created&direction=DESC          # Sort by creation date
 &limit={MAX_ISSUES}                   # Maximum issues to fetch (default 1000 if not specified)
 ```
+
+**Assignee Data**:
+The API returns assignee information in the `field_issue_assigned` field when an issue is assigned:
+```json
+{
+  "field_issue_assigned": {
+    "uri": "https://www.drupal.org/api-d7/user/385947",
+    "id": "385947",
+    "resource": "user"
+  }
+}
+```
+The system automatically resolves user IDs to usernames via additional API calls to `/user/{id}.json`.
 
 **Status ID Reference**:
 - `1` - Active

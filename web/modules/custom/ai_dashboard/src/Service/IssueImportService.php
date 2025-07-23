@@ -498,9 +498,9 @@ class IssueImportService {
       'field_project' => $project_id,
       'limit' => min($api_page_size, $limit),
       'page' => $page_number,
-        'sort' => 'created',
-        'direction' => 'DESC',
-      ];
+      'sort' => 'created',
+      'direction' => 'DESC',
+    ];
 
     // Add status filter if specified
     if (!empty($status_filter)) {
@@ -686,11 +686,21 @@ class IssueImportService {
 
     // Extract drupal.org assignee information
     $do_assignee = '';
+    
     if (isset($issue_data['field_issue_assigned']) && is_array($issue_data['field_issue_assigned'])) {
-      $assignee_info = reset($issue_data['field_issue_assigned']);
-      if (isset($assignee_info['user']) && isset($assignee_info['user']['name'])) {
-        $do_assignee = $assignee_info['user']['name'];
+      if (isset($issue_data['field_issue_assigned']['id'])) {
+        // We have the user ID, need to resolve it to username
+        $user_id = $issue_data['field_issue_assigned']['id'];
+        $do_assignee = $this->resolveUsernameFromId($user_id);
       }
+    }
+    
+    // Log assignee resolution issues for debugging (only when there are problems)
+    if (isset($issue_data['nid']) && isset($issue_data['field_issue_assigned']) && empty($do_assignee)) {
+      \Drupal::logger('ai_dashboard')->warning('Failed to resolve assignee for issue @nid, assigned field: @assigned', [
+        '@nid' => $issue_data['nid'],
+        '@assigned' => json_encode($issue_data['field_issue_assigned']),
+      ]);
     }
 
     // Get module name based on project information
@@ -775,6 +785,49 @@ class IssueImportService {
 
     $issue_status = $issue_data['field_issue_status'] ?? '';
     return in_array($issue_status, $status_filter);
+  }
+
+  /**
+   * Resolve a drupal.org user ID to username via API.
+   *
+   * @param string $user_id
+   *   The drupal.org user ID.
+   *
+   * @return string
+   *   The username, or empty string if not found.
+   */
+  protected function resolveUsernameFromId(string $user_id): string {
+    // Validate user ID format
+    if (empty($user_id) || !is_numeric($user_id)) {
+      return '';
+    }
+    
+    try {
+      $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
+        'timeout' => 10,
+        'headers' => [
+          'User-Agent' => 'AI Dashboard Module/1.0',
+        ],
+      ]);
+      
+      if ($response->getStatusCode() !== 200) {
+        return '';
+      }
+      
+      $user_data = json_decode($response->getBody()->getContents(), true);
+      
+      if (isset($user_data['name']) && !empty($user_data['name'])) {
+        return $user_data['name'];
+      }
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->warning('Failed to resolve user ID @id: @message', [
+        '@id' => $user_id,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+    
+    return '';
   }
 
   /**

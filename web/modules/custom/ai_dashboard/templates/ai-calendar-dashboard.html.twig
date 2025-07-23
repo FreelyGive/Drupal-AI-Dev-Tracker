@@ -173,11 +173,6 @@
                           <span class="count-number">{{ developer.issues|length }}</span>
                           <span class="count-label">issue{{ developer.issues|length != 1 ? 's' : '' }}</span>
                         </div>
-                        {% if developer.username %}
-                          <button class="sync-drupal-issues-btn" data-developer-id="{{ developer.id }}" data-username="{{ developer.username }}" title="Sync assigned issues from drupal.org for {{ developer.username }}">
-                            <span class="sync-icon">🔄</span>
-                          </button>
-                        {% endif %}
                         {% set can_edit_contributors = user.hasPermission('edit any ai_contributor content') %}
                         {% if can_edit_contributors and developer.nid %}
                           <a href="/node/{{ developer.nid }}/edit" class="developer-edit-link" title="Edit contributor">
@@ -268,11 +263,17 @@
     <div class="backlog-header">
       <h3>📋 Issue Backlog</h3>
       <div class="backlog-controls">
+        <button id="sync-all-drupal-assignments" class="btn btn-primary" title="Sync all assigned issues from drupal.org for this week">
+          🔄 Sync All from Drupal.org
+        </button>
         {% if week_offset != 0 %}
           <button id="copy-previous-week" class="btn btn-secondary" title="Add assignments from previous week to this week">
             📋 Add Previous Week
           </button>
         {% endif %}
+        <button id="remove-all-week-issues" class="btn btn-danger" title="Remove all issues from this week (moves back to backlog)">
+          🗑️ Remove All from Week
+        </button>
         <button id="close-backlog" class="btn btn-close" title="Close backlog">✕</button>
       </div>
     </div>
