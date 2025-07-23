@@ -8,13 +8,28 @@ This is **Drupal CMS** - a ready-to-use platform built on Drupal 11 core with sm
 
 ## Development Environment
 
-This project uses **DDEV** for local development:
+This project uses **DDEV** for local development with deployment to **Drupal Forge** via **DevPanel**:
 
-- **Project Type**: Drupal 11
-- **PHP Version**: 8.3
-- **Database**: MariaDB 10.11
-- **Webserver**: nginx-fpm
-- **Document Root**: `web/`
+- **Local Development**: DDEV environment
+  - **Project Type**: Drupal 11
+  - **PHP Version**: 8.3
+  - **Database**: MariaDB 10.11
+  - **Webserver**: nginx-fpm
+  - **Document Root**: `web/`
+
+- **Deployment Workflow**:
+  1. Develop locally with DDEV
+  2. Push changes to GitHub
+  3. Deploy to Drupal Forge via DevPanel (has its own build scripts)
+
+- **Database Changes Policy**:
+  - **Long-term changes**: MUST use database update hooks (`drush updb`) so they can be deployed to production
+  - **Debugging scripts**: Can be used for temporary database changes during development
+  - **Production updates**: Always use `drush updb` on live site after deployment
+
+- **Git Commit Policy**:
+  - Use developer's name and email for commits
+  - Include mention of Claude/AI assistance in commit descriptions when applicable
 
 ## Common Commands
 
@@ -122,6 +137,79 @@ Key recipe components:
 - Configuration is managed via recipes and exported to `config/` directories
 - Use `drush cex/cim` for configuration import/export
 - Recipe configuration uses YAML actions for programmatic updates
+
+## AI Dashboard Module
+
+This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dashboard/`) for tracking AI module contributions and development progress.
+
+### Key Features
+
+#### Content Types
+- **AI Company**: Organizations contributing to AI modules
+  - `field_company_ai_maker` - Boolean indicating AI Maker status
+  - `field_company_drupal_profile` - Drupal.org profile name for linking
+  - `field_company_color`, `field_company_logo`, `field_company_size`, `field_company_website`
+
+- **AI Contributor**: Individual developers
+  - `field_drupal_username` - Drupal.org username (unique identifier)
+  - `field_contributor_company` - Reference to AI Company
+  - `field_tracker_role` - Multi-value list (Developer, Front-end, Management, etc.)
+  - `field_gitlab_username` - GitLab username/email
+  - `field_contributor_skills`, `field_weekly_commitment`
+
+- **AI Issue**: Drupal.org issues for AI modules
+  - `field_issue_number` - Issue number (unique identifier)
+  - `field_issue_url`, `field_issue_status`, `field_issue_priority`
+  - Automatic import/update from drupal.org API
+
+- **AI Resource Allocation**: Weekly time commitments per contributor
+
+#### Calendar Dashboard
+- **URL**: `/ai-dashboard/calendar`
+- **Sorting**: AI Makers first, then alphabetical by company, then by developer name
+- **Features**:
+  - Weekly view with issue assignments
+  - Drag-and-drop issue assignment
+  - Backlog drawer with filtering
+  - AI Maker badges (blue "MAKER" for makers, strikethrough for non-makers)
+  - Company links to drupal.org profiles
+  - Edit buttons for admins (⚙️ cog icon)
+  - Sync buttons to pull drupal.org assignments
+
+#### CSV Import System
+- **URL**: `/ai-dashboard/admin/contributor-import`
+- **Column Structure** (must match exact order):
+  1. Name - Contributor's full name
+  2. Username (d.o) - Drupal.org username (unique identifier)
+  3. Organization - Company name
+  4. AI Maker? - Yes/No for AI Maker status
+  5. Tracker Role - Comma-separated roles (Developer, Front-end, Management, etc.)
+  6. Skills - Comma-separated skills
+  7. Commitment (days/week) - Weekly time commitment
+  8. Company Drupal Profile - Company unique identifier for drupal.org URLs
+  9. GitLab Username or Email - GitLab contact info
+
+- **Re-import Capability**: Updates existing contributors/companies based on unique identifiers
+- **Company Linking**: Uses `Company Drupal Profile` as primary unique identifier
+- **Multi-role Support**: Handles comma-separated tracker roles with intelligent mapping
+
+#### Issue Import System
+- **Deduplication**: Uses issue numbers as unique identifiers to prevent duplicates
+- **Multi-status Import**: Handles multiple status filters without creating duplicates
+- **Auto-update**: Updates existing issues when they change on drupal.org (with API delay)
+- **Session Caching**: Prevents duplicates during single import session
+
+### Database Update Hooks
+- `ai_dashboard_update_8001()` - Remove unsupported status filters
+- `ai_dashboard_update_8002()` - Add company drupal profile and AI maker fields
+- `ai_dashboard_update_8003()` - Update contributors admin view with drupal.org links
+- `ai_dashboard_update_8004()` - Fix missing field storage tables
+- `ai_dashboard_update_8005()` - Force creation of database tables
+- `ai_dashboard_update_8006()` - Add tracker role and GitLab username fields
+
+### Permissions
+- **View**: Public access to dashboard views
+- **Admin**: `administer ai dashboard content` permission for imports, edits, and configuration
 
 ## Field Customizations
 

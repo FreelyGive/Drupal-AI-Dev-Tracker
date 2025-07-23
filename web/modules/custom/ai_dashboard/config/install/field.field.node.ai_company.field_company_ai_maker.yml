@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_company_ai_maker
+    - node.type.ai_company
+id: node.ai_company.field_company_ai_maker
+field_name: field_company_ai_maker
+entity_type: node
+bundle: ai_company
+label: 'AI Maker'
+description: 'Check this if the company is designated as an AI Maker'
+required: false
+translatable: false
+default_value:
+  - value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

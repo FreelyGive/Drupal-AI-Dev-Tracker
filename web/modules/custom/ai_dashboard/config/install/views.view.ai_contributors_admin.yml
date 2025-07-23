@@ -218,6 +218,55 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
+        field_drupal_username:
+          id: field_drupal_username
+          table: node__field_drupal_username
+          field: field_drupal_username
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: field
+          label: 'Drupal.org Username'
+          exclude: false
+          alter:
+            alter_text: true
+            text: '<a href="https://drupal.org/u/{{ field_drupal_username }}" target="_blank">{{ field_drupal_username }}</a>'
+            make_link: false
+            absolute: false
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: true
+          element_type: ''
+          element_class: ''
+          element_label_type: ''
+          element_label_class: ''
+          element_label_colon: true
+          element_wrapper_type: ''
+          element_wrapper_class: ''
+          element_default_classes: true
+          empty: '<em>No username</em>'
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          click_sort_column: value
+          type: string
+          settings: {}
+          group_column: value
+          group_columns: {}
+          group_rows: true
+          delta_limit: 0
+          delta_offset: 0
+          delta_reversed: false
+          delta_first_last: false
+          multi_type: separator
+          separator: ', '
+          field_api_classes: false
         operations:
           id: operations
           table: node

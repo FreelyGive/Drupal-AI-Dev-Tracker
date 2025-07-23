@@ -283,6 +283,9 @@ class IssueImportService {
    *   Import results.
    */
   public function importFromDrupalOrg(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+    // Clear import session cache at start of import
+    $this->clearImportSessionCache();
+    
     $logger = $this->loggerFactory->get('ai_dashboard');
     
     // If we have multiple statuses, import each one separately to avoid API limitations
@@ -398,6 +401,9 @@ class IssueImportService {
    * Import multiple statuses separately to avoid API limitations.
    */
   public function importMultipleStatusesSeparately(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+    // Clear import session cache to prevent duplicates across multiple status imports
+    $this->clearImportSessionCache();
+    
     $logger = $this->loggerFactory->get('ai_dashboard');
     
     $combined_results = [
@@ -465,6 +471,11 @@ class IssueImportService {
    * Import issues from drupal.org API for batch processing.
    */
   public function importFromDrupalOrgBatch(string $project_id, array $filter_tags, array $status_filter, int $offset, int $limit, ?string $date_filter, Node $config): array {
+    // Clear import session cache if this is the first batch (offset 0)
+    if ($offset === 0) {
+      $this->clearImportSessionCache();
+    }
+    
     $logger = $this->loggerFactory->get('ai_dashboard');
     
     // For batch processing, each operation handles exactly one API page
@@ -793,10 +804,31 @@ class IssueImportService {
   }
 
   /**
+   * Static cache to track processed issues in current import session.
+   */
+  protected static $importSessionCache = [];
+
+  /**
+   * Clear the import session cache.
+   */
+  protected function clearImportSessionCache(): void {
+    static::$importSessionCache = [];
+  }
+
+  /**
    * Find existing issue by external ID.
    */
   protected function findExistingIssue(string $external_id, string $source_type): ?Node {
+    // First check if we've already processed this issue in this import session
+    if (isset(static::$importSessionCache[$external_id])) {
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      return $node_storage->load(static::$importSessionCache[$external_id]);
+    }
+    
     $node_storage = $this->entityTypeManager->getStorage('node');
+    
+    // Clear entity cache to ensure fresh query
+    $node_storage->resetCache();
     
     $query = $node_storage->getQuery()
       ->condition('type', 'ai_issue')
@@ -807,7 +839,10 @@ class IssueImportService {
     $result = $query->execute();
     
     if (!empty($result)) {
-      return $node_storage->load(reset($result));
+      $node_id = reset($result);
+      // Cache this for the current import session
+      static::$importSessionCache[$external_id] = $node_id;
+      return $node_storage->load($node_id);
     }
     
     return null;
@@ -837,6 +872,10 @@ class IssueImportService {
     ]);
     
     $issue->save();
+    
+    // Cache this newly created issue to prevent duplicates in same import session
+    static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
+    
     $this->invalidateImportCaches();
     return $issue;
   }
@@ -845,6 +884,13 @@ class IssueImportService {
    * Update existing issue.
    */
   protected function updateIssue(Node $issue, array $mapped_data): Node {
+    // Log the update for debugging
+    $logger = $this->loggerFactory->get('ai_dashboard');
+    $logger->info('Updating issue #@number: @title', [
+      '@number' => $mapped_data['issue_number'],
+      '@title' => $mapped_data['title'],
+    ]);
+    
     $issue->setTitle($mapped_data['title']);
     $issue->set('field_issue_url', [
       'uri' => $mapped_data['issue_url'],
@@ -859,6 +905,10 @@ class IssueImportService {
     $issue->setChangedTime($mapped_data['changed']);
     
     $issue->save();
+    
+    // Cache this updated issue in the session
+    static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
+    
     $this->invalidateImportCaches();
     return $issue;
   }

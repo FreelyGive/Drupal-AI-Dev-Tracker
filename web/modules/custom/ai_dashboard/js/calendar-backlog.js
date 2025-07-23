@@ -26,6 +26,9 @@
       
       // Initialize remove buttons
       self.initRemoveButtons();
+      
+      // Initialize drupal.org sync buttons
+      self.initSyncButtons();
     },
 
     /**
@@ -541,6 +544,102 @@
         
         return (b.created || 0) - (a.created || 0);
       });
+    },
+
+    /**
+     * Initialize drupal.org sync buttons.
+     */
+    initSyncButtons: function() {
+      var self = this;
+      
+      $(document).on('click', '.sync-drupal-issues-btn', function(e) {
+        e.preventDefault();
+        
+        var $button = $(this);
+        var developerId = $button.data('developer-id');
+        var username = $button.data('username');
+        var weekOffset = parseInt($('body').data('week-offset') || 0);
+        
+        if (!developerId || !username) {
+          console.error('Missing developer data for sync');
+          return;
+        }
+        
+        // Show loading state
+        $button.addClass('syncing').prop('disabled', true);
+        
+        // Get CSRF token
+        var csrfToken = drupalSettings.aiDashboard ? drupalSettings.aiDashboard.csrfToken : null;
+        if (!csrfToken) {
+          console.error('CSRF token not available');
+          $button.removeClass('syncing').prop('disabled', false);
+          return;
+        }
+        
+        // Make API request
+        $.ajax({
+          url: '/ai-dashboard/api/sync-drupal-assignments',
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          data: {
+            developer_id: developerId,
+            username: username,
+            week_offset: weekOffset
+          },
+          success: function(response) {
+            if (response.success) {
+              // Show success message
+              self.showMessage('✅ ' + response.message, 'success');
+              
+              // Reload the page to show updated assignments
+              setTimeout(function() {
+                window.location.reload();
+              }, 1000);
+            } else {
+              self.showMessage('❌ ' + (response.message || 'Sync failed'), 'error');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Sync request failed:', error);
+            self.showMessage('❌ Failed to sync assignments from drupal.org', 'error');
+          },
+          complete: function() {
+            $button.removeClass('syncing').prop('disabled', false);
+          }
+        });
+      });
+    },
+
+    /**
+     * Show a temporary message to the user.
+     */
+    showMessage: function(message, type) {
+      var $message = $('<div class="sync-message ' + (type || 'info') + '">')
+        .text(message)
+        .css({
+          position: 'fixed',
+          top: '100px',
+          right: '20px',
+          padding: '12px 20px',
+          borderRadius: '4px',
+          backgroundColor: type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#6b7280'),
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: '500',
+          zIndex: 10000,
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          opacity: 0
+        })
+        .appendTo('body')
+        .animate({ opacity: 1 }, 200);
+
+      setTimeout(function() {
+        $message.animate({ opacity: 0 }, 200, function() {
+          $message.remove();
+        });
+      }, 4000);
     }
   };
 

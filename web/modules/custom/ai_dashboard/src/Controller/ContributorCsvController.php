@@ -68,12 +68,15 @@ class ContributorCsvController extends ControllerBase {
     $companies = $this->getCompanyList();
     
     $headers = [
-      'full_name',
+      'name',
       'drupal_username',
-      'company_name',
-      'role',
+      'organization',
+      'ai_maker',
+      'tracker_role',
       'skills',
-      'weekly_commitment'
+      'weekly_commitment',
+      'company_drupal_profile',
+      'gitlab_username'
     ];
 
     // Create sample rows
@@ -82,17 +85,23 @@ class ContributorCsvController extends ControllerBase {
         'John Doe',
         'john_doe',
         array_key_exists('Acquia', $companies) ? 'Acquia' : array_keys($companies)[0] ?? 'Example Company',
-        'Senior Developer',
+        'Yes',
+        'Developer, Management',
         'PHP, JavaScript, Drupal',
-        '5'
+        '5',
+        'acquia',
+        'john.doe@example.com'
       ],
       [
         'Jane Smith', 
         'jane_smith',
         array_key_exists('Lullabot', $companies) ? 'Lullabot' : array_keys($companies)[1] ?? 'Another Company',
-        'Technical Lead',
+        'No',
+        'Front-end',
         'AI/ML, Python, DevOps',
-        '3'
+        '3',
+        'lullabot',
+        'jsmith_gitlab'
       ]
     ];
 
@@ -197,12 +206,15 @@ class ContributorCsvController extends ControllerBase {
    */
   protected function validateCsvHeaders($headers) {
     $required_headers = [
-      'full_name',
+      'name',
       'drupal_username',
-      'company_name',
-      'role',
+      'organization',
+      'ai_maker',
+      'tracker_role',
       'skills',
-      'weekly_commitment'
+      'weekly_commitment',
+      'company_drupal_profile',
+      'gitlab_username'
     ];
 
     foreach ($required_headers as $required) {
@@ -218,47 +230,107 @@ class ContributorCsvController extends ControllerBase {
    * Process a single contributor row.
    */
   protected function processContributorRow($data) {
-    // Clean data
-    $full_name = trim($data['full_name']);
+    // Clean data using new column names
+    $name = trim($data['name']);
     $drupal_username = trim($data['drupal_username']);
-    $company_name = trim($data['company_name']);
-    $role = trim($data['role']);
+    $organization = trim($data['organization']);
+    $ai_maker = trim(strtolower($data['ai_maker']));
+    $tracker_role = trim($data['tracker_role']);
     $skills = trim($data['skills']);
     $weekly_commitment = floatval($data['weekly_commitment']);
+    $company_drupal_profile = trim($data['company_drupal_profile']);
+    $gitlab_username = trim($data['gitlab_username']);
 
-    if (empty($full_name) || empty($drupal_username)) {
-      throw new \Exception('Full name and Drupal username are required');
+    if (empty($name) || empty($drupal_username)) {
+      throw new \Exception('Name and Drupal username are required');
     }
 
-    // Find company
-    $company_id = $this->findOrCreateCompany($company_name);
+    // Convert AI maker string to boolean
+    $is_ai_maker = in_array($ai_maker, ['yes', 'y', '1', 'true']);
+
+    // Parse tracker roles (comma-separated, multi-value)
+    $tracker_roles = [];
+    if (!empty($tracker_role)) {
+      $roles = explode(',', $tracker_role);
+      foreach ($roles as $role) {
+        $role = trim(strtolower($role));
+        // Map common variations to our field values
+        $role_mapping = [
+          'developer' => 'developer',
+          'dev' => 'developer',
+          'front-end' => 'frontend',
+          'frontend' => 'frontend',
+          'front end' => 'frontend',
+          'management' => 'management',
+          'manager' => 'management',
+          'designer' => 'designer',
+          'design' => 'designer',
+          'qa' => 'qa',
+          'testing' => 'qa',
+          'qa/testing' => 'qa',
+          'devops' => 'devops',
+          'dev ops' => 'devops',
+          'pm' => 'pm',
+          'project manager' => 'pm',
+          'project management' => 'pm',
+        ];
+        
+        if (isset($role_mapping[$role])) {
+          $tracker_roles[] = $role_mapping[$role];
+        }
+      }
+      $tracker_roles = array_unique($tracker_roles);
+    }
+
+    // Find or create company using drupal profile as unique identifier
+    $company_id = $this->findOrCreateCompanyByProfile($organization, $company_drupal_profile, $is_ai_maker);
 
     // Check if contributor exists (by drupal username)
     $existing = $this->findExistingContributor($drupal_username);
     
     if ($existing) {
       // Update existing contributor
-      $existing->setTitle($full_name);
+      $existing->setTitle($name);
       $existing->set('field_drupal_username', $drupal_username);
       $existing->set('field_contributor_company', $company_id);
-      $existing->set('field_contributor_role', $role);
+      $existing->set('field_contributor_role', $organization); // Keep old role field for backwards compatibility
       $existing->set('field_contributor_skills', $skills);
       $existing->set('field_weekly_commitment', $weekly_commitment);
+      
+      // Set new fields if they exist
+      if ($existing->hasField('field_tracker_role')) {
+        $existing->set('field_tracker_role', $tracker_roles);
+      }
+      if ($existing->hasField('field_gitlab_username')) {
+        $existing->set('field_gitlab_username', $gitlab_username);
+      }
+      
       $existing->save();
       
       return FALSE; // Updated
     } else {
       // Create new contributor
-      $contributor = Node::create([
+      $contributor_data = [
         'type' => 'ai_contributor',
-        'title' => $full_name,
+        'title' => $name,
         'field_drupal_username' => $drupal_username,
         'field_contributor_company' => $company_id,
-        'field_contributor_role' => $role,
+        'field_contributor_role' => $organization, // Keep old role field for backwards compatibility
         'field_contributor_skills' => $skills,
         'field_weekly_commitment' => $weekly_commitment,
         'status' => 1,
-      ]);
+      ];
+      
+      // Add new fields if they exist in the system
+      $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+      if ($field_storage_manager->load('node.field_tracker_role')) {
+        $contributor_data['field_tracker_role'] = $tracker_roles;
+      }
+      if ($field_storage_manager->load('node.field_gitlab_username')) {
+        $contributor_data['field_gitlab_username'] = $gitlab_username;
+      }
+      
+      $contributor = Node::create($contributor_data);
       $contributor->save();
       
       return TRUE; // Created
@@ -287,9 +359,9 @@ class ContributorCsvController extends ControllerBase {
   }
 
   /**
-   * Find or create company by name.
+   * Find or create company by name and set AI maker status.
    */
-  protected function findOrCreateCompany($company_name) {
+  protected function findOrCreateCompany($company_name, $is_ai_maker = FALSE) {
     if (empty($company_name)) {
       return NULL;
     }
@@ -306,15 +378,151 @@ class ContributorCsvController extends ControllerBase {
     $result = $query->execute();
     
     if (!empty($result)) {
-      return reset($result);
+      // Update existing company with AI maker status
+      $company_id = reset($result);
+      $company = $node_storage->load($company_id);
+      if ($company && $company->hasField('field_company_ai_maker')) {
+        $company->set('field_company_ai_maker', $is_ai_maker);
+        $company->save();
+      }
+      return $company_id;
     }
     
     // Create new company
-    $company = Node::create([
+    $company_data = [
       'type' => 'ai_company',
       'title' => $company_name,
       'status' => 1,
-    ]);
+    ];
+    
+    // Add AI maker field if it exists
+    if (\Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_company_ai_maker')) {
+      $company_data['field_company_ai_maker'] = $is_ai_maker;
+    }
+    
+    $company = Node::create($company_data);
+    $company->save();
+    
+    return $company->id();
+  }
+
+  /**
+   * Find or create company by Drupal profile and set AI maker status.
+   */
+  protected function findOrCreateCompanyByProfile($company_name, $drupal_profile, $is_ai_maker = FALSE) {
+    if (empty($company_name)) {
+      return NULL;
+    }
+
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    
+    // First, try to find by Drupal profile if it's provided and not empty
+    if (!empty($drupal_profile)) {
+      // Check if the field exists before querying
+      $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+      if ($field_storage_manager->load('node.field_company_drupal_profile')) {
+        try {
+          $query = $node_storage->getQuery()
+            ->condition('type', 'ai_company')
+            ->condition('field_company_drupal_profile', $drupal_profile)
+            ->accessCheck(FALSE)
+            ->range(0, 1);
+          
+          $result = $query->execute();
+          
+          if (!empty($result)) {
+            // Update existing company
+            $company_id = reset($result);
+            $company = $node_storage->load($company_id);
+            if ($company) {
+              $needs_save = FALSE;
+              
+              // Update name if different
+              if ($company->getTitle() !== $company_name) {
+                $company->setTitle($company_name);
+                $needs_save = TRUE;
+              }
+              
+              // Update AI maker status if field exists
+              if ($company->hasField('field_company_ai_maker')) {
+                $current_ai_maker = (bool) $company->get('field_company_ai_maker')->value;
+                if ($current_ai_maker !== $is_ai_maker) {
+                  $company->set('field_company_ai_maker', $is_ai_maker);
+                  $needs_save = TRUE;
+                }
+              }
+              
+              if ($needs_save) {
+                $company->save();
+              }
+            }
+            return $company_id;
+          }
+        } catch (\Exception $e) {
+          // Log the error but continue with fallback
+          \Drupal::logger('ai_dashboard')->error('Error querying company by drupal profile: @message', ['@message' => $e->getMessage()]);
+        }
+      }
+    }
+    
+    // If not found by profile, try by name (fallback for backwards compatibility)
+    $query = $node_storage->getQuery()
+      ->condition('type', 'ai_company')
+      ->condition('title', $company_name)
+      ->accessCheck(FALSE)
+      ->range(0, 1);
+    
+    $result = $query->execute();
+    
+    if (!empty($result)) {
+      // Update existing company with profile and AI maker status
+      $company_id = reset($result);
+      $company = $node_storage->load($company_id);
+      if ($company) {
+        $needs_save = FALSE;
+        
+        // Update Drupal profile if provided and field exists
+        if (!empty($drupal_profile) && $company->hasField('field_company_drupal_profile')) {
+          $current_profile = $company->get('field_company_drupal_profile')->value;
+          if ($current_profile !== $drupal_profile) {
+            $company->set('field_company_drupal_profile', $drupal_profile);
+            $needs_save = TRUE;
+          }
+        }
+        
+        // Update AI maker status if field exists
+        if ($company->hasField('field_company_ai_maker')) {
+          $current_ai_maker = (bool) $company->get('field_company_ai_maker')->value;
+          if ($current_ai_maker !== $is_ai_maker) {
+            $company->set('field_company_ai_maker', $is_ai_maker);
+            $needs_save = TRUE;
+          }
+        }
+        
+        if ($needs_save) {
+          $company->save();
+        }
+      }
+      return $company_id;
+    }
+    
+    // Create new company
+    $company_data = [
+      'type' => 'ai_company',
+      'title' => $company_name,
+      'status' => 1,
+    ];
+    
+    // Add fields if they exist
+    $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+    if ($field_storage_manager->load('node.field_company_ai_maker')) {
+      $company_data['field_company_ai_maker'] = $is_ai_maker;
+    }
+    if (!empty($drupal_profile) && $field_storage_manager->load('node.field_company_drupal_profile')) {
+      $company_data['field_company_drupal_profile'] = $drupal_profile;
+    }
+    
+    $company = Node::create($company_data);
     $company->save();
     
     return $company->id();

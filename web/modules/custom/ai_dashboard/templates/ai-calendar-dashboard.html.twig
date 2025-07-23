@@ -27,7 +27,7 @@
       
       <div class="week-controls">
         <div class="issue-count">
-          {{ calendar_data.week_summary.active + calendar_data.week_summary.needs_review + calendar_data.week_summary.needs_work + calendar_data.week_summary.fixed }} issues
+          {{ calendar_data.week_summary.active + calendar_data.week_summary.needs_review + calendar_data.week_summary.needs_work + calendar_data.week_summary.fixed }}
         </div>
         
         <div class="nav-buttons">
@@ -107,8 +107,34 @@
             {% if company.logo_url %}
               <img src="{{ company.logo_url }}" alt="{{ company.name }} logo" class="company-logo">
             {% endif %}
-            <h3 class="company-name">{{ company.name }}</h3>
+            <h3 class="company-name">
+              {% if company.drupal_profile %}
+                <a href="https://drupal.org/{{ company.drupal_profile }}" target="_blank" class="company-drupal-link">
+                  {{ company.name }}
+                </a>
+              {% else %}
+                {{ company.name }}
+              {% endif %}
+              {% if company.is_ai_maker %}
+                <span class="ai-maker-badge ai-maker" title="AI Maker">Maker</span>
+              {% else %}
+                <span class="ai-maker-badge not-ai-maker" title="Not an AI Maker"><span class="strikethrough">Maker</span></span>
+              {% endif %}
+            </h3>
             <span class="developer-count">{{ company.developers|length }}</span>
+          </div>
+          
+          <div class="company-actions">
+            {% if company.drupal_profile %}
+              <a href="https://drupal.org/{{ company.drupal_profile }}" target="_blank" class="company-link-btn" title="View on Drupal.org">
+                🔗
+              </a>
+            {% endif %}
+            {% if user_has_admin_permission %}
+              <a href="/node/{{ company.id }}/edit" class="company-edit-btn" title="Edit Company">
+                ⚙️
+              </a>
+            {% endif %}
           </div>
         </div>
 
@@ -147,6 +173,11 @@
                           <span class="count-number">{{ developer.issues|length }}</span>
                           <span class="count-label">issue{{ developer.issues|length != 1 ? 's' : '' }}</span>
                         </div>
+                        {% if developer.username %}
+                          <button class="sync-drupal-issues-btn" data-developer-id="{{ developer.id }}" data-username="{{ developer.username }}" title="Sync assigned issues from drupal.org for {{ developer.username }}">
+                            <span class="sync-icon">🔄</span>
+                          </button>
+                        {% endif %}
                         {% set can_edit_contributors = user.hasPermission('edit any ai_contributor content') %}
                         {% if can_edit_contributors and developer.nid %}
                           <a href="/node/{{ developer.nid }}/edit" class="developer-edit-link" title="Edit contributor">

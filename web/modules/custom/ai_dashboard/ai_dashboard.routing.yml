@@ -169,3 +169,12 @@ ai_dashboard.api.unassign_issue:
     _permission: 'access ai dashboard'
     _csrf_request_header_token: 'TRUE'
   methods: [POST]
+
+ai_dashboard.api.sync_drupal_assignments:
+  path: '/ai-dashboard/api/sync-drupal-assignments'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::syncDrupalAssignments'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]

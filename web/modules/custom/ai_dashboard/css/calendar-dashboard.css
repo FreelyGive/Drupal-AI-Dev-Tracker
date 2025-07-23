@@ -294,12 +294,59 @@ body.path-ai-dashboard {
   background: linear-gradient(90deg, #f9fafb 0%, #f3f4f6 100%);
   border-bottom: 1px solid #e5e7eb;
   border-radius: 0.375rem 0.375rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .company-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.company-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.company-drupal-link {
+  color: #0073bb;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.company-drupal-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.company-link-btn,
+.company-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  text-decoration: none;
+  font-size: 0.75rem;
+  transition: all 0.15s ease;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #d1d5db;
+}
+
+.company-link-btn:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  transform: scale(1.05);
+}
+
+.company-edit-btn:hover {
+  background: #f3f4f6;
+  border-color: #6b7280;
+  transform: scale(1.05);
 }
 
 .company-logo {
@@ -316,6 +363,45 @@ body.path-ai-dashboard {
   color: #111827;
   margin: 0;
   letter-spacing: -0.025em;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.ai-maker-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.75rem;
+  transition: transform 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-left: 0.25rem;
+}
+
+.ai-maker-badge:hover {
+  transform: scale(1.05);
+}
+
+.ai-maker-badge.ai-maker {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: 1px solid #2563eb;
+}
+
+.ai-maker-badge.not-ai-maker {
+  background: linear-gradient(135deg, #fca5a5 0%, #f87171 100%);
+  color: #7f1d1d;
+  border: 1px solid #fbbf24;
+}
+
+.ai-maker-badge .strikethrough {
+  text-decoration: line-through;
+  text-decoration-color: #7f1d1d;
+  text-decoration-thickness: 1.5px;
 }
 
 .developer-count {
@@ -547,6 +633,43 @@ body.path-ai-dashboard {
 
 .external-icon {
   font-size: 1rem;
+}
+
+.sync-drupal-issues-btn {
+  background: none;
+  border: none;
+  color: #0073bb;
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s ease;
+  margin: 0 0.125rem;
+}
+
+.sync-drupal-issues-btn:hover {
+  background: #f0f9ff;
+  color: #0369a1;
+  transform: scale(1.05);
+}
+
+.sync-drupal-issues-btn:active {
+  transform: scale(0.95);
+}
+
+.sync-drupal-issues-btn .sync-icon {
+  animation: none;
+}
+
+.sync-drupal-issues-btn.syncing .sync-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .issue-edit-link, .developer-edit-link {

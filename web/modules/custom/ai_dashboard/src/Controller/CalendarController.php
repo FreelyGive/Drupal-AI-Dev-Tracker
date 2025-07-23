@@ -84,6 +84,7 @@ class CalendarController extends ControllerBase {
         '#week_start' => $week_start,
         '#week_end' => $week_end,
         '#week_offset' => $week_offset,
+        '#user_has_admin_permission' => \Drupal::currentUser()->hasPermission('administer ai dashboard content'),
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',
@@ -154,6 +155,8 @@ class CalendarController extends ControllerBase {
         'name' => $company->getTitle(),
         'color' => $company->hasField('field_company_color') ? $company->get('field_company_color')->value : '#0073bb',
         'logo_url' => null,
+        'is_ai_maker' => $company->hasField('field_company_ai_maker') ? (bool) $company->get('field_company_ai_maker')->value : false,
+        'drupal_profile' => $company->hasField('field_company_drupal_profile') ? $company->get('field_company_drupal_profile')->value : '',
         'developers' => [],
         'total_issues' => 0,
       ];
@@ -259,6 +262,9 @@ class CalendarController extends ControllerBase {
       }
     }
 
+    // Sort companies and developers
+    $this->sortCalendarData($calendar_data);
+
     // Calculate total capacity (developers * 5 days)
     $total_developers = 0;
     foreach ($calendar_data['companies'] as $company) {
@@ -267,6 +273,29 @@ class CalendarController extends ControllerBase {
     $calendar_data['week_summary']['total_capacity'] = $total_developers * 5;
 
     return $calendar_data;
+  }
+
+  /**
+   * Sort calendar data by AI Maker status, then company name, then developer name.
+   */
+  private function sortCalendarData(&$calendar_data) {
+    // Sort companies: AI Makers first, then alphabetical by name
+    usort($calendar_data['companies'], function($a, $b) {
+      // First sort by AI Maker status (true first, false second)
+      if ($a['is_ai_maker'] !== $b['is_ai_maker']) {
+        return $b['is_ai_maker'] <=> $a['is_ai_maker']; // true (1) comes before false (0)
+      }
+      
+      // Then sort alphabetically by company name
+      return strcasecmp($a['name'], $b['name']);
+    });
+    
+    // Sort developers within each company alphabetically by name
+    foreach ($calendar_data['companies'] as &$company) {
+      usort($company['developers'], function($a, $b) {
+        return strcasecmp($a['name'], $b['name']);
+      });
+    }
   }
 
   /**
@@ -696,6 +725,121 @@ class CalendarController extends ControllerBase {
     catch (\Exception $e) {
       \Drupal::logger('ai_dashboard')->error('Unassignment error: @message', ['@message' => $e->getMessage()]);
       return new JsonResponse(['success' => false, 'message' => 'Unassignment failed']);
+    }
+  }
+
+  /**
+   * Sync drupal.org assigned issues to current week for a developer.
+   */
+  public function syncDrupalAssignments(Request $request) {
+    try {
+      $developer_id = $request->request->get('developer_id');
+      $username = $request->request->get('username');
+      $week_offset = (int) $request->request->get('week_offset', 0);
+      
+      if (!$developer_id || !$username) {
+        return new JsonResponse(['success' => false, 'message' => 'Missing required parameters']);
+      }
+      
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      
+      // Load the developer
+      $developer = $node_storage->load($developer_id);
+      if (!$developer || $developer->bundle() !== 'ai_contributor') {
+        return new JsonResponse(['success' => false, 'message' => 'Developer not found']);
+      }
+      
+      // Calculate the current week date
+      $assignment_date = new \DateTime();
+      if ($week_offset !== 0) {
+        $assignment_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
+      }
+      $assignment_date->modify('Monday this week');
+      $assignment_date_string = $assignment_date->format('Y-m-d');
+      
+      // Find all AI issues that have the drupal.org assignee matching this developer's username
+      // but are not yet assigned to this developer in our system for this week
+      $query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('field_issue_do_assignee', $username)
+        ->accessCheck(FALSE);
+      
+      $issue_ids = $query->execute();
+      $synced_count = 0;
+      
+      if (!empty($issue_ids)) {
+        $issues = $node_storage->loadMultiple($issue_ids);
+        
+        foreach ($issues as $issue) {
+          // Check if issue is already assigned to this developer for this week
+          $already_assigned = false;
+          
+          // Check current assignees
+          if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
+            foreach ($issue->get('field_issue_assignees') as $assignee) {
+              if ($assignee->target_id == $developer_id) {
+                // Check if already assigned for this week
+                if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
+                  foreach ($issue->get('field_issue_assignment_date') as $date_item) {
+                    if ($date_item->value === $assignment_date_string) {
+                      $already_assigned = true;
+                      break 2;
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+          
+          if (!$already_assigned) {
+            // Assign the issue to this developer
+            $issue->set('field_issue_assignees', [['target_id' => $developer_id]]);
+            
+            // Add assignment date
+            $existing_dates = [];
+            if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
+              foreach ($issue->get('field_issue_assignment_date') as $date_item) {
+                $existing_dates[] = $date_item->value;
+              }
+            }
+            
+            if (!in_array($assignment_date_string, $existing_dates)) {
+              $existing_dates[] = $assignment_date_string;
+              $date_values = array_map(function($date) {
+                return ['value' => $date];
+              }, $existing_dates);
+              $issue->set('field_issue_assignment_date', $date_values);
+            }
+            
+            $issue->save();
+            $synced_count++;
+          }
+        }
+      }
+      
+      // Invalidate relevant caches
+      $this->invalidateCalendarCaches();
+      
+      // Create response with no-cache headers for CloudFlare
+      $response = new JsonResponse([
+        'success' => true,
+        'message' => "Synced {$synced_count} issue" . ($synced_count != 1 ? 's' : '') . " from drupal.org for {$username}",
+        'synced_count' => $synced_count,
+        'developer_id' => $developer_id,
+        'username' => $username,
+      ]);
+      
+      // Add headers to prevent caching
+      $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      $response->headers->set('Pragma', 'no-cache');
+      $response->headers->set('Expires', '0');
+      
+      return $response;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->error('Sync drupal assignments error: @message', ['@message' => $e->getMessage()]);
+      return new JsonResponse(['success' => false, 'message' => 'Sync failed']);
     }
   }
 

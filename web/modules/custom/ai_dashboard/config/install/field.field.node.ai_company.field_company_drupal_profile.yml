@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_company_drupal_profile
+    - node.type.ai_company
+id: node.ai_company.field_company_drupal_profile
+field_name: field_company_drupal_profile
+entity_type: node
+bundle: ai_company
+label: 'Drupal.org Profile'
+description: 'Enter the company name as it appears in drupal.org URLs (e.g., "acquia" for drupal.org/acquia)'
+required: false
+translatable: false
+default_value: []
+default_value_callback: ''
+settings: {}
+field_type: string

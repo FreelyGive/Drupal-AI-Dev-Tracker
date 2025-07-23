@@ -132,6 +132,34 @@ function ai_dashboard_get_field_configs() {
       'required' => FALSE,
     ],
     [
+      'field_name' => 'field_tracker_role',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'list_string',
+      'label' => 'Tracker Role',
+      'required' => FALSE,
+      'cardinality' => -1,
+      'settings' => [
+        'allowed_values' => [
+          'developer' => 'Developer',
+          'frontend' => 'Front-end',
+          'management' => 'Management',
+          'designer' => 'Designer',
+          'qa' => 'QA/Testing',
+          'devops' => 'DevOps',
+          'pm' => 'Project Manager',
+        ],
+      ],
+    ],
+    [
+      'field_name' => 'field_gitlab_username',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'field_type' => 'string',
+      'label' => 'GitLab Username/Email',
+      'required' => FALSE,
+    ],
+    [
       'field_name' => 'field_contributor_email',
       'entity_type' => 'node',
       'bundle' => 'ai_contributor',
@@ -483,4 +511,411 @@ function ai_dashboard_update_8001() {
   drupal_flush_all_caches();
   
   return t('Removed unsupported status filters: Need review (maintainer), Needs tests, Needs clarification from field storage and existing configurations.');
+}
+
+/**
+ * Add drupal.org profile and AI maker fields to companies.
+ */
+function ai_dashboard_update_8002() {
+  $config_path = \Drupal::service('extension.list.module')->getPath('ai_dashboard') . '/config/install';
+  $source = new \Drupal\Core\Config\FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  
+  // Install new field storages
+  $field_storages = [
+    'field.storage.node.field_company_drupal_profile',
+    'field.storage.node.field_company_ai_maker',
+  ];
+  
+  foreach ($field_storages as $field_storage_name) {
+    if ($source->exists($field_storage_name)) {
+      $config_storage->write($field_storage_name, $source->read($field_storage_name));
+    }
+  }
+  
+  // Install new field instances
+  $field_instances = [
+    'field.field.node.ai_company.field_company_drupal_profile',
+    'field.field.node.ai_company.field_company_ai_maker',
+  ];
+  
+  foreach ($field_instances as $field_instance_name) {
+    if ($source->exists($field_instance_name)) {
+      $config_storage->write($field_instance_name, $source->read($field_instance_name));
+    }
+  }
+  
+  // Update form and view displays
+  $displays = [
+    'core.entity_form_display.node.ai_company.default',
+    'core.entity_view_display.node.ai_company.default',
+  ];
+  
+  foreach ($displays as $display_name) {
+    if ($source->exists($display_name)) {
+      $config_storage->write($display_name, $source->read($display_name));
+    }
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  return t('Added drupal.org profile and AI maker fields to companies.');
+}
+
+/**
+ * Update AI contributors admin view to include drupal.org username column with links.
+ */
+function ai_dashboard_update_8003() {
+  $config_path = \Drupal::service('extension.list.module')->getPath('ai_dashboard') . '/config/install';
+  $source = new \Drupal\Core\Config\FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  
+  // Update the contributors admin view
+  $view_config_name = 'views.view.ai_contributors_admin';
+  if ($source->exists($view_config_name)) {
+    $config_storage->write($view_config_name, $source->read($view_config_name));
+  }
+  
+  // Clear views cache
+  if (\Drupal::hasService('views.views_data')) {
+    \Drupal::service('views.views_data')->clear();
+  }
+  
+  return t('Updated AI contributors admin view to include drupal.org username column with profile links.');
+}
+
+/**
+ * Fix missing field storage tables for company fields.
+ */
+function ai_dashboard_update_8004() {
+  // Ensure field storages are properly created in the database
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  
+  // Create field_company_ai_maker storage if missing
+  $ai_maker_storage = $field_storage_manager->load('node.field_company_ai_maker');
+  if (!$ai_maker_storage) {
+    $ai_maker_storage = $field_storage_manager->create([
+      'field_name' => 'field_company_ai_maker',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ]);
+    $ai_maker_storage->save();
+  }
+  
+  // Create field_company_drupal_profile storage if missing
+  $drupal_profile_storage = $field_storage_manager->load('node.field_company_drupal_profile');
+  if (!$drupal_profile_storage) {
+    $drupal_profile_storage = $field_storage_manager->create([
+      'field_name' => 'field_company_drupal_profile',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 255,
+        'case_sensitive' => FALSE,
+      ],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ]);
+    $drupal_profile_storage->save();
+  }
+  
+  // Create field instances for ai_company bundle
+  $ai_maker_field = $field_manager->load('node.ai_company.field_company_ai_maker');
+  if (!$ai_maker_field) {
+    $ai_maker_field = $field_manager->create([
+      'field_name' => 'field_company_ai_maker',
+      'entity_type' => 'node',
+      'bundle' => 'ai_company',
+      'label' => 'AI Maker',
+      'required' => FALSE,
+      'settings' => [
+        'on_label' => 'Yes',
+        'off_label' => 'No',
+      ],
+      'default_value' => [['value' => 0]],
+    ]);
+    $ai_maker_field->save();
+  }
+  
+  $drupal_profile_field = $field_manager->load('node.ai_company.field_company_drupal_profile');
+  if (!$drupal_profile_field) {
+    $drupal_profile_field = $field_manager->create([
+      'field_name' => 'field_company_drupal_profile',
+      'entity_type' => 'node',
+      'bundle' => 'ai_company',
+      'label' => 'Drupal.org Profile',
+      'description' => 'Enter the company name as it appears in drupal.org URLs (e.g., "acquia" for drupal.org/acquia)',
+      'required' => FALSE,
+      'settings' => [],
+      'default_value' => [],
+    ]);
+    $drupal_profile_field->save();
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  
+  return t('Fixed missing field storage tables for company AI maker and Drupal profile fields.');
+}
+
+/**
+ * Force creation of database tables for company fields.
+ */
+function ai_dashboard_update_8005() {
+  $database = \Drupal::database();
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  
+  // Load field storage configs directly
+  $ai_maker_storage = $field_storage_manager->load('node.field_company_ai_maker');
+  $drupal_profile_storage = $field_storage_manager->load('node.field_company_drupal_profile');
+  
+  // Create AI maker field tables using proper schema structure
+  if ($ai_maker_storage && !$database->schema()->tableExists('node__field_company_ai_maker')) {
+    $table_name = 'node__field_company_ai_maker';
+    $revision_table_name = 'node_revision__field_company_ai_maker';
+    
+    // Main table schema for boolean field
+    $main_table_schema = [
+      'description' => 'Data storage for node field field_company_ai_maker.',
+      'fields' => [
+        'bundle' => [
+          'type' => 'varchar_ascii',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The field instance bundle to which this row belongs, used when deleting a field instance',
+        ],
+        'deleted' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'A boolean indicating whether this data item has been deleted',
+        ],
+        'entity_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The entity id this data is attached to',
+        ],
+        'revision_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The entity revision id this data is attached to',
+        ],
+        'langcode' => [
+          'type' => 'varchar_ascii',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The language code for this data item.',
+        ],
+        'delta' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The sequence number for this data item, used for multi-value fields',
+        ],
+        'field_company_ai_maker_value' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'description' => 'The boolean value.',
+        ],
+      ],
+      'primary key' => ['entity_id', 'deleted', 'delta', 'langcode'],
+      'indexes' => [
+        'bundle' => ['bundle'],
+        'revision_id' => ['revision_id'],
+        'field_company_ai_maker_value' => ['field_company_ai_maker_value'],
+      ],
+    ];
+    
+    // Revision table schema
+    $revision_table_schema = $main_table_schema;
+    $revision_table_schema['description'] = 'Revision archive storage for node field field_company_ai_maker.';
+    $revision_table_schema['primary key'] = ['entity_id', 'revision_id', 'deleted', 'delta', 'langcode'];
+    $revision_table_schema['indexes']['entity_id'] = ['entity_id'];
+    
+    $database->schema()->createTable($table_name, $main_table_schema);
+    $database->schema()->createTable($revision_table_name, $revision_table_schema);
+  }
+  
+  // Create Drupal profile field tables
+  if ($drupal_profile_storage && !$database->schema()->tableExists('node__field_company_drupal_profile')) {
+    $table_name = 'node__field_company_drupal_profile';
+    $revision_table_name = 'node_revision__field_company_drupal_profile';
+    
+    // Main table schema for string field
+    $main_table_schema = [
+      'description' => 'Data storage for node field field_company_drupal_profile.',
+      'fields' => [
+        'bundle' => [
+          'type' => 'varchar_ascii',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The field instance bundle to which this row belongs, used when deleting a field instance',
+        ],
+        'deleted' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'A boolean indicating whether this data item has been deleted',
+        ],
+        'entity_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The entity id this data is attached to',
+        ],
+        'revision_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The entity revision id this data is attached to',
+        ],
+        'langcode' => [
+          'type' => 'varchar_ascii',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'The language code for this data item.',
+        ],
+        'delta' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The sequence number for this data item, used for multi-value fields',
+        ],
+        'field_company_drupal_profile_value' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+          'description' => 'The text value.',
+        ],
+      ],
+      'primary key' => ['entity_id', 'deleted', 'delta', 'langcode'],
+      'indexes' => [
+        'bundle' => ['bundle'],
+        'revision_id' => ['revision_id'],
+      ],
+    ];
+    
+    // Revision table schema
+    $revision_table_schema = $main_table_schema;
+    $revision_table_schema['description'] = 'Revision archive storage for node field field_company_drupal_profile.';
+    $revision_table_schema['primary key'] = ['entity_id', 'revision_id', 'deleted', 'delta', 'langcode'];
+    $revision_table_schema['indexes']['entity_id'] = ['entity_id'];
+    
+    $database->schema()->createTable($table_name, $main_table_schema);
+    $database->schema()->createTable($revision_table_name, $revision_table_schema);
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  return t('Force created database tables for company AI maker and Drupal profile fields.');
+}
+
+/**
+ * Add tracker role and GitLab username fields to contributors.
+ */
+function ai_dashboard_update_8006() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  
+  // Create tracker_role field storage (multi-value list)
+  $tracker_role_storage = $field_storage_manager->load('node.field_tracker_role');
+  if (!$tracker_role_storage) {
+    $tracker_role_storage = $field_storage_manager->create([
+      'field_name' => 'field_tracker_role',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => [
+          'developer' => 'Developer',
+          'frontend' => 'Front-end',
+          'management' => 'Management',
+          'designer' => 'Designer',
+          'qa' => 'QA/Testing',
+          'devops' => 'DevOps',
+          'pm' => 'Project Manager',
+        ],
+      ],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => -1,
+      'translatable' => FALSE,
+    ]);
+    $tracker_role_storage->save();
+  }
+  
+  // Create gitlab_username field storage
+  $gitlab_storage = $field_storage_manager->load('node.field_gitlab_username');
+  if (!$gitlab_storage) {
+    $gitlab_storage = $field_storage_manager->create([
+      'field_name' => 'field_gitlab_username',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 255,
+        'case_sensitive' => FALSE,
+      ],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ]);
+    $gitlab_storage->save();
+  }
+  
+  // Create field instances for ai_contributor bundle
+  $tracker_role_field = $field_manager->load('node.ai_contributor.field_tracker_role');
+  if (!$tracker_role_field) {
+    $tracker_role_field = $field_manager->create([
+      'field_name' => 'field_tracker_role',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'label' => 'Tracker Role',
+      'description' => 'Select one or more roles for filtering purposes',
+      'required' => FALSE,
+      'settings' => [],
+      'default_value' => [],
+    ]);
+    $tracker_role_field->save();
+  }
+  
+  $gitlab_field = $field_manager->load('node.ai_contributor.field_gitlab_username');
+  if (!$gitlab_field) {
+    $gitlab_field = $field_manager->create([
+      'field_name' => 'field_gitlab_username',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'label' => 'GitLab Username/Email',
+      'description' => 'GitLab username or email address',
+      'required' => FALSE,
+      'settings' => [],
+      'default_value' => [],
+    ]);
+    $gitlab_field->save();
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  return t('Added tracker role and GitLab username fields to contributors.');
 }
