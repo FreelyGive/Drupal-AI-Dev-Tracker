@@ -43,10 +43,10 @@ class AdminToolsController extends ControllerBase {
   public function adminToolsLanding() {
     $build = [];
 
-    // Add admin navigation
+    // Add admin navigation.
     $build['navigation'] = $this->buildAdminNavigation();
 
-    // Add the main content
+    // Add the main content.
     $build['content'] = [
       '#theme' => 'admin_tools_landing',
       '#attached' => [
@@ -123,14 +123,14 @@ class AdminToolsController extends ControllerBase {
   protected function getAdminStats() {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
-    // Get counts
+    // Get counts.
     $contributors_count = count($node_storage->loadByProperties(['type' => 'ai_contributor']));
     $issues_count = count($node_storage->loadByProperties(['type' => 'ai_issue']));
     $companies_count = count($node_storage->loadByProperties(['type' => 'ai_company']));
     $tag_mappings_count = count($node_storage->loadByProperties(['type' => 'ai_tag_mapping']));
     $import_configs_count = count($node_storage->loadByProperties(['type' => 'ai_import_config']));
 
-    // Get recent activity
+    // Get recent activity.
     $recent_issues = $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->sort('changed', 'DESC')
@@ -159,4 +159,5 @@ class AdminToolsController extends ControllerBase {
       ],
     ];
   }
+
 }

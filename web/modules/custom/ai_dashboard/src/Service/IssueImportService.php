@@ -4,7 +4,6 @@ namespace Drupal\ai_dashboard\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-use Drupal\ai_dashboard\Service\TagMappingService;
 use Drupal\node\Entity\Node;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
@@ -72,9 +71,9 @@ class IssueImportService {
    * @return array
    *   Import results with counts and messages.
    */
-  public function importFromConfig(Node $config, bool $use_batch = true): array {
+  public function importFromConfig(Node $config, bool $use_batch = TRUE): array {
     $logger = $this->loggerFactory->get('ai_dashboard');
-    
+
     try {
       $source_type = $config->get('field_import_source_type')->value;
       $project_id = $config->get('field_import_project_id')->value;
@@ -89,8 +88,9 @@ class IssueImportService {
         '@project' => $project_id,
       ]);
 
-      // Use batch processing for large imports (over 100 issues) and web requests
-      // Force batch processing for multi-status imports regardless of conditions
+      // Use batch processing for large imports (over 100 issues)
+      // and web requests.
+      // Force batch processing for multi-status imports.
       if ($use_batch && (count($status_filter) > 1 || ($max_issues > 100 && PHP_SAPI !== 'cli'))) {
         $batch_service = \Drupal::service('ai_dashboard.batch_import');
         return $batch_service->startBatchImport($config);
@@ -99,13 +99,13 @@ class IssueImportService {
       switch ($source_type) {
         case 'drupal_org':
           return $this->importFromDrupalOrg($project_id, $filter_tags, $status_filter, $max_issues, $date_filter, $config);
-        
+
         case 'gitlab':
           return $this->importFromGitLab($project_id, $filter_tags, $status_filter, $max_issues, $date_filter, $config);
-        
+
         case 'github':
           return $this->importFromGitHub($project_id, $filter_tags, $status_filter, $max_issues, $date_filter, $config);
-        
+
         default:
           throw new \InvalidArgumentException("Unsupported source type: {$source_type}");
       }
@@ -113,7 +113,7 @@ class IssueImportService {
     catch (\Exception $e) {
       $logger->error('Import failed: @message', ['@message' => $e->getMessage()]);
       return [
-        'success' => false,
+        'success' => FALSE,
         'message' => 'Import failed: ' . $e->getMessage(),
         'imported' => 0,
         'skipped' => 0,
@@ -149,8 +149,10 @@ class IssueImportService {
           $project_id,
           $filter_tags,
           $status_filter,
-          $i * $batch_size, // offset
-          min($batch_size, $max_issues - ($i * $batch_size)), // limit
+      // Offset.
+          $i * $batch_size,
+      // Limit.
+          min($batch_size, $max_issues - ($i * $batch_size)),
           $date_filter,
         ],
       ];
@@ -158,33 +160,34 @@ class IssueImportService {
 
     batch_set($batch);
 
-    // For web requests, redirect to batch processing page
+    // For web requests, redirect to batch processing page.
     if (PHP_SAPI !== 'cli') {
-      // Store a flag so we know batch was started
+      // Store a flag so we know batch was started.
       \Drupal::state()->set('ai_dashboard.batch_started', time());
-      
-      // Use batch_process() to redirect to the batch page
+
+      // Use batch_process() to redirect to the batch page.
       $response = batch_process('/ai-dashboard/admin');
-      
+
       return [
-        'success' => true,
+        'success' => TRUE,
         'message' => 'Batch import started. Processing...',
-        'redirect' => true,
+        'redirect' => TRUE,
         'imported' => 0,
         'skipped' => 0,
         'errors' => 0,
       ];
     }
 
-    // For CLI/drush execution, process immediately
+    // For CLI/drush execution, process immediately.
     $batch =& batch_get();
     $batch['progressive'] = FALSE;
     batch_process();
-    
+
     return [
-      'success' => true,
+      'success' => TRUE,
       'message' => 'Batch import completed via CLI.',
-      'imported' => 0, // Will be updated by batch
+    // Will be updated by batch.
+      'imported' => 0,
       'skipped' => 0,
       'errors' => 0,
     ];
@@ -196,7 +199,7 @@ class IssueImportService {
   public static function batchProcess($config_id, $source_type, $project_id, $filter_tags, $status_filter, $offset, $limit, $date_filter, &$context) {
     $import_service = \Drupal::service('ai_dashboard.issue_import');
     $config = \Drupal::entityTypeManager()->getStorage('node')->load($config_id);
-    
+
     if (!$config) {
       $context['results']['errors'][] = 'Configuration not found';
       return;
@@ -207,12 +210,12 @@ class IssueImportService {
         case 'drupal_org':
           $results = $import_service->importFromDrupalOrgBatch($project_id, $filter_tags, $status_filter, $offset, $limit, $date_filter, $config);
           break;
-        
+
         default:
           throw new \InvalidArgumentException("Batch import not supported for source type: {$source_type}");
       }
 
-      // Update context with results
+      // Update context with results.
       if (!isset($context['results']['imported'])) {
         $context['results']['imported'] = 0;
         $context['results']['skipped'] = 0;
@@ -222,13 +225,14 @@ class IssueImportService {
       $context['results']['imported'] += $results['imported'];
       $context['results']['skipped'] += $results['skipped'];
       $context['results']['errors'] += $results['errors'];
-      
+
       $context['message'] = t('Processed @imported issues (offset @offset)', [
         '@imported' => $results['imported'],
         '@offset' => $offset,
       ]);
 
-    } catch (\Exception $e) {
+    }
+    catch (\Exception $e) {
       $context['results']['errors'][] = $e->getMessage();
     }
   }
@@ -238,27 +242,28 @@ class IssueImportService {
    */
   public static function batchFinished($success, $results, $operations) {
     $messenger = \Drupal::messenger();
-    
-    // Clear the batch started flag
+
+    // Clear the batch started flag.
     \Drupal::state()->delete('ai_dashboard.batch_started');
-    
+
     if ($success) {
       $imported = $results['imported'] ?? 0;
       $skipped = $results['skipped'] ?? 0;
       $errors = is_array($results['errors'] ?? []) ? count($results['errors']) : ($results['errors'] ?? 0);
-      
+
       $messenger->addMessage(t('✅ Import completed successfully! @imported issues imported, @skipped skipped, @errors errors', [
         '@imported' => $imported,
         '@skipped' => $skipped,
         '@errors' => $errors,
       ]));
-      
+
       if ($imported > 0) {
         $messenger->addMessage(t('You can view the imported issues at <a href="@url">Admin Tools → Issues</a>', [
           '@url' => '/ai-dashboard/admin/issues',
         ]));
       }
-    } else {
+    }
+    else {
       $messenger->addError(t('❌ Import finished with errors. Check the logs for details.'));
     }
   }
@@ -283,17 +288,18 @@ class IssueImportService {
    *   Import results.
    */
   public function importFromDrupalOrg(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
-    // Clear import session cache at start of import
+    // Clear import session cache at start of import.
     $this->clearImportSessionCache();
-    
+
     $logger = $this->loggerFactory->get('ai_dashboard');
-    
-    // If we have multiple statuses, import each one separately to avoid API limitations
+
+    // If we have multiple statuses, import each one separately
+    // to avoid API limitations.
     if (count($status_filter) > 1) {
       return $this->importMultipleStatusesSeparately($project_id, $filter_tags, $status_filter, $max_issues, $date_filter, $config);
     }
-    
-    // Build the API URL for single status import
+
+    // Build the API URL for single status import.
     $url = 'https://www.drupal.org/api-d7/node.json';
     $params = [
       'type' => 'project_issue',
@@ -308,7 +314,7 @@ class IssueImportService {
       $params['field_issue_status'] = $status_filter[0];
     }
 
-    // Add date filter if specified
+    // Add date filter if specified.
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
       if ($timestamp) {
@@ -318,7 +324,7 @@ class IssueImportService {
 
     try {
       $results = [
-        'success' => true,
+        'success' => TRUE,
         'imported' => 0,
         'skipped' => 0,
         'errors' => 0,
@@ -326,38 +332,42 @@ class IssueImportService {
       ];
 
       $page = 0;
-      $per_page = 50; // drupal.org API limit
+      // drupal.org API limit.
+      $per_page = 50;
       $total_processed = 0;
 
       do {
-        // Set pagination parameters
+        // Set pagination parameters.
         $current_params = $params;
         $current_params['limit'] = min($per_page, $max_issues - $total_processed);
         $current_params['page'] = $page;
 
         $response = $this->httpClient->request('GET', $url, [
           'query' => $current_params,
-          'timeout' => 60, // Increased timeout for large imports
+        // Increased timeout for large imports.
+          'timeout' => 60,
         ]);
 
-        $data = json_decode($response->getBody()->getContents(), true);
-        
+        $data = json_decode($response->getBody()->getContents(), TRUE);
+
         if (!isset($data['list']) || !is_array($data['list'])) {
           throw new \Exception('Invalid response format from drupal.org API');
         }
 
         $page_issues = count($data['list']);
         if ($page_issues === 0) {
-          break; // No more issues
+          // No more issues.
+          break;
         }
 
         foreach ($data['list'] as $issue_data) {
           if ($total_processed >= $max_issues) {
-            break 2; // Break out of both loops
+            // Break out of both loops.
+            break 2;
           }
 
           try {
-            // Filter by tags if specified
+            // Filter by tags if specified.
             if (!empty($filter_tags) && !$this->issueMatchesTagFilter($issue_data, $filter_tags)) {
               $results['skipped']++;
               $total_processed++;
@@ -379,8 +389,8 @@ class IssueImportService {
         }
 
         $page++;
-        
-        // Continue if we got a full page and haven't reached the limit
+
+        // Continue if we got a full page and haven't reached the limit.
       } while ($page_issues === $per_page && $total_processed < $max_issues);
 
       $results['message'] = sprintf(
@@ -401,22 +411,22 @@ class IssueImportService {
    * Import multiple statuses separately to avoid API limitations.
    */
   public function importMultipleStatusesSeparately(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
-    // Clear import session cache to prevent duplicates across multiple status imports
+    // Clear import session cache to prevent duplicates across multiple runs.
     $this->clearImportSessionCache();
-    
+
     $logger = $this->loggerFactory->get('ai_dashboard');
-    
+
     $combined_results = [
-      'success' => true,
+      'success' => TRUE,
       'imported' => 0,
       'skipped' => 0,
       'errors' => 0,
       'message' => '',
     ];
-    
+
     $status_names = [
       '1' => 'Active',
-      '13' => 'Needs work', 
+      '13' => 'Needs work',
       '8' => 'Needs review',
       '14' => 'RTBC',
       '15' => 'Patch (to be ported)',
@@ -424,46 +434,47 @@ class IssueImportService {
       '4' => 'Postponed',
       '16' => 'Postponed (maintainer needs more info)',
     ];
-    
+
     $status_results = [];
-    
-    // Import each status separately
+
+    // Import each status separately.
     foreach ($status_filter as $single_status) {
       $status_name = $status_names[$single_status] ?? "Status $single_status";
       $logger->info('Importing @status issues', ['@status' => $status_name]);
-      
+
       try {
-        // Import this single status
+        // Import this single status.
         $single_results = $this->importFromDrupalOrg($project_id, $filter_tags, [$single_status], $max_issues, $date_filter, $config);
-        
-        // Combine results
+
+        // Combine results.
         $combined_results['imported'] += $single_results['imported'];
         $combined_results['skipped'] += $single_results['skipped'];
         $combined_results['errors'] += $single_results['errors'];
-        
+
         $status_results[] = "$status_name: {$single_results['imported']} imported";
-        
+
         if (!$single_results['success']) {
-          $combined_results['success'] = false;
+          $combined_results['success'] = FALSE;
         }
-        
-      } catch (\Exception $e) {
+
+      }
+      catch (\Exception $e) {
         $logger->error('Failed to import @status: @message', [
           '@status' => $status_name,
           '@message' => $e->getMessage(),
         ]);
         $combined_results['errors']++;
-        $combined_results['success'] = false;
+        $combined_results['success'] = FALSE;
         $status_results[] = "$status_name: ERROR";
       }
     }
-    
+
     $combined_results['message'] = sprintf(
       'Multi-status import completed: %d total imported (%s)',
       $combined_results['imported'],
       implode(', ', $status_results)
     );
-    
+
     return $combined_results;
   }
 
@@ -475,23 +486,23 @@ class IssueImportService {
     if ($offset === 0) {
       $this->clearImportSessionCache();
     }
-    
+
     $logger = $this->loggerFactory->get('ai_dashboard');
-    
-    // For batch processing, each operation handles exactly one API page
-    // The offset and limit should align with API page boundaries (50 items per page)
+
+    // For batch processing, each operation handles exactly one API page.
+    // The offset and limit should align with API page boundaries.
     $api_page_size = 50;
     $page_number = floor($offset / $api_page_size);
-    
+
     $results = [
-      'success' => true,
+      'success' => TRUE,
       'imported' => 0,
       'skipped' => 0,
       'errors' => 0,
       'message' => '',
     ];
-    
-    // Build the API URL for this specific page
+
+    // Build the API URL for this specific page.
     $url = 'https://www.drupal.org/api-d7/node.json';
     $params = [
       'type' => 'project_issue',
@@ -502,12 +513,12 @@ class IssueImportService {
       'direction' => 'DESC',
     ];
 
-    // Add status filter if specified
+    // Add status filter if specified.
     if (!empty($status_filter)) {
       $params['field_issue_status'] = implode(',', $status_filter);
     }
 
-    // Add date filter if specified
+    // Add date filter if specified.
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
       if ($timestamp) {
@@ -521,8 +532,8 @@ class IssueImportService {
         'timeout' => 60,
       ]);
 
-      $data = json_decode($response->getBody()->getContents(), true);
-      
+      $data = json_decode($response->getBody()->getContents(), TRUE);
+
       if (!isset($data['list']) || !is_array($data['list'])) {
         throw new \Exception('Invalid API response format');
       }
@@ -536,11 +547,12 @@ class IssueImportService {
       $total_processed = 0;
       foreach ($data['list'] as $issue_data) {
         if ($total_processed >= $limit) {
-          break; // Don't exceed the requested limit for this batch
+          // Don't exceed the requested limit for this batch.
+          break;
         }
 
         try {
-          // Filter by tags if specified
+          // Filter by tags if specified.
           if (!empty($filter_tags) && !$this->issueMatchesTagFilter($issue_data, $filter_tags)) {
             $results['skipped']++;
             $total_processed++;
@@ -569,12 +581,14 @@ class IssueImportService {
         $results['errors']
       );
 
-    } catch (\Exception $e) {
+    }
+    catch (\Exception $e) {
       // Check if this is a 404 error (no more pages available)
-      if (strpos($e->getMessage(), '404') !== false || strpos($e->getMessage(), 'Page doesn') !== false) {
+      if (strpos($e->getMessage(), '404') !== FALSE || strpos($e->getMessage(), 'Page doesn') !== FALSE) {
         $results['message'] = sprintf('Page %d: No more data available (reached end of results)', $page_number);
         $logger->info('Reached end of available data at page @page', ['@page' => $page_number]);
-      } else {
+      }
+      else {
         $logger->error('API request failed for page @page: @message', [
           '@page' => $page_number,
           '@message' => $e->getMessage(),
@@ -613,18 +627,19 @@ class IssueImportService {
    */
   protected function processIssue(array $issue_data, string $source_type, Node $config): void {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
-    // Map API data to Drupal fields based on source
+
+    // Map API data to Drupal fields based on source.
     $mapped_data = $this->mapIssueData($issue_data, $source_type, $config);
-    
-    // Check for existing issue by external ID
+
+    // Check for existing issue by external ID.
     $existing = $this->findExistingIssue($mapped_data['external_id'], $source_type);
-    
+
     if ($existing) {
-      // Update existing issue
+      // Update existing issue.
       $this->updateIssue($existing, $mapped_data);
-    } else {
-      // Create new issue
+    }
+    else {
+      // Create new issue.
       $this->createIssue($mapped_data);
     }
   }
@@ -646,7 +661,7 @@ class IssueImportService {
     switch ($source_type) {
       case 'drupal_org':
         return $this->mapDrupalOrgIssue($issue_data, $config);
-      
+
       default:
         throw new \InvalidArgumentException("Unsupported source type: {$source_type}");
     }
@@ -664,15 +679,16 @@ class IssueImportService {
    *   Mapped data.
    */
   protected function mapDrupalOrgIssue(array $issue_data, Node $config): array {
-    // Extract tags from the issue
+    // Extract tags from the issue.
     $tags = [];
     if (isset($issue_data['taxonomy_vocabulary_9']) && is_array($issue_data['taxonomy_vocabulary_9'])) {
       foreach ($issue_data['taxonomy_vocabulary_9'] as $tag) {
         if (isset($tag['name'])) {
           // Tag has name (full API response)
           $tags[] = $tag['name'];
-        } elseif (isset($tag['id'])) {
-          // Tag has only ID, resolve it via API
+        }
+        elseif (isset($tag['id'])) {
+          // Tag has only ID, resolve it via API.
           $tag_name = $this->resolveTagName($tag['id']);
           if ($tag_name) {
             $tags[] = $tag_name;
@@ -681,21 +697,21 @@ class IssueImportService {
       }
     }
 
-    // Process tags through mapping service
+    // Process tags through mapping service.
     $processed_tags = $this->tagMappingService->processTags($tags);
 
-    // Extract drupal.org assignee information
+    // Extract drupal.org assignee information.
     $do_assignee = '';
-    
+
     if (isset($issue_data['field_issue_assigned']) && is_array($issue_data['field_issue_assigned'])) {
       if (isset($issue_data['field_issue_assigned']['id'])) {
-        // We have the user ID, need to resolve it to username
+        // We have the user ID, need to resolve it to username.
         $user_id = $issue_data['field_issue_assigned']['id'];
         $do_assignee = $this->resolveUsernameFromId($user_id);
       }
     }
-    
-    // Log assignee resolution issues for debugging (only when there are problems)
+
+    // Log assignee resolution issues for debugging.
     if (isset($issue_data['nid']) && isset($issue_data['field_issue_assigned']) && empty($do_assignee)) {
       \Drupal::logger('ai_dashboard')->warning('Failed to resolve assignee for issue @nid, assigned field: @assigned', [
         '@nid' => $issue_data['nid'],
@@ -703,29 +719,30 @@ class IssueImportService {
       ]);
     }
 
-    // Get module name based on project information
+    // Get module name based on project information.
     $module_name = 'Unknown Module';
-    
-    // Get project ID from import configuration
+
+    // Get project ID from import configuration.
     $project_id = $config->get('field_import_project_id')->value;
-    
-    // Map known project IDs to module names
+
+    // Map known project IDs to module names.
     $project_mapping = [
       '3346420' => 'AI',
-      // Add more mappings as needed in the future
+      // Add more mappings as needed in the future.
     ];
-    
+
     if (isset($project_mapping[$project_id])) {
       $module_name = $project_mapping[$project_id];
-    } else {
-      // Fallback to configuration title
+    }
+    else {
+      // Fallback to configuration title.
       $module_name = $config->getTitle();
-      if (strpos($module_name, ' Import Configuration') !== false) {
+      if (strpos($module_name, ' Import Configuration') !== FALSE) {
         $module_name = str_replace(' Import Configuration', '', $module_name);
       }
     }
 
-    // Find or create the module node
+    // Find or create the module node.
     $module_node_id = $this->findOrCreateModule($module_name);
 
     return [
@@ -757,7 +774,7 @@ class IssueImportService {
       '2' => 'fixed',
       '3' => 'closed',
     ];
-    
+
     return $status_map[$status_id] ?? 'active';
   }
 
@@ -767,11 +784,11 @@ class IssueImportService {
   protected function mapDrupalOrgPriority(string $priority_id): string {
     $priority_map = [
       '400' => 'critical',
-      '300' => 'major', 
+      '300' => 'major',
       '200' => 'normal',
       '100' => 'minor',
     ];
-    
+
     return $priority_map[$priority_id] ?? 'normal';
   }
 
@@ -780,7 +797,7 @@ class IssueImportService {
    */
   protected function issueMatchesStatusFilter(array $issue_data, array $status_filter): bool {
     if (empty($status_filter)) {
-      return true;
+      return TRUE;
     }
 
     $issue_status = $issue_data['field_issue_status'] ?? '';
@@ -797,11 +814,11 @@ class IssueImportService {
    *   The username, or empty string if not found.
    */
   protected function resolveUsernameFromId(string $user_id): string {
-    // Validate user ID format
+    // Validate user ID format.
     if (empty($user_id) || !is_numeric($user_id)) {
       return '';
     }
-    
+
     try {
       $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
         'timeout' => 10,
@@ -809,13 +826,13 @@ class IssueImportService {
           'User-Agent' => 'AI Dashboard Module/1.0',
         ],
       ]);
-      
+
       if ($response->getStatusCode() !== 200) {
         return '';
       }
-      
-      $user_data = json_decode($response->getBody()->getContents(), true);
-      
+
+      $user_data = json_decode($response->getBody()->getContents(), TRUE);
+
       if (isset($user_data['name']) && !empty($user_data['name'])) {
         return $user_data['name'];
       }
@@ -826,7 +843,7 @@ class IssueImportService {
         '@message' => $e->getMessage(),
       ]);
     }
-    
+
     return '';
   }
 
@@ -835,7 +852,7 @@ class IssueImportService {
    */
   protected function issueMatchesTagFilter(array $issue_data, array $filter_tags): bool {
     if (empty($filter_tags)) {
-      return true;
+      return TRUE;
     }
 
     $issue_tags = [];
@@ -849,15 +866,17 @@ class IssueImportService {
 
     foreach ($filter_tags as $filter_tag) {
       if (in_array(strtolower($filter_tag), $issue_tags)) {
-        return true;
+        return TRUE;
       }
     }
 
-    return false;
+    return FALSE;
   }
 
   /**
-   * Static cache to track processed issues in current import session.
+   * Static cache of processed issues in the current import session.
+   *
+   * @var array
    */
   protected static $importSessionCache = [];
 
@@ -872,33 +891,33 @@ class IssueImportService {
    * Find existing issue by external ID.
    */
   protected function findExistingIssue(string $external_id, string $source_type): ?Node {
-    // First check if we've already processed this issue in this import session
+    // First check if we've already processed this issue in this import session.
     if (isset(static::$importSessionCache[$external_id])) {
       $node_storage = $this->entityTypeManager->getStorage('node');
       return $node_storage->load(static::$importSessionCache[$external_id]);
     }
-    
+
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
-    // Clear entity cache to ensure fresh query
+
+    // Clear entity cache to ensure fresh query.
     $node_storage->resetCache();
-    
+
     $query = $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('field_issue_number', $external_id)
       ->accessCheck(FALSE)
       ->range(0, 1);
-    
+
     $result = $query->execute();
-    
+
     if (!empty($result)) {
       $node_id = reset($result);
-      // Cache this for the current import session
+      // Cache this for the current import session.
       static::$importSessionCache[$external_id] = $node_id;
       return $node_storage->load($node_id);
     }
-    
-    return null;
+
+    return NULL;
   }
 
   /**
@@ -923,12 +942,13 @@ class IssueImportService {
       'changed' => $mapped_data['changed'],
       'status' => 1,
     ]);
-    
+
     $issue->save();
-    
-    // Cache this newly created issue to prevent duplicates in same import session
+
+    // Cache this newly created issue to prevent duplicates in
+    // the same import session.
     static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
-    
+
     $this->invalidateImportCaches();
     return $issue;
   }
@@ -937,13 +957,13 @@ class IssueImportService {
    * Update existing issue.
    */
   protected function updateIssue(Node $issue, array $mapped_data): Node {
-    // Log the update for debugging
+    // Log the update for debugging.
     $logger = $this->loggerFactory->get('ai_dashboard');
     $logger->info('Updating issue #@number: @title', [
       '@number' => $mapped_data['issue_number'],
       '@title' => $mapped_data['title'],
     ]);
-    
+
     $issue->setTitle($mapped_data['title']);
     $issue->set('field_issue_url', [
       'uri' => $mapped_data['issue_url'],
@@ -956,12 +976,12 @@ class IssueImportService {
     $issue->set('field_issue_module', $mapped_data['module'] ?? '');
     $issue->set('field_issue_do_assignee', $mapped_data['do_assignee'] ?? '');
     $issue->setChangedTime($mapped_data['changed']);
-    
+
     $issue->save();
-    
-    // Cache this updated issue in the session
+
+    // Cache this updated issue in the session.
     static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
-    
+
     $this->invalidateImportCaches();
     return $issue;
   }
@@ -974,10 +994,10 @@ class IssueImportService {
     if ($config->hasField('field_import_filter_tags') && !$config->get('field_import_filter_tags')->isEmpty()) {
       $tags_string = $config->get('field_import_filter_tags')->value;
       if (!empty($tags_string)) {
-        // Split by comma and clean up
+        // Split by comma and clean up.
         $tags = array_map('trim', explode(',', $tags_string));
-        // Remove empty values
-        $tags = array_filter($tags, function($tag) {
+        // Remove empty values.
+        $tags = array_filter($tags, function ($tag) {
           return !empty($tag);
         });
       }
@@ -994,7 +1014,8 @@ class IssueImportService {
       foreach ($config->get('field_import_status_filter') as $item) {
         if (!empty($item->value)) {
           if ($item->value === 'all_open') {
-            // Return statuses that match drupal.org's complete open filter including postponed
+            // Return statuses that match drupal.org's complete open filter
+            // including postponed.
             return ['1', '13', '8', '14', '15', '2', '4', '16'];
           }
           $statuses[] = $item->value;
@@ -1012,48 +1033,49 @@ class IssueImportService {
    */
   public function deleteAllIssues(): int {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $issue_ids = $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->accessCheck(FALSE)
       ->execute();
-    
+
     if (!empty($issue_ids)) {
       $issues = $node_storage->loadMultiple($issue_ids);
       $node_storage->delete($issues);
-      
-      // Clean up any orphaned field data
+
+      // Clean up any orphaned field data.
       $this->cleanupOrphanedFieldData();
-      
-      // Invalidate caches after bulk deletion
+
+      // Invalidate caches after bulk deletion.
       $this->invalidateImportCaches();
-      
+
       return count($issues);
     }
-    
+
     return 0;
   }
-  
+
   /**
    * Clean up orphaned field data for deleted issues.
    */
   private function cleanupOrphanedFieldData(): void {
     $database = \Drupal::database();
-    
-    // Get all existing AI issue node IDs
+
+    // Get all existing AI issue node IDs.
     $existing_nids = $database->select('node_field_data', 'nfd')
       ->fields('nfd', ['nid'])
       ->condition('nfd.type', 'ai_issue')
       ->execute()
       ->fetchCol();
-    
+
     if (empty($existing_nids)) {
-      // If no AI issues exist, delete all assignee field data for ai_issue
+      // If no AI issues exist, delete all assignee field data for ai_issue.
       $database->delete('node__field_issue_assignees')
         ->condition('bundle', 'ai_issue')
         ->execute();
-    } else {
-      // Delete assignee field data for non-existent nodes
+    }
+    else {
+      // Delete assignee field data for non-existent nodes.
       $database->delete('node__field_issue_assignees')
         ->condition('bundle', 'ai_issue')
         ->condition('entity_id', $existing_nids, 'NOT IN')
@@ -1072,34 +1094,35 @@ class IssueImportService {
    */
   protected function resolveTagName(string $term_id): ?string {
     static $tag_cache = [];
-    
-    // Use static cache to avoid repeated API calls
+
+    // Use static cache to avoid repeated API calls.
     if (isset($tag_cache[$term_id])) {
       return $tag_cache[$term_id];
     }
-    
+
     try {
       $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/taxonomy_term/{$term_id}.json", [
         'timeout' => 10,
       ]);
-      
-      $data = json_decode($response->getBody()->getContents(), true);
-      
+
+      $data = json_decode($response->getBody()->getContents(), TRUE);
+
       if (isset($data['name'])) {
         $tag_cache[$term_id] = $data['name'];
         return $data['name'];
       }
-    } catch (\Exception $e) {
-      // Log error but don't fail the import
+    }
+    catch (\Exception $e) {
+      // Log error but don't fail the import.
       $logger = $this->loggerFactory->get('ai_dashboard');
       $logger->warning('Failed to resolve tag ID @id: @message', [
         '@id' => $term_id,
         '@message' => $e->getMessage(),
       ]);
     }
-    
-    $tag_cache[$term_id] = null;
-    return null;
+
+    $tag_cache[$term_id] = NULL;
+    return NULL;
   }
 
   /**
@@ -1113,28 +1136,28 @@ class IssueImportService {
    */
   protected function findOrCreateModule(string $module_name): ?int {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
-    // First, try to find existing module by title
+
+    // First, try to find existing module by title.
     $query = $node_storage->getQuery()
       ->condition('type', 'ai_module')
       ->condition('title', $module_name)
       ->accessCheck(FALSE)
       ->range(0, 1);
-    
+
     $result = $query->execute();
-    
+
     if (!empty($result)) {
       return (int) reset($result);
     }
-    
-    // Module doesn't exist, create it
+
+    // Module doesn't exist, create it.
     try {
       $module_node = Node::create([
         'type' => 'ai_module',
         'title' => $module_name,
         'status' => 1,
       ]);
-      
+
       $module_node->save();
       return (int) $module_node->id();
     }
@@ -1144,7 +1167,7 @@ class IssueImportService {
         '@name' => $module_name,
         '@message' => $e->getMessage(),
       ]);
-      return null;
+      return NULL;
     }
   }
 
@@ -1152,7 +1175,7 @@ class IssueImportService {
    * Invalidate caches after import operations.
    */
   protected function invalidateImportCaches() {
-    // Invalidate specific cache tags for dashboard data
+    // Invalidate specific cache tags for dashboard data.
     $cache_tags = [
       'ai_dashboard:calendar',
       'node_list:ai_issue',
@@ -1160,11 +1183,11 @@ class IssueImportService {
       'ai_dashboard:import',
     ];
     \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
-    
-    // Invalidate dynamic page cache for dashboard pages
+
+    // Invalidate dynamic page cache for dashboard pages.
     \Drupal::service('cache.dynamic_page_cache')->deleteAll();
-    
-    // Invalidate render cache for views and blocks
+
+    // Invalidate render cache for views and blocks.
     \Drupal::service('cache.render')->deleteAll();
   }
 

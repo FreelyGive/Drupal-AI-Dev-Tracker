@@ -48,9 +48,9 @@ class AiDashboardCommands extends DrushCommands {
    */
   public function generateTagMappings() {
     $this->output()->writeln('Generating sample tag mappings...');
-    
+
     $mappings_data = [
-      // Category mappings
+      // Category mappings.
       ['AI Logging', 'category', 'ai_integration'],
       ['AI Core', 'category', 'ai_integration'],
       ['Provider Integration', 'category', 'provider_integration'],
@@ -59,8 +59,8 @@ class AiDashboardCommands extends DrushCommands {
       ['Documentation', 'category', 'documentation'],
       ['Security', 'category', 'security'],
       ['API Integration', 'category', 'api_integration'],
-      
-      // Month mappings
+
+      // Month mappings.
       ['January', 'month', '2024-01'],
       ['February', 'month', '2024-02'],
       ['March', 'month', '2024-03'],
@@ -73,36 +73,36 @@ class AiDashboardCommands extends DrushCommands {
       ['October', 'month', '2024-10'],
       ['November', 'month', '2024-11'],
       ['December', 'month', '2024-12'],
-      
-      // Priority mappings
+
+      // Priority mappings.
       ['Critical', 'priority', 'critical'],
       ['Major', 'priority', 'major'],
       ['Normal', 'priority', 'normal'],
       ['Minor', 'priority', 'minor'],
       ['Trivial', 'priority', 'trivial'],
-      
-      // Status mappings
+
+      // Status mappings.
       ['Active', 'status', 'active'],
       ['Needs Review', 'status', 'needs_review'],
       ['Needs Work', 'status', 'needs_work'],
       ['RTBC', 'status', 'rtbc'],
       ['Fixed', 'status', 'fixed'],
       ['Closed', 'status', 'closed'],
-      
-      // Module/Component mappings
+
+      // Module/Component mappings.
       ['AI Module', 'module', 'ai'],
       ['OpenAI Provider', 'module', 'ai_provider_openai'],
       ['Anthropic Provider', 'module', 'ai_provider_anthropic'],
       ['CKEditor AI', 'module', 'ckeditor_ai'],
       ['Image Alt Text', 'module', 'ai_image_alt_text'],
-      
+
       // Custom mappings (for specific tags that don't fit other categories)
       ['Drupal 11', 'custom', 'drupal11_compatibility'],
       ['Migration', 'custom', 'migration_task'],
       ['Testing', 'custom', 'testing_required'],
       ['Translation', 'custom', 'i18n_support'],
     ];
-    
+
     $created_count = 0;
     foreach ($mappings_data as $data) {
       $mapping = Node::create([
@@ -116,7 +116,7 @@ class AiDashboardCommands extends DrushCommands {
       $mapping->save();
       $created_count++;
     }
-    
+
     $this->output()->writeln('Generated ' . $created_count . ' tag mappings.');
     $this->output()->writeln('You can now manage these mappings at /ai-dashboard/admin/tag-mappings');
   }
@@ -127,22 +127,22 @@ class AiDashboardCommands extends DrushCommands {
    * @command ai-dashboard:test-import
    * @aliases aid-import
    * @usage ai-dashboard:test-import [config_id] [--batch]
-   *   Test issue import functionality with the specified config ID (default: 148).
+   *   Test issue import functionality with the specified config ID.
    * @option batch Use batch processing for the import
    */
   public function testImport($config_id = 148, $options = ['batch' => FALSE]) {
     $this->output()->writeln('Testing issue import with status filtering...');
-    
-    // Load import configuration
+
+    // Load import configuration.
     $config_node = $this->entityTypeManager->getStorage('node')->load($config_id);
     if (!$config_node || $config_node->bundle() !== 'ai_import_config') {
       $this->output()->writeln('<error>Import configuration not found or invalid.</error>');
       return;
     }
-    
+
     $this->output()->writeln('Configuration: ' . $config_node->getTitle());
-    
-    // Show status filter values
+
+    // Show status filter values.
     $status_filter = [];
     if ($config_node->hasField('field_import_status_filter') && !$config_node->get('field_import_status_filter')->isEmpty()) {
       foreach ($config_node->get('field_import_status_filter') as $item) {
@@ -152,56 +152,57 @@ class AiDashboardCommands extends DrushCommands {
       }
     }
     $this->output()->writeln('Status filter: ' . implode(', ', $status_filter));
-    
-    // Count current issues
+
+    // Count current issues.
     $current_count = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->count()
       ->execute();
-    
+
     $this->output()->writeln('Current issues: ' . $current_count);
-    
-    // Get import service and run import
+
+    // Get import service and run import.
     $import_service = \Drupal::service('ai_dashboard.issue_import');
-    
-    // Use the configured max issues or 500 if blank for full test
+
+    // Use the configured max issues or 500 if blank for full test.
     $original_max = $config_node->get('field_import_max_issues')->value;
     if (!$original_max) {
       $config_node->set('field_import_max_issues', 500);
     }
-    
+
     try {
-      // Use batch processing if requested
+      // Use batch processing if requested.
       $use_batch = $options['batch'];
       $this->output()->writeln('Import method: ' . ($use_batch ? 'Batch API' : 'Direct import'));
-      
+
       $results = $import_service->importFromConfig($config_node, $use_batch);
-      
+
       $this->output()->writeln('Import Results:');
       $this->output()->writeln('- Success: ' . ($results['success'] ? 'Yes' : 'No'));
       $this->output()->writeln('- Imported: ' . $results['imported']);
       $this->output()->writeln('- Skipped: ' . $results['skipped']);
       $this->output()->writeln('- Errors: ' . $results['errors']);
       $this->output()->writeln('- Message: ' . $results['message']);
-      
-      // Check final count
+
+      // Check final count.
       $final_count = $this->entityTypeManager->getStorage('node')->getQuery()
         ->condition('type', 'ai_issue')
         ->condition('status', 1)
         ->accessCheck(FALSE)
         ->count()
         ->execute();
-      
+
       $this->output()->writeln('Final issues: ' . $final_count);
       $this->output()->writeln('Net change: ' . ($final_count - $current_count));
-      
-    } catch (\Exception $e) {
+
+    }
+    catch (\Exception $e) {
       $this->output()->writeln('<error>Import failed: ' . $e->getMessage() . '</error>');
     }
-    
-    // Restore original max issues
+
+    // Restore original max issues.
     $config_node->set('field_import_max_issues', $original_max);
     $config_node->save();
   }
@@ -216,30 +217,30 @@ class AiDashboardCommands extends DrushCommands {
    */
   public function generateDummy() {
     $this->output()->writeln('Generating dummy content for AI Dashboard...');
-    
-    // Clear existing content first
+
+    // Clear existing content first.
     $this->clearExistingContent();
-    
-    // Generate companies
+
+    // Generate companies.
     $companies = $this->generateCompanies();
     $this->output()->writeln('Generated ' . count($companies) . ' companies.');
-    
-    // Generate modules
+
+    // Generate modules.
     $modules = $this->generateModules();
     $this->output()->writeln('Generated ' . count($modules) . ' modules.');
-    
-    // Generate contributors
+
+    // Generate contributors.
     $contributors = $this->generateContributors($companies);
     $this->output()->writeln('Generated ' . count($contributors) . ' contributors.');
-    
-    // Generate issues
+
+    // Generate issues.
     $issues = $this->generateIssues($modules, $contributors);
     $this->output()->writeln('Generated ' . count($issues) . ' issues.');
-    
-    // Generate resource allocations
+
+    // Generate resource allocations.
     $allocations = $this->generateResourceAllocations($contributors, $issues);
     $this->output()->writeln('Generated ' . count($allocations) . ' resource allocations.');
-    
+
     $this->output()->writeln('Dummy content generation complete!');
   }
 
@@ -248,7 +249,7 @@ class AiDashboardCommands extends DrushCommands {
    */
   private function clearExistingContent() {
     $types = ['ai_company', 'ai_contributor', 'ai_module', 'ai_issue', 'ai_resource_allocation'];
-    
+
     foreach ($types as $type) {
       $nodes = $this->entityTypeManager->getStorage('node')->loadByProperties(['type' => $type]);
       if (!empty($nodes)) {
@@ -350,7 +351,7 @@ class AiDashboardCommands extends DrushCommands {
     $contributors = [];
     foreach ($contributors_data as $index => $data) {
       $company = $companies[array_rand($companies)];
-      
+
       $contributor = Node::create([
         'type' => 'ai_contributor',
         'title' => $data[0],
@@ -391,23 +392,23 @@ class AiDashboardCommands extends DrushCommands {
 
     $issues = [];
     $issue_number_start = 3412340;
-    
+
     foreach ($issues_data as $index => $data) {
       $module = $modules[array_rand($modules)];
       $issue_number = $issue_number_start + $index;
-      
-      // Assign 1-3 random contributors
+
+      // Assign 1-3 random contributors.
       $assignee_count = rand(1, 3);
       $assignees = array_rand($contributors, $assignee_count);
       if (!is_array($assignees)) {
         $assignees = [$assignees];
       }
-      
+
       $assignee_refs = [];
       foreach ($assignees as $assignee_index) {
         $assignee_refs[] = ['target_id' => $contributors[$assignee_index]->id()];
       }
-      
+
       $issue = Node::create([
         'type' => 'ai_issue',
         'title' => $data[0],
@@ -435,23 +436,26 @@ class AiDashboardCommands extends DrushCommands {
    */
   private function generateResourceAllocations($contributors, $issues) {
     $allocations = [];
-    
-    // Generate allocations for the past 8 weeks
+
+    // Generate allocations for the past 8 weeks.
     $start_date = new \DateTime('-8 weeks');
-    $start_date->modify('monday this week'); // Start on Monday
-    
+    // Start on Monday.
+    $start_date->modify('monday this week');
+
     for ($week = 0; $week < 8; $week++) {
       $week_date = clone $start_date;
       $week_date->modify('+' . $week . ' weeks');
-      
+
       foreach ($contributors as $contributor) {
-        // Some contributors might not have allocations every week
-        if (rand(1, 10) > 7) continue;
-        
-        // Random allocation between 0.5 and 4 days
+        // Some contributors might not have allocations every week.
+        if (rand(1, 10) > 7) {
+          continue;
+        }
+
+        // Random allocation between 0.5 and 4 days.
         $days = (rand(5, 40) / 10);
-        
-        // Randomly assign some issues to this allocation
+
+        // Randomly assign some issues to this allocation.
         $related_issues = [];
         $issue_count = rand(0, 3);
         if ($issue_count > 0) {
@@ -463,7 +467,7 @@ class AiDashboardCommands extends DrushCommands {
             $related_issues[] = ['target_id' => $issues[$issue_index]->id()];
           }
         }
-        
+
         $allocation = Node::create([
           'type' => 'ai_resource_allocation',
           'title' => $contributor->getTitle() . ' - Week of ' . $week_date->format('Y-m-d'),
@@ -489,59 +493,62 @@ class AiDashboardCommands extends DrushCommands {
    */
   public function cleanStatusFilters() {
     $config_factory = \Drupal::configFactory();
-    
-    // Update field storage configuration
+
+    // Update field storage configuration.
     $field_storage_config = $config_factory->getEditable('field.storage.node.field_import_status_filter');
     if ($field_storage_config && !$field_storage_config->isNew()) {
       $allowed_values = $field_storage_config->get('settings.allowed_values');
-      
-      // Remove unsupported status values
-      $unsupported_values = ['7', '17', '5']; // Need review (maintainer), Needs tests, Needs clarification
+
+      // Remove unsupported status values.
+      // Need review (maintainer), Needs tests, Needs clarification.
+      $unsupported_values = ['7', '17', '5'];
       $updated_values = [];
       $removed_count = 0;
-      
+
       foreach ($allowed_values as $value) {
         if (!in_array($value['value'], $unsupported_values)) {
           $updated_values[] = $value;
-        } else {
+        }
+        else {
           $removed_count++;
           $this->output()->writeln("Removing unsupported status: {$value['label']} ({$value['value']})");
         }
       }
-      
+
       if ($removed_count > 0) {
         $field_storage_config->set('settings.allowed_values', $updated_values);
         $field_storage_config->save();
         $this->output()->writeln("Updated field storage configuration.");
       }
     }
-    
-    // Update existing ai_import_config nodes to remove unsupported status values
+
+    // Update existing ai_import_config nodes to remove unsupported statuses.
     $node_storage = $this->entityTypeManager->getStorage('node');
     $query = $node_storage->getQuery()
       ->condition('type', 'ai_import_config')
       ->accessCheck(FALSE);
-    
+
     $nids = $query->execute();
     $updated_nodes = 0;
-    
+
     if (!empty($nids)) {
       $nodes = $node_storage->loadMultiple($nids);
       $unsupported_values = ['7', '17', '5'];
-      
+
       foreach ($nodes as $node) {
         if ($node->hasField('field_import_status_filter') && !$node->get('field_import_status_filter')->isEmpty()) {
           $updated_values = [];
           $has_changes = FALSE;
-          
+
           foreach ($node->get('field_import_status_filter') as $item) {
             if (!in_array($item->value, $unsupported_values)) {
               $updated_values[] = ['value' => $item->value];
-            } else {
+            }
+            else {
               $has_changes = TRUE;
             }
           }
-          
+
           if ($has_changes) {
             $node->set('field_import_status_filter', $updated_values);
             $node->save();
@@ -551,15 +558,15 @@ class AiDashboardCommands extends DrushCommands {
         }
       }
     }
-    
-    // Clear field and form caches
+
+    // Clear field and form caches.
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
     \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
     \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
-    
-    // Clear all caches to ensure the changes take effect
+
+    // Clear all caches to ensure the changes take effect.
     drupal_flush_all_caches();
-    
+
     $this->output()->writeln("✅ Cleanup completed!");
     $this->output()->writeln("Updated {$updated_nodes} import configuration nodes.");
     $this->output()->writeln("Removed unsupported status filters: Need review (maintainer), Needs tests, Needs clarification");

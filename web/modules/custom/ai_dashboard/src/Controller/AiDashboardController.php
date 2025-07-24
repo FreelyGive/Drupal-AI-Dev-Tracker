@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Controller;
 
+use Drupal\Core\Url;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -55,11 +56,11 @@ class AiDashboardController extends ControllerBase {
   public function main() {
     $build = [];
 
-    // Dashboard wrapper
+    // Dashboard wrapper.
     $build['#prefix'] = '<div class="ai-dashboard-container">';
     $build['#suffix'] = '</div>';
 
-    // Dashboard header
+    // Dashboard header.
     $build['header'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['dashboard-header']],
@@ -76,10 +77,10 @@ class AiDashboardController extends ControllerBase {
       ],
     ];
 
-    // Get consolidated data
+    // Get consolidated data.
     $companies_data = $this->getConsolidatedCompaniesData();
 
-    // Create company sections
+    // Create company sections.
     $build['companies'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['companies-overview']],
@@ -91,7 +92,7 @@ class AiDashboardController extends ControllerBase {
         '#attributes' => ['class' => ['company-section']],
       ];
 
-      // Company header with logo
+      // Company header with logo.
       $build['companies']['company_' . $company_id]['header'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['company-header']],
@@ -104,7 +105,7 @@ class AiDashboardController extends ControllerBase {
         ],
       ];
 
-      // Contributors and their issues
+      // Contributors and their issues.
       $build['companies']['company_' . $company_id]['contributors'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['contributors-grid']],
@@ -116,14 +117,14 @@ class AiDashboardController extends ControllerBase {
           '#attributes' => ['class' => ['contributor-card']],
         ];
 
-        // Check if user can edit contributors
+        // Check if user can edit contributors.
         $can_edit = \Drupal::currentUser()->hasPermission('edit any ai_contributor content');
         $edit_link = '';
         if ($can_edit && isset($contributor_data['nid'])) {
           $edit_link = '<div class="contributor-actions"><a href="/node/' . $contributor_data['nid'] . '/edit" class="edit-link">Edit</a></div>';
         }
 
-        // Contributor info
+        // Contributor info.
         $build['companies']['company_' . $company_id]['contributors']['contributor_' . $contributor_id]['info'] = [
           '#type' => 'container',
           '#attributes' => ['class' => ['contributor-info']],
@@ -133,7 +134,7 @@ class AiDashboardController extends ControllerBase {
           'actions' => ['#markup' => $edit_link],
         ];
 
-        // Current issues
+        // Current issues.
         $build['companies']['company_' . $company_id]['contributors']['contributor_' . $contributor_id]['issues'] = [
           '#type' => 'container',
           '#attributes' => ['class' => ['current-issues']],
@@ -144,24 +145,25 @@ class AiDashboardController extends ControllerBase {
           $build['companies']['company_' . $company_id]['contributors']['contributor_' . $contributor_id]['issues']['none'] = [
             '#markup' => '<div class="no-issues">No current issues assigned</div>',
           ];
-        } else {
+        }
+        else {
           $build['companies']['company_' . $company_id]['contributors']['contributor_' . $contributor_id]['issues']['list'] = [
             '#type' => 'container',
             '#attributes' => ['class' => ['issues-list']],
           ];
 
-          // Check if user can edit issues
+          // Check if user can edit issues.
           $can_edit_issues = \Drupal::currentUser()->hasPermission('edit any ai_issue content');
 
           foreach ($contributor_data['issues'] as $issue_index => $issue) {
             $status_class = 'status-' . str_replace(' ', '-', strtolower($issue['status']));
             $priority_class = 'priority-' . strtolower($issue['priority']);
-            
+
             $issue_edit_link = '';
             if ($can_edit_issues && isset($issue['nid'])) {
               $issue_edit_link = ' | <a href="/node/' . $issue['nid'] . '/edit" class="edit-link">Edit</a>';
             }
-            
+
             $build['companies']['company_' . $company_id]['contributors']['contributor_' . $contributor_id]['issues']['list']['issue_' . $issue_index] = [
               '#type' => 'container',
               '#attributes' => ['class' => ['issue-item', $status_class, $priority_class]],
@@ -171,7 +173,7 @@ class AiDashboardController extends ControllerBase {
               'link' => $issue['url'] !== '#' ? [
                 '#type' => 'link',
                 '#title' => 'View',
-                '#url' => \Drupal\Core\Url::fromUri($issue['url']),
+                '#url' => Url::fromUri($issue['url']),
                 '#attributes' => ['class' => ['issue-link'], 'target' => '_blank'],
               ] : [
                 '#markup' => '<span class="issue-link disabled">No Link</span>',
@@ -183,7 +185,7 @@ class AiDashboardController extends ControllerBase {
       }
     }
 
-    // Attach the library
+    // Attach the library.
     $build['#attached']['library'][] = 'ai_dashboard/dashboard';
 
     return $build;
@@ -195,7 +197,7 @@ class AiDashboardController extends ControllerBase {
   public function contributors() {
     $build = [];
 
-    // Add navigation
+    // Add navigation.
     $build['navigation'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['dashboard-navigation']],
@@ -207,11 +209,11 @@ class AiDashboardController extends ControllerBase {
       </div>',
     ];
 
-    // Check if user can edit content
+    // Check if user can edit content.
     $can_edit = \Drupal::currentUser()->hasPermission('edit any ai_contributor content');
     $can_create = \Drupal::currentUser()->hasPermission('create ai_contributor content');
 
-    // Add create button if user has permission
+    // Add create button if user has permission.
     if ($can_create) {
       $build['create_button'] = [
         '#type' => 'container',
@@ -222,12 +224,12 @@ class AiDashboardController extends ControllerBase {
       ];
     }
 
-    // Load contributors with their companies and current allocations
+    // Load contributors with their companies and current allocations.
     $contributors_data = $this->getContributorsData();
 
     $headers = [
       'Name',
-      'Drupal.org Username', 
+      'Drupal.org Username',
       'Company',
       'Role',
       'Current Week Allocation',
@@ -255,7 +257,7 @@ class AiDashboardController extends ControllerBase {
         $contributor['monthly_issues'],
       ];
 
-      // Add action links if user has permission
+      // Add action links if user has permission.
       if ($can_edit && isset($contributor['nid'])) {
         $actions = [];
         $actions[] = '<a href="/node/' . $contributor['nid'] . '/edit" style="color: #0073bb; text-decoration: none; margin-right: 10px;">Edit</a>';
@@ -277,7 +279,7 @@ class AiDashboardController extends ControllerBase {
   public function issues() {
     $build = [];
 
-    // Add navigation
+    // Add navigation.
     $build['navigation'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['dashboard-navigation']],
@@ -289,11 +291,11 @@ class AiDashboardController extends ControllerBase {
       </div>',
     ];
 
-    // Check if user can edit content
+    // Check if user can edit content.
     $can_edit = \Drupal::currentUser()->hasPermission('edit any ai_issue content');
     $can_create = \Drupal::currentUser()->hasPermission('create ai_issue content');
 
-    // Add create button if user has permission
+    // Add create button if user has permission.
     if ($can_create) {
       $build['create_button'] = [
         '#type' => 'container',
@@ -304,7 +306,7 @@ class AiDashboardController extends ControllerBase {
       ];
     }
 
-    // Load issues with assignees and status
+    // Load issues with assignees and status.
     $issues_data = $this->getIssuesData();
 
     $build['filters'] = [
@@ -367,7 +369,7 @@ class AiDashboardController extends ControllerBase {
           'data' => $issue['url'] !== '#' ? [
             '#type' => 'link',
             '#title' => 'View',
-            '#url' => \Drupal\Core\Url::fromUri($issue['url']),
+            '#url' => Url::fromUri($issue['url']),
             '#attributes' => ['target' => '_blank'],
           ] : [
             '#markup' => '<span style="color: #999;">No Link</span>',
@@ -375,7 +377,7 @@ class AiDashboardController extends ControllerBase {
         ],
       ];
 
-      // Add action links if user has permission
+      // Add action links if user has permission.
       if ($can_edit && isset($issue['nid'])) {
         $actions = [];
         $actions[] = '<a href="/node/' . $issue['nid'] . '/edit" style="color: #0073bb; text-decoration: none; margin-right: 10px;">Edit</a>';
@@ -397,7 +399,7 @@ class AiDashboardController extends ControllerBase {
   public function resources() {
     $build = [];
 
-    // Get resource allocation data
+    // Get resource allocation data.
     $resource_data = $this->getResourceData();
 
     $build['summary'] = [
@@ -406,7 +408,7 @@ class AiDashboardController extends ControllerBase {
       'title' => ['#markup' => '<h2>Resource Allocation Overview</h2>'],
     ];
 
-    // Weekly allocation chart
+    // Weekly allocation chart.
     $build['weekly_chart'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['weekly-allocation-chart']],
@@ -414,7 +416,7 @@ class AiDashboardController extends ControllerBase {
       'chart' => ['#markup' => '<div id="weekly-allocation-chart" style="height: 400px;"></div>'],
     ];
 
-    // Monthly overview table
+    // Monthly overview table.
     $build['monthly_table'] = [
       '#type' => 'table',
       '#caption' => 'Monthly Resource Overview',
@@ -431,9 +433,9 @@ class AiDashboardController extends ControllerBase {
     ];
 
     foreach ($resource_data['monthly'] as $data) {
-      $trend = $data['current_days'] > $data['previous_days'] ? '↗' : 
+      $trend = $data['current_days'] > $data['previous_days'] ? '↗' :
                ($data['current_days'] < $data['previous_days'] ? '↘' : '→');
-      
+
       $build['monthly_table']['#rows'][] = [
         $data['contributor'],
         $data['company'],
@@ -500,18 +502,18 @@ class AiDashboardController extends ControllerBase {
    */
   private function getContributorsData() {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $contributor_ids = $node_storage->getQuery()
       ->condition('type', 'ai_contributor')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     $contributors = $node_storage->loadMultiple($contributor_ids);
     $data = [];
-    
+
     foreach ($contributors as $contributor) {
-      // Get company name if referenced
+      // Get company name if referenced.
       $company_name = 'N/A';
       if ($contributor->hasField('field_contributor_company') && !$contributor->get('field_contributor_company')->isEmpty()) {
         $company = $contributor->get('field_contributor_company')->entity;
@@ -519,25 +521,25 @@ class AiDashboardController extends ControllerBase {
           $company_name = $company->getTitle();
         }
       }
-      
-      // Get role
+
+      // Get role.
       $role = 'N/A';
       if ($contributor->hasField('field_contributor_role') && !$contributor->get('field_contributor_role')->isEmpty()) {
         $role = $contributor->get('field_contributor_role')->value;
       }
-      
-      // Get Drupal username
+
+      // Get Drupal username.
       $username = 'N/A';
       if ($contributor->hasField('field_drupal_username') && !$contributor->get('field_drupal_username')->isEmpty()) {
         $username = $contributor->get('field_drupal_username')->value;
       }
-      
+
       // Calculate current week allocation (simplified)
       $current_allocation = $this->getCurrentWeekAllocation($contributor->id());
-      
+
       // Count monthly issues (simplified)
       $monthly_issues = $this->getMonthlyIssueCount($contributor->id());
-      
+
       $data[] = [
         'nid' => $contributor->id(),
         'name' => $contributor->getTitle(),
@@ -548,7 +550,7 @@ class AiDashboardController extends ControllerBase {
         'monthly_issues' => $monthly_issues,
       ];
     }
-    
+
     return $data;
   }
 
@@ -557,24 +559,24 @@ class AiDashboardController extends ControllerBase {
    */
   private function getIssuesData() {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $issue_ids = $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     $issues = $node_storage->loadMultiple($issue_ids);
     $data = [];
-    
+
     foreach ($issues as $issue) {
-      // Get issue number
+      // Get issue number.
       $number = 'N/A';
       if ($issue->hasField('field_issue_number') && !$issue->get('field_issue_number')->isEmpty()) {
         $number = $issue->get('field_issue_number')->value;
       }
-      
-      // Get module name
+
+      // Get module name.
       $module_name = 'N/A';
       if ($issue->hasField('field_issue_module') && !$issue->get('field_issue_module')->isEmpty()) {
         $module = $issue->get('field_issue_module')->entity;
@@ -582,20 +584,20 @@ class AiDashboardController extends ControllerBase {
           $module_name = $module->getTitle();
         }
       }
-      
-      // Get status
+
+      // Get status.
       $status = 'active';
       if ($issue->hasField('field_issue_status') && !$issue->get('field_issue_status')->isEmpty()) {
         $status = $issue->get('field_issue_status')->value;
       }
-      
-      // Get priority
+
+      // Get priority.
       $priority = 'normal';
       if ($issue->hasField('field_issue_priority') && !$issue->get('field_issue_priority')->isEmpty()) {
         $priority = $issue->get('field_issue_priority')->value;
       }
-      
-      // Get assignees
+
+      // Get assignees.
       $assignees = [];
       if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
         foreach ($issue->get('field_issue_assignees') as $assignee_ref) {
@@ -604,8 +606,8 @@ class AiDashboardController extends ControllerBase {
           }
         }
       }
-      
-      // Get tags
+
+      // Get tags.
       $tags = [];
       if ($issue->hasField('field_issue_tags') && !$issue->get('field_issue_tags')->isEmpty()) {
         foreach ($issue->get('field_issue_tags') as $tag_field) {
@@ -614,20 +616,20 @@ class AiDashboardController extends ControllerBase {
           }
         }
       }
-      
-      // Get URL
+
+      // Get URL.
       $url = '#';
       if ($issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty()) {
         $url = $issue->get('field_issue_url')->uri;
       }
 
-      // Get category
+      // Get category.
       $category = 'N/A';
       if ($issue->hasField('field_issue_category') && !$issue->get('field_issue_category')->isEmpty()) {
         $category = $issue->get('field_issue_category')->value;
       }
 
-      // Get deadline
+      // Get deadline.
       $deadline = 'N/A';
       if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
         $deadline_date = $issue->get('field_issue_deadline')->value;
@@ -635,7 +637,7 @@ class AiDashboardController extends ControllerBase {
           $deadline = date('M j, Y', strtotime($deadline_date));
         }
       }
-      
+
       $data[] = [
         'nid' => $issue->id(),
         'number' => $number,
@@ -650,7 +652,7 @@ class AiDashboardController extends ControllerBase {
         'url' => $url,
       ];
     }
-    
+
     return $data;
   }
 
@@ -659,22 +661,22 @@ class AiDashboardController extends ControllerBase {
    */
   private function getModuleOptions() {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $module_ids = $node_storage->getQuery()
       ->condition('type', 'ai_module')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     $options = ['' => '- All Modules -'];
-    
+
     if (!empty($module_ids)) {
       $modules = $node_storage->loadMultiple($module_ids);
       foreach ($modules as $module) {
         $options[$module->id()] = $module->getTitle();
       }
     }
-    
+
     return $options;
   }
 
@@ -712,17 +714,17 @@ class AiDashboardController extends ControllerBase {
    */
   private function getConsolidatedCompaniesData() {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
-    // Get all companies
+
+    // Get all companies.
     $company_ids = $node_storage->getQuery()
       ->condition('type', 'ai_company')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     $companies = $node_storage->loadMultiple($company_ids);
     $companies_data = [];
-    
+
     foreach ($companies as $company) {
       $company_data = [
         'name' => $company->getTitle(),
@@ -730,26 +732,26 @@ class AiDashboardController extends ControllerBase {
         'contributors' => [],
         'total_issues' => 0,
       ];
-      
-      // Get contributors for this company
+
+      // Get contributors for this company.
       $contributor_ids = $node_storage->getQuery()
         ->condition('type', 'ai_contributor')
         ->condition('field_contributor_company', $company->id())
         ->condition('status', 1)
         ->accessCheck(FALSE)
         ->execute();
-      
+
       if (!empty($contributor_ids)) {
         $contributors = $node_storage->loadMultiple($contributor_ids);
-        
+
         foreach ($contributors as $contributor) {
-          // Get contributor details
-          $username = $contributor->hasField('field_drupal_username') && !$contributor->get('field_drupal_username')->isEmpty() ? 
+          // Get contributor details.
+          $username = $contributor->hasField('field_drupal_username') && !$contributor->get('field_drupal_username')->isEmpty() ?
                      $contributor->get('field_drupal_username')->value : 'N/A';
-          $role = $contributor->hasField('field_contributor_role') && !$contributor->get('field_contributor_role')->isEmpty() ? 
+          $role = $contributor->hasField('field_contributor_role') && !$contributor->get('field_contributor_role')->isEmpty() ?
                  $contributor->get('field_contributor_role')->value : 'Developer';
-          
-          // Get issues assigned to this contributor
+
+          // Get issues assigned to this contributor.
           $issue_ids = $node_storage->getQuery()
             ->condition('type', 'ai_issue')
             ->condition('field_issue_assignees', $contributor->id())
@@ -757,7 +759,7 @@ class AiDashboardController extends ControllerBase {
             ->condition('status', 1)
             ->accessCheck(FALSE)
             ->execute();
-          
+
           $issues = [];
           if (!empty($issue_ids)) {
             $issue_nodes = $node_storage->loadMultiple($issue_ids);
@@ -769,16 +771,16 @@ class AiDashboardController extends ControllerBase {
                   $module_name = $module->getTitle();
                 }
               }
-              
-              $status = $issue->hasField('field_issue_status') && !$issue->get('field_issue_status')->isEmpty() ? 
+
+              $status = $issue->hasField('field_issue_status') && !$issue->get('field_issue_status')->isEmpty() ?
                        $issue->get('field_issue_status')->value : 'active';
-              $priority = $issue->hasField('field_issue_priority') && !$issue->get('field_issue_priority')->isEmpty() ? 
+              $priority = $issue->hasField('field_issue_priority') && !$issue->get('field_issue_priority')->isEmpty() ?
                          $issue->get('field_issue_priority')->value : 'normal';
-              $number = $issue->hasField('field_issue_number') && !$issue->get('field_issue_number')->isEmpty() ? 
+              $number = $issue->hasField('field_issue_number') && !$issue->get('field_issue_number')->isEmpty() ?
                        $issue->get('field_issue_number')->value : 'N/A';
-              $url = $issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty() ? 
+              $url = $issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty() ?
                     $issue->get('field_issue_url')->uri : '#';
-              
+
               $issues[] = [
                 'nid' => $issue->id(),
                 'title' => $issue->getTitle(),
@@ -790,7 +792,7 @@ class AiDashboardController extends ControllerBase {
               ];
             }
           }
-          
+
           $company_data['contributors'][$contributor->id()] = [
             'nid' => $contributor->id(),
             'name' => $contributor->getTitle(),
@@ -798,14 +800,14 @@ class AiDashboardController extends ControllerBase {
             'role' => $role,
             'issues' => $issues,
           ];
-          
+
           $company_data['total_issues'] += count($issues);
         }
       }
-      
+
       $companies_data[$company->id()] = $company_data;
     }
-    
+
     return $companies_data;
   }
 
@@ -816,14 +818,14 @@ class AiDashboardController extends ControllerBase {
     if (!$company->hasField('field_company_logo') || $company->get('field_company_logo')->isEmpty()) {
       return ['#markup' => '<div class="company-logo-placeholder">' . substr($company->getTitle(), 0, 2) . '</div>'];
     }
-    
+
     $logo_file = $company->get('field_company_logo')->entity;
     if (!$logo_file) {
       return ['#markup' => '<div class="company-logo-placeholder">' . substr($company->getTitle(), 0, 2) . '</div>'];
     }
-    
+
     $logo_url = \Drupal::service('file_url_generator')->generateAbsoluteString($logo_file->getFileUri());
-    
+
     return [
       '#markup' => '<div class="company-logo"><img src="' . $logo_url . '" alt="' . $company->getTitle() . ' Logo" /></div>',
     ];
@@ -834,11 +836,11 @@ class AiDashboardController extends ControllerBase {
    */
   private function getCurrentWeekAllocation($contributor_id) {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     // Get start of current week (Monday)
     $start_of_week = new \DateTime();
     $start_of_week->modify('monday this week');
-    
+
     $allocation_ids = $node_storage->getQuery()
       ->condition('type', 'ai_resource_allocation')
       ->condition('field_allocation_contributor', $contributor_id)
@@ -846,7 +848,7 @@ class AiDashboardController extends ControllerBase {
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     $total_days = 0;
     if (!empty($allocation_ids)) {
       $allocations = $node_storage->loadMultiple($allocation_ids);
@@ -856,7 +858,7 @@ class AiDashboardController extends ControllerBase {
         }
       }
     }
-    
+
     return $total_days;
   }
 
@@ -865,7 +867,7 @@ class AiDashboardController extends ControllerBase {
    */
   private function getMonthlyIssueCount($contributor_id) {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     return $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('field_issue_assignees', $contributor_id)

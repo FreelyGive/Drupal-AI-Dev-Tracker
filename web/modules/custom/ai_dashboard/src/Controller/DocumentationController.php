@@ -3,8 +3,6 @@
 namespace Drupal\ai_dashboard\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\ai_dashboard\Controller\AdminToolsController;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller for displaying AI Dashboard documentation.
@@ -17,25 +15,25 @@ class DocumentationController extends ControllerBase {
   public function view() {
     $module_path = \Drupal::service('extension.list.module')->getPath('ai_dashboard');
     $doc_file = $module_path . '/AI_DASHBOARD_DOCUMENTATION.md';
-    
+
     if (!file_exists($doc_file)) {
       return [
         '#markup' => '<div class="messages messages--error">Documentation file not found.</div>',
       ];
     }
-    
+
     $content = file_get_contents($doc_file);
-    
+
     // Convert markdown to HTML (basic conversion)
     $content = $this->markdownToHtml($content);
-    
+
     $build = [];
-    
-    // Add admin navigation
+
+    // Add admin navigation.
     $admin_tools_controller = \Drupal::service('class_resolver')->getInstanceFromDefinition(AdminToolsController::class);
     $build['navigation'] = $admin_tools_controller->buildAdminNavigation('documentation');
-    
-    // Documentation content
+
+    // Documentation content.
     $build['documentation'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['ai-dashboard-documentation']],
@@ -43,8 +41,8 @@ class DocumentationController extends ControllerBase {
         '#markup' => $content,
       ],
     ];
-    
-    // Add some basic styling
+
+    // Add some basic styling.
     $build['#attached']['html_head'][] = [
       [
         '#tag' => 'style',
@@ -99,10 +97,10 @@ class DocumentationController extends ControllerBase {
       ],
       'ai-dashboard-documentation-styles',
     ];
-    
+
     return $build;
   }
-  
+
   /**
    * Basic markdown to HTML conversion.
    */
@@ -111,69 +109,70 @@ class DocumentationController extends ControllerBase {
       return '<p>No documentation content available.</p>';
     }
 
-    // Escape HTML first for security
+    // Escape HTML first for security.
     $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
 
-    // Convert headers - be more careful with regex
+    // Convert headers - be more careful with regex.
     $content = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $content);
     $content = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $content);
     $content = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $content);
-    
-    // Convert code blocks - handle multiline more carefully
+
+    // Convert code blocks - handle multiline more carefully.
     $content = preg_replace('/```[\w]*\n(.*?)\n```/s', '<pre><code>$1</code></pre>', $content);
-    
-    // Convert inline code
+
+    // Convert inline code.
     $content = preg_replace('/`([^`\n]+)`/', '<code>$1</code>', $content);
-    
-    // Convert links - be more specific
+
+    // Convert links - be more specific.
     $content = preg_replace('/\[([^\]]+)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $content);
-    
-    // Convert bold
+
+    // Convert bold.
     $content = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $content);
-    
-    // Convert lists - simple approach
+
+    // Convert lists - simple approach.
     $lines = explode("\n", $content);
-    $in_list = false;
+    $in_list = FALSE;
     $result_lines = [];
-    
+
     foreach ($lines as $line) {
       if (preg_match('/^- (.+)$/', $line, $matches)) {
         if (!$in_list) {
           $result_lines[] = '<ul>';
-          $in_list = true;
+          $in_list = TRUE;
         }
         $result_lines[] = '<li>' . $matches[1] . '</li>';
-      } else {
+      }
+      else {
         if ($in_list) {
           $result_lines[] = '</ul>';
-          $in_list = false;
+          $in_list = FALSE;
         }
         $result_lines[] = $line;
       }
     }
-    
+
     if ($in_list) {
       $result_lines[] = '</ul>';
     }
-    
+
     $content = implode("\n", $result_lines);
-    
-    // Convert line breaks to paragraphs - simpler approach
+
+    // Convert line breaks to paragraphs - simpler approach.
     $paragraphs = explode("\n\n", $content);
     $html_paragraphs = [];
-    
+
     foreach ($paragraphs as $paragraph) {
       $paragraph = trim($paragraph);
       if (!empty($paragraph)) {
-        // Don't wrap if it's already an HTML element
+        // Don't wrap if it's already an HTML element.
         if (!preg_match('/^<(h[1-6]|pre|ul|ol|div|table)/i', $paragraph)) {
           $paragraph = '<p>' . nl2br($paragraph) . '</p>';
         }
         $html_paragraphs[] = $paragraph;
       }
     }
-    
+
     return implode("\n", $html_paragraphs);
   }
-  
+
 }

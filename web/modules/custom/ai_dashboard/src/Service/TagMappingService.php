@@ -64,12 +64,12 @@ class TagMappingService {
    */
   public function mapTag($tag, $type) {
     $this->loadMappings();
-    
+
     $key = strtolower(trim($tag));
     if (isset($this->mappings[$type][$key])) {
       return $this->mappings[$type][$key];
     }
-    
+
     return NULL;
   }
 
@@ -106,7 +106,7 @@ class TagMappingService {
    */
   public function processTags(array $tags) {
     $this->loadMappings();
-    
+
     $result = [
       'category' => NULL,
       'month' => NULL,
@@ -115,19 +115,20 @@ class TagMappingService {
       'module' => NULL,
       'custom' => [],
     ];
-    
+
     foreach ($tags as $tag) {
       $key = strtolower(trim($tag));
-      
-      // Check each mapping type
+
+      // Check each mapping type.
       foreach ($this->mappings as $type => $type_mappings) {
         if (isset($type_mappings[$key])) {
           $mapped_value = $type_mappings[$key];
-          
+
           if ($type === 'custom') {
             $result['custom'][] = $mapped_value;
-          } else {
-            // For single-value fields, take the first mapping found
+          }
+          else {
+            // For single-value fields, take the first mapping found.
             if ($result[$type] === NULL) {
               $result[$type] = $mapped_value;
             }
@@ -135,7 +136,7 @@ class TagMappingService {
         }
       }
     }
-    
+
     return $result;
   }
 
@@ -180,7 +181,7 @@ class TagMappingService {
       return;
     }
 
-    // Try to load from cache first
+    // Try to load from cache first.
     $cache = $this->cache->get('ai_dashboard.tag_mappings');
     if ($cache && $cache->data) {
       $this->mappings = $cache->data;
@@ -188,7 +189,7 @@ class TagMappingService {
       return;
     }
 
-    // Load from database
+    // Load from database.
     $this->mappings = [
       'category' => [],
       'month' => [],
@@ -200,7 +201,7 @@ class TagMappingService {
 
     try {
       $node_storage = $this->entityTypeManager->getStorage('node');
-      
+
       $mapping_ids = $node_storage->getQuery()
         ->condition('type', 'ai_tag_mapping')
         ->condition('status', 1)
@@ -209,16 +210,16 @@ class TagMappingService {
 
       if (!empty($mapping_ids)) {
         $mappings = $node_storage->loadMultiple($mapping_ids);
-        
+
         foreach ($mappings as $mapping) {
           if ($mapping->hasField('field_source_tag') && !$mapping->get('field_source_tag')->isEmpty() &&
               $mapping->hasField('field_mapping_type') && !$mapping->get('field_mapping_type')->isEmpty() &&
               $mapping->hasField('field_mapped_value') && !$mapping->get('field_mapped_value')->isEmpty()) {
-            
+
             $source_tag = strtolower(trim($mapping->get('field_source_tag')->value));
             $mapping_type = $mapping->get('field_mapping_type')->value;
             $mapped_value = $mapping->get('field_mapped_value')->value;
-            
+
             if (isset($this->mappings[$mapping_type])) {
               $this->mappings[$mapping_type][$source_tag] = $mapped_value;
             }
@@ -226,11 +227,12 @@ class TagMappingService {
         }
       }
 
-      // Cache the mappings for 1 hour
+      // Cache the mappings for 1 hour.
       $this->cache->set('ai_dashboard.tag_mappings', $this->mappings, time() + 3600);
       $this->mappingsLoaded = TRUE;
-      
-    } catch (\Exception $e) {
+
+    }
+    catch (\Exception $e) {
       \Drupal::logger('ai_dashboard')->error('Error loading tag mappings: @message', ['@message' => $e->getMessage()]);
       $this->mappingsLoaded = TRUE;
     }
