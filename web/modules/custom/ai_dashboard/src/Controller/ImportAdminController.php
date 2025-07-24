@@ -5,7 +5,6 @@ namespace Drupal\ai_dashboard\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai_dashboard\Service\IssueImportService;
-use Drupal\ai_dashboard\Controller\AdminToolsController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -70,23 +69,23 @@ class ImportAdminController extends ControllerBase {
    */
   public function importManagement() {
     $build = [];
-    
-    // Add admin navigation
+
+    // Add admin navigation.
     $admin_tools_controller = \Drupal::service('class_resolver')->getInstanceFromDefinition(AdminToolsController::class);
     $build['navigation'] = $admin_tools_controller->buildAdminNavigation('import_issues');
 
-    // Page header
+    // Page header.
     $build['header'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['import-admin-header']],
       '#markup' => '<h1>Import Management</h1><p>Configure and manage API imports for issues from external sources.</p>',
     ];
 
-    // Get import configurations
+    // Get import configurations.
     $configs = $this->getImportConfigurations();
-    
+
     if (empty($configs)) {
-      // No configurations exist, show setup message
+      // No configurations exist, show setup message.
       $build['setup'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['import-setup']],
@@ -97,8 +96,9 @@ class ImportAdminController extends ControllerBase {
             <a href="' . Url::fromRoute('node.add', ['node_type' => 'ai_import_config'])->toString() . '" class="button button--primary" style="background: #0073aa; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">+ Create Import Configuration</a>
           </div>',
       ];
-    } else {
-      // Show existing configurations and controls
+    }
+    else {
+      // Show existing configurations and controls.
       $build['configurations'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['import-configurations']],
@@ -108,7 +108,7 @@ class ImportAdminController extends ControllerBase {
         '#markup' => '<h2>Import Configurations</h2>',
       ];
 
-      // Create configurations table
+      // Create configurations table.
       $build['configurations']['table'] = [
         '#type' => 'table',
         '#header' => [
@@ -128,7 +128,7 @@ class ImportAdminController extends ControllerBase {
         $project_id = $config->get('field_import_project_id')->value ?? '';
         $filter_tags = $this->getConfigFilterTags($config);
         $max_issues = $config->get('field_import_max_issues')->value ?? 'Unlimited';
-        $active = $config->get('field_import_active')->value ?? false;
+        $active = $config->get('field_import_active')->value ?? FALSE;
 
         $build['configurations']['table']['#rows'][] = [
           $config->getTitle(),
@@ -139,15 +139,15 @@ class ImportAdminController extends ControllerBase {
           $active ? '✅ Active' : '❌ Inactive',
           [
             'data' => [
-              '#markup' => 
-                '<a href="/node/' . $config->id() . '/edit" style="color: #0073aa; text-decoration: none; margin-right: 10px;">Edit</a>' .
-                '<a href="/ai-dashboard/admin/import/run/' . $config->id() . '" style="color: #28a745; text-decoration: none; margin-right: 10px;" onclick="return confirm(\'Start import from this configuration?\')">▶ Run Import</a>',
+              '#markup' =>
+              '<a href="/node/' . $config->id() . '/edit" style="color: #0073aa; text-decoration: none; margin-right: 10px;">Edit</a>' .
+              '<a href="/ai-dashboard/admin/import/run/' . $config->id() . '" style="color: #28a745; text-decoration: none; margin-right: 10px;" onclick="return confirm(\'Start import from this configuration?\')">▶ Run Import</a>',
             ],
           ],
         ];
       }
 
-      // Import controls
+      // Import controls.
       $build['controls'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['import-controls']],
@@ -163,7 +163,7 @@ class ImportAdminController extends ControllerBase {
       ];
     }
 
-    // Status information
+    // Status information.
     $issue_count = $this->getIssueCount();
     $build['status'] = [
       '#type' => 'container',
@@ -184,25 +184,26 @@ class ImportAdminController extends ControllerBase {
    */
   public function runImport(Request $request, $config_id) {
     $config = $this->entityTypeManager->getStorage('node')->load($config_id);
-    
+
     if (!$config || $config->bundle() !== 'ai_import_config') {
       $this->messenger->addError('Import configuration not found.');
       return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
     }
 
     try {
-      $results = $this->importService->importFromConfig($config, true);
-      
-      // Check if this is a batch import that requires redirection
+      $results = $this->importService->importFromConfig($config, TRUE);
+
+      // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
-        // The batch has been set up and will be processed by Drupal's batch system
-        // Don't add a message here as the batch system will handle messaging
+        // The batch has been set up and will be processed by Drupal.
+        // Don't add a message here as the batch system will handle messaging.
         return batch_process('/ai-dashboard/admin/import');
       }
-      
+
       if ($results['success']) {
         $this->messenger->addStatus($results['message']);
-      } else {
+      }
+      else {
         $this->messenger->addError($results['message']);
       }
     }
@@ -218,28 +219,28 @@ class ImportAdminController extends ControllerBase {
    */
   public function runAllImports(Request $request) {
     $configs = $this->getActiveImportConfigurations();
-    
+
     if (empty($configs)) {
       $this->messenger->addWarning('No active import configurations found.');
       return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
     }
 
-    // For multiple configurations, use the dedicated batch import service
+    // For multiple configurations, use the dedicated batch import service.
     $batch_service = \Drupal::service('ai_dashboard.batch_import');
     $total_imported = 0;
     $total_errors = 0;
-    $batch_started = false;
+    $batch_started = FALSE;
 
     foreach ($configs as $config) {
       try {
         $results = $batch_service->startBatchImport($config);
-        
-        // If this is the first batch operation, redirect to batch processing
+
+        // If this is the first batch operation, redirect to batch processing.
         if ($results['success'] && isset($results['redirect']) && $results['redirect'] && !$batch_started) {
-          $batch_started = true;
+          $batch_started = TRUE;
           return batch_process('/ai-dashboard/admin/import');
         }
-        
+
         $total_imported += $results['imported'] ?? 0;
         $total_errors += $results['errors'] ?? 0;
       }
@@ -281,13 +282,13 @@ class ImportAdminController extends ControllerBase {
    */
   protected function getImportConfigurations(): array {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $config_ids = $node_storage->getQuery()
       ->condition('type', 'ai_import_config')
       ->condition('status', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     return $node_storage->loadMultiple($config_ids);
   }
 
@@ -296,14 +297,14 @@ class ImportAdminController extends ControllerBase {
    */
   protected function getActiveImportConfigurations(): array {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     $config_ids = $node_storage->getQuery()
       ->condition('type', 'ai_import_config')
       ->condition('status', 1)
       ->condition('field_import_active', 1)
       ->accessCheck(FALSE)
       ->execute();
-    
+
     return $node_storage->loadMultiple($config_ids);
   }
 
@@ -315,10 +316,10 @@ class ImportAdminController extends ControllerBase {
     if ($config->hasField('field_import_filter_tags') && !$config->get('field_import_filter_tags')->isEmpty()) {
       $tags_string = $config->get('field_import_filter_tags')->value;
       if (!empty($tags_string)) {
-        // Split by comma and clean up
+        // Split by comma and clean up.
         $tags = array_map('trim', explode(',', $tags_string));
-        // Remove empty values
-        $tags = array_filter($tags, function($tag) {
+        // Remove empty values.
+        $tags = array_filter($tags, function ($tag) {
           return !empty($tag);
         });
       }
@@ -331,7 +332,7 @@ class ImportAdminController extends ControllerBase {
    */
   protected function getIssueCount(): int {
     $node_storage = $this->entityTypeManager->getStorage('node');
-    
+
     return $node_storage->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('status', 1)

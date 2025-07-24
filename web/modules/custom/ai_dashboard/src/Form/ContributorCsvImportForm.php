@@ -2,10 +2,11 @@
 
 namespace Drupal\ai_dashboard\Form;
 
+use Symfony\Component\HttpFoundation\Request;
+use Drupal\ai_dashboard\Controller\ContributorCsvController;
+use Drupal\Core\Url;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\file\Entity\File;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Form for importing contributors from CSV.
@@ -23,7 +24,7 @@ class ContributorCsvImportForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    
+
     $form['#attributes'] = [
       'enctype' => 'multipart/form-data',
       'class' => ['contributor-csv-import-form'],
@@ -31,7 +32,7 @@ class ContributorCsvImportForm extends FormBase {
 
     $form['#attached']['library'][] = 'ai_dashboard/admin_forms';
 
-    // Page header
+    // Page header.
     $form['header'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['page-header']],
@@ -45,7 +46,7 @@ class ContributorCsvImportForm extends FormBase {
       '#markup' => '<p class="page-description">Upload a CSV file to bulk import or update contributors. Use the template below to ensure proper formatting.</p>',
     ];
 
-    // Instructions section
+    // Instructions section.
     $form['instructions'] = [
       '#type' => 'details',
       '#title' => $this->t('Instructions'),
@@ -67,7 +68,7 @@ class ContributorCsvImportForm extends FormBase {
         </div>',
     ];
 
-    // CSV template download
+    // CSV template download.
     $form['template'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['template-section']],
@@ -76,7 +77,7 @@ class ContributorCsvImportForm extends FormBase {
     $form['template']['download'] = [
       '#type' => 'link',
       '#title' => $this->t('📥 Download CSV Template'),
-      '#url' => \Drupal\Core\Url::fromRoute('ai_dashboard.contributor_csv_template'),
+      '#url' => Url::fromRoute('ai_dashboard.contributor_csv_template'),
       '#attributes' => [
         'class' => ['btn', 'btn-primary', 'download-template-btn'],
         'target' => '_blank',
@@ -87,7 +88,7 @@ class ContributorCsvImportForm extends FormBase {
       '#markup' => '<p class="template-info">The template contains sample data and shows the expected format. Replace the sample rows with your actual contributor data.</p>',
     ];
 
-    // CSV format info
+    // CSV format info.
     $form['format_info'] = [
       '#type' => 'details',
       '#title' => $this->t('CSV Format Details'),
@@ -114,7 +115,7 @@ class ContributorCsvImportForm extends FormBase {
         </div>',
     ];
 
-    // File upload section
+    // File upload section.
     $form['upload_section'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Upload CSV File'),
@@ -131,7 +132,7 @@ class ContributorCsvImportForm extends FormBase {
       ],
     ];
 
-    // Import options
+    // Import options.
     $form['upload_section']['options'] = [
       '#type' => 'details',
       '#title' => $this->t('Import Options'),
@@ -145,7 +146,7 @@ class ContributorCsvImportForm extends FormBase {
       '#default_value' => FALSE,
     ];
 
-    // Actions
+    // Actions.
     $form['actions'] = [
       '#type' => 'actions',
       '#attributes' => ['class' => ['form-actions']],
@@ -157,7 +158,6 @@ class ContributorCsvImportForm extends FormBase {
       '#attributes' => ['class' => ['btn', 'btn-primary', 'import-btn']],
     ];
 
-
     return $form;
   }
 
@@ -166,15 +166,15 @@ class ContributorCsvImportForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $files = $this->getRequest()->files->get('files');
-    
+
     if (empty($files['csv_file'])) {
       $form_state->setErrorByName('csv_file', $this->t('Please select a CSV file to upload.'));
       return;
     }
 
     $file = $files['csv_file'];
-    
-    // Check file type
+
+    // Check file type.
     $allowed_types = ['text/csv', 'application/csv', 'text/plain'];
     if (!in_array($file->getClientMimeType(), $allowed_types)) {
       $form_state->setErrorByName('csv_file', $this->t('Please upload a valid CSV file.'));
@@ -194,34 +194,39 @@ class ContributorCsvImportForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $files = $this->getRequest()->files->get('files');
     $file = $files['csv_file'];
-    
+
     if ($file) {
-      // Process the CSV file
-      $csv_controller = \Drupal::service('class_resolver')->getInstanceFromDefinition(\Drupal\ai_dashboard\Controller\ContributorCsvController::class);
-      
+      // Process the CSV file.
+      $csv_controller = \Drupal::service('class_resolver')->getInstanceFromDefinition(ContributorCsvController::class);
+
       try {
-        // Create a temporary request with the file
-        $request = new \Symfony\Component\HttpFoundation\Request();
+        // Create a temporary request with the file.
+        $request = new Request();
         $request->files->set('csv_file', $file);
-        
+
         $response = $csv_controller->processImport($request);
-        $result = json_decode($response->getContent(), true);
-        
+        $result = json_decode($response->getContent(), TRUE);
+
         if ($result['success']) {
+          // @phpcs:ignore
           $this->messenger()->addMessage($this->t($result['message']));
-          
+
           if (!empty($result['results']['error_details'])) {
             foreach ($result['results']['error_details'] as $error) {
               $this->messenger()->addWarning($error);
             }
           }
-        } else {
+        }
+        else {
+          // @phpcs:ignore
           $this->messenger()->addError($this->t($result['message']));
         }
-        
-      } catch (\Exception $e) {
+
+      }
+      catch (\Exception $e) {
         $this->messenger()->addError($this->t('Import failed: @message', ['@message' => $e->getMessage()]));
       }
     }
   }
+
 }
