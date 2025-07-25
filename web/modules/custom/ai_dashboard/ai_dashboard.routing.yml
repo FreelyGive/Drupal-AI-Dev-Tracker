@@ -96,9 +96,15 @@ ai_dashboard.admin.import:
     _permission: 'administer ai dashboard imports'
 
 ai_dashboard.admin.import.run:
-  path: '/ai-dashboard/admin/import/run/{config_id}'
+  path: '/ai-dashboard/admin/import/run/{node}'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::runImport'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - ai_import_config
   requirements:
     _permission: 'administer ai dashboard imports'
     config_id: \d+

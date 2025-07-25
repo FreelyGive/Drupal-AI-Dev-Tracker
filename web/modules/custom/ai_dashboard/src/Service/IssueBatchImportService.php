@@ -317,7 +317,7 @@ class IssueBatchImportService {
       $results = $import_service->importFromDrupalOrg(
         $project_id,
         $filter_tags,
-      // Single status array.
+        // Single status array.
         $status_filter,
         $max_issues,
         $date_filter,
@@ -458,7 +458,6 @@ class IssueBatchImportService {
           $source_type,
           $project_id,
           $filter_tags,
-      // Single status array.
           [$single_status],
           $date_filter,
           $status_name,
@@ -489,7 +488,7 @@ class IssueBatchImportService {
     // For CLI, process immediately.
     $batch =& batch_get();
     $batch['progressive'] = FALSE;
-    batch_process();
+    drush_backend_batch_process();
 
     return [
       'success' => TRUE,
