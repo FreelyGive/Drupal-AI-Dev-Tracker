@@ -5,6 +5,7 @@ namespace Drupal\ai_dashboard\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -182,16 +183,9 @@ class ImportAdminController extends ControllerBase {
   /**
    * Run import from specific configuration.
    */
-  public function runImport(Request $request, $config_id) {
-    $config = $this->entityTypeManager->getStorage('node')->load($config_id);
-
-    if (!$config || $config->bundle() !== 'ai_import_config') {
-      $this->messenger->addError('Import configuration not found.');
-      return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
-    }
-
+  public function runImport(NodeInterface $node) {
     try {
-      $results = $this->importService->importFromConfig($config, TRUE);
+      $results = $this->importService->importFromConfig($node, TRUE);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
