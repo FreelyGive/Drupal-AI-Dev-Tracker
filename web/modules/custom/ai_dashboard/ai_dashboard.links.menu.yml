@@ -22,3 +22,10 @@ ai_dashboard.resources:
   description: 'Manage resource allocations'
   route_name: ai_dashboard.resources
   parent: ai_dashboard.admin
+
+ai_dashboard.module_imports:
+  title: 'Module Imports'
+  description: 'Manage module import configurations'
+  route_name: ai_dashboard.module_import.collection
+  parent: system.admin_config_development
+  weight: 10

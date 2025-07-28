@@ -1,0 +1,42 @@
+# Schema for the configuration files of the AI Dashboard module.
+
+ai_dashboard.module_import.*:
+  type: config_entity
+  label: 'Module import config'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    uuid:
+      type: string
+      label: 'UUID'
+    status:
+      type: boolean
+      label: 'Status'
+    source_type:
+      type: string
+      label: 'Source type'
+    project_id:
+      type: string
+      label: 'Project ID'
+    filter_tags:
+      type: string
+      label: 'Filter tags'
+    status_filter:
+      type: sequence
+      label: 'Status filter'
+      sequence:
+        type: string
+        label: 'Status value'
+    max_issues:
+      type: integer
+      label: 'Maximum issues'
+    date_filter:
+      type: string
+      label: 'Date filter'
+    active:
+      type: boolean
+      label: 'Active'

@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Controller;
 
+use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai_dashboard\Service\IssueImportService;
@@ -184,6 +185,35 @@ class ImportAdminController extends ControllerBase {
    * Run import from specific configuration.
    */
   public function runImport(NodeInterface $node) {
+    try {
+      $results = $this->importService->importFromConfig($node, TRUE);
+
+      // Check if this is a batch import that requires redirection.
+      if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
+        // The batch has been set up and will be processed by Drupal.
+        // Don't add a message here as the batch system will handle messaging.
+        return batch_process('/ai-dashboard/admin/import');
+      }
+
+      if ($results['success']) {
+        $this->messenger->addStatus($results['message']);
+      }
+      else {
+        $this->messenger->addError($results['message']);
+      }
+    }
+    catch (\Exception $e) {
+      $this->messenger->addError('Import failed: ' . $e->getMessage());
+    }
+
+    return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
+  }
+
+
+  /**
+   * Run import from specific configuration.
+   */
+  public function runModuleImport(ModuleImport $config) {
     try {
       $results = $this->importService->importFromConfig($node, TRUE);
 

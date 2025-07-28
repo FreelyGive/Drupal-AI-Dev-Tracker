@@ -123,6 +123,47 @@ ai_dashboard.admin.import.delete_all:
   requirements:
     _permission: 'administer ai dashboard imports'
 
+# Module Import routes
+ai_dashboard.module_import.collection:
+  path: '/admin/config/ai-dashboard/module-import'
+  defaults:
+    _entity_list: 'module_import'
+    _title: 'Module Imports'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.module_import.add:
+  path: '/admin/config/ai-dashboard/module-import/add'
+  defaults:
+    _entity_form: 'module_import.add'
+    _title: 'Add Module Import'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.module_import.edit:
+  path: '/admin/config/ai-dashboard/module-import/{module_import}'
+  defaults:
+    _entity_form: 'module_import.edit'
+    _title: 'Edit Module Import'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.module_import.delete:
+  path: '/admin/config/ai-dashboard/module-import/{module_import}/delete'
+  defaults:
+    _entity_form: 'module_import.delete'
+    _title: 'Delete Module Import'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
+ai_dashboard.module_import.run:
+  path: '/admin/config/ai-dashboard/module-import/{module_import}/run'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::runModuleImport'
+    _title: 'Run Module Import'
+  requirements:
+    _permission: 'administer ai dashboard imports'
+
 # CSV Import routes
 ai_dashboard.contributor_csv_import:
   path: '/ai-dashboard/admin/contributor-import'
