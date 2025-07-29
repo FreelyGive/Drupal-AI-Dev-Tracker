@@ -6,6 +6,7 @@ use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\Core\Link;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -125,27 +126,30 @@ class ImportAdminController extends ControllerBase {
         '#rows' => [],
       ];
 
+      /** @var ModuleImport $config */
       foreach ($configs as $config) {
-        $source_type = $config->get('field_import_source_type')->value ?? 'drupal_org';
-        $project_id = $config->get('field_import_project_id')->value ?? '';
-        $filter_tags = $this->getConfigFilterTags($config);
-        $max_issues = $config->get('field_import_max_issues')->value ?? 'Unlimited';
-        $active = $config->get('field_import_active')->value ?? FALSE;
+        $source_type = $config->getSourceType() ?? 'drupal_org';
+        $project_id = $config->getProjectId() ?? '';
+        $filter_tags = $config->getFilterTags() ?? '';
+        $max_issues = $config->getMaxIssues() ?? 'Unlimited';
+        $active = $config->isActive();
 
         $build['configurations']['table']['#rows'][] = [
-          $config->getTitle(),
+          $config->label(),
           ucfirst(str_replace('_', '.', $source_type)),
           $project_id,
-          implode(', ', $filter_tags) ?: 'None',
+          $filter_tags ?? 'None',
           $max_issues,
           $active ? '✅ Active' : '❌ Inactive',
-          [
-            'data' => [
-              '#markup' =>
-              '<a href="/node/' . $config->id() . '/edit" style="color: #0073aa; text-decoration: none; margin-right: 10px;">Edit</a>' .
-              '<a href="/ai-dashboard/admin/import/run/' . $config->id() . '" style="color: #28a745; text-decoration: none; margin-right: 10px;" onclick="return confirm(\'Start import from this configuration?\')">▶ Run Import</a>',
-            ],
-          ],
+          // @todo: remove inline styles and JS.
+          $config->toLink($this->t('Edit'), 'edit-form', ['attributes' => [
+            'style' => 'color: #0073aa; text-decoration: none; margin-right: 10px',
+          ]]),
+          Link::fromTextAndUrl('▶ ' . $this->t('Run import'), Url::fromRoute('ai_dashboard.module_import.run',
+            ['module_import' => $config->id()], ['attributes' => [
+              'style' => 'color: #28a745; text-decoration: none; margin-right: 10px;',
+              'onclick' => 'return confirm("' . $this->t('Are you sure you want to run this import?') . '")',
+            ]])),
         ];
       }
 
@@ -213,9 +217,9 @@ class ImportAdminController extends ControllerBase {
   /**
    * Run import from specific configuration.
    */
-  public function runModuleImport(ModuleImport $config) {
+  public function runModuleImport(ModuleImport $module_import) {
     try {
-      $results = $this->importService->importFromConfig($node, TRUE);
+      $results = $this->importService->importFromConfig($module_import, TRUE);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -305,15 +309,8 @@ class ImportAdminController extends ControllerBase {
    * Get all import configurations.
    */
   protected function getImportConfigurations(): array {
-    $node_storage = $this->entityTypeManager->getStorage('node');
-
-    $config_ids = $node_storage->getQuery()
-      ->condition('type', 'ai_import_config')
-      ->condition('status', 1)
-      ->accessCheck(FALSE)
-      ->execute();
-
-    return $node_storage->loadMultiple($config_ids);
+    return $this->entityTypeManager->getStorage('module_import')
+      ->loadByProperties(['status' => 1]);
   }
 
   /**

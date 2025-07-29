@@ -2,7 +2,9 @@
 
 namespace Drupal\ai_dashboard\Entity;
 
+use Drupal\Core\Config\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Defines the Module import entity.
@@ -47,6 +49,45 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   }
  * )
  */
+#[ConfigEntityType(
+  id: "module_import",
+  label: new TranslatableMarkup("Module import"),
+  handlers: [
+    "list_builder" => "Drupal\ai_dashboard\ModuleImportListBuilder",
+    "form" => [
+      "add" => "Drupal\ai_dashboard\Form\ModuleImportForm",
+      "edit" => "Drupal\ai_dashboard\Form\ModuleImportForm",
+      "delete" => "Drupal\Core\Entity\EntityDeleteForm",
+    ]
+  ],
+  config_prefix: "module_import",
+  admin_permission: "administer ai dashboard imports",
+  entity_keys: [
+    "id" => "id",
+    "label" => "label",
+    "uuid" => "uuid",
+    "status" => "status"
+  ],
+  config_export: [
+    "id",
+    "label",
+    "uuid",
+    "status",
+    "source_type",
+    "project_id",
+    "filter_tags",
+    "status_filter",
+    "max_issues",
+    "date_filter",
+    "active"
+  ],
+  links: [
+    "add-form" => "/admin/config/ai-dashboard/module-import/add",
+    "edit-form" => "/admin/config/ai-dashboard/module-import/{module_import}",
+    "delete-form" => "/admin/config/ai-dashboard/module-import/{module_import}/delete",
+    "collection" => "/admin/config/ai-dashboard/module-import"
+  ]
+)]
 class ModuleImport extends ConfigEntityBase {
 
   /**

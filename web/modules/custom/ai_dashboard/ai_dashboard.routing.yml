@@ -140,7 +140,7 @@ ai_dashboard.module_import.add:
   requirements:
     _permission: 'administer ai dashboard imports'
 
-ai_dashboard.module_import.edit:
+entity.module_import.edit_form:
   path: '/admin/config/ai-dashboard/module-import/{module_import}'
   defaults:
     _entity_form: 'module_import.edit'
@@ -161,6 +161,10 @@ ai_dashboard.module_import.run:
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::runModuleImport'
     _title: 'Run Module Import'
+  options:
+    parameters:
+      module_import:
+        type: entity:module_import
   requirements:
     _permission: 'administer ai dashboard imports'
 

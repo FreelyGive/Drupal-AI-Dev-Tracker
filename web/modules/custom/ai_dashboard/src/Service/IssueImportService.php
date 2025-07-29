@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Service;
 
+use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\Entity\Node;
@@ -63,25 +64,25 @@ class IssueImportService {
   /**
    * Import issues from a configuration.
    *
-   * @param \Drupal\node\Entity\Node $config
-   *   The import configuration node.
+   * @param ModuleImport $config
+   *   The import configuration.
    * @param bool $use_batch
    *   Whether to use batch processing for large imports.
    *
    * @return array
    *   Import results with counts and messages.
    */
-  public function importFromConfig(Node $config, bool $use_batch = TRUE): array {
+  public function importFromConfig(ModuleImport $config, bool $use_batch = TRUE): array {
     $logger = $this->loggerFactory->get('ai_dashboard');
 
     try {
-      $source_type = $config->get('field_import_source_type')->value;
-      $project_id = $config->get('field_import_project_id')->value;
-      $filter_tags = $this->getFilterTags($config);
-      $status_filter = $this->getStatusFilter($config);
-      $max_issues = $config->get('field_import_max_issues')->value;
+      $source_type = $config->getSourceType();
+      $project_id = $config->getProjectId();
+      $filter_tags = $config->getFilterTags();
+      $status_filter = $config->getStatusFilter();
+      $max_issues = $config->getMaxIssues();
       $max_issues = $max_issues ? (int) $max_issues : 1000;
-      $date_filter = $config->get('field_import_date_filter')->value;
+      $date_filter = $config->getDateFilter();
 
       $logger->info('Starting import from @source for project @project', [
         '@source' => $source_type,
@@ -281,13 +282,13 @@ class IssueImportService {
    *   Maximum issues to import.
    * @param string|null $date_filter
    *   Date filter for created date.
-   * @param \Drupal\node\Entity\Node $config
+   * @param ModuleImport $config
    *   The import configuration node.
    *
    * @return array
    *   Import results.
    */
-  public function importFromDrupalOrg(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+  public function importFromDrupalOrg(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, ModuleImport $config): array {
     // Clear import session cache at start of import.
     $this->clearImportSessionCache();
 
@@ -410,7 +411,7 @@ class IssueImportService {
   /**
    * Import multiple statuses separately to avoid API limitations.
    */
-  public function importMultipleStatusesSeparately(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+  public function importMultipleStatusesSeparately(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, ModuleImport $config): array {
     // Clear import session cache to prevent duplicates across multiple runs.
     $this->clearImportSessionCache();
 
@@ -481,7 +482,7 @@ class IssueImportService {
   /**
    * Import issues from drupal.org API for batch processing.
    */
-  public function importFromDrupalOrgBatch(string $project_id, array $filter_tags, array $status_filter, int $offset, int $limit, ?string $date_filter, Node $config): array {
+  public function importFromDrupalOrgBatch(string $project_id, array $filter_tags, array $status_filter, int $offset, int $limit, ?string $date_filter, ModuleImport $config): array {
     // Clear import session cache if this is the first batch (offset 0)
     if ($offset === 0) {
       $this->clearImportSessionCache();
@@ -604,14 +605,14 @@ class IssueImportService {
   /**
    * Import from GitLab (placeholder for future implementation).
    */
-  protected function importFromGitLab(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+  protected function importFromGitLab(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, ModuleImport $config): array {
     throw new \Exception('GitLab import not yet implemented');
   }
 
   /**
    * Import from GitHub (placeholder for future implementation).
    */
-  protected function importFromGitHub(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, Node $config): array {
+  protected function importFromGitHub(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, ModuleImport $config): array {
     throw new \Exception('GitHub import not yet implemented');
   }
 
@@ -622,12 +623,10 @@ class IssueImportService {
    *   The issue data from API.
    * @param string $source_type
    *   The source type.
-   * @param \Drupal\node\Entity\Node $config
-   *   The import configuration node.
+   * @param ModuleImport $config
+   *   The import configuration.
    */
-  protected function processIssue(array $issue_data, string $source_type, Node $config): void {
-    $node_storage = $this->entityTypeManager->getStorage('node');
-
+  protected function processIssue(array $issue_data, string $source_type, ModuleImport $config): void {
     // Map API data to Drupal fields based on source.
     $mapped_data = $this->mapIssueData($issue_data, $source_type, $config);
 
@@ -651,13 +650,13 @@ class IssueImportService {
    *   Raw API data.
    * @param string $source_type
    *   Source type.
-   * @param \Drupal\node\Entity\Node $config
-   *   The import configuration node.
+   * @param ModuleImport $config
+   *   The import configuration.
    *
    * @return array
    *   Mapped data.
    */
-  protected function mapIssueData(array $issue_data, string $source_type, Node $config): array {
+  protected function mapIssueData(array $issue_data, string $source_type, ModuleImport $config): array {
     switch ($source_type) {
       case 'drupal_org':
         return $this->mapDrupalOrgIssue($issue_data, $config);
@@ -672,13 +671,13 @@ class IssueImportService {
    *
    * @param array $issue_data
    *   Raw drupal.org API data.
-   * @param \Drupal\node\Entity\Node $config
+   * @param ModuleImport $config
    *   The import configuration node.
    *
    * @return array
    *   Mapped data.
    */
-  protected function mapDrupalOrgIssue(array $issue_data, Node $config): array {
+  protected function mapDrupalOrgIssue(array $issue_data, ModuleImport $config): array {
     // Extract tags from the issue.
     $tags = [];
     if (isset($issue_data['taxonomy_vocabulary_9']) && is_array($issue_data['taxonomy_vocabulary_9'])) {
@@ -723,7 +722,7 @@ class IssueImportService {
     $module_name = 'Unknown Module';
 
     // Get project ID from import configuration.
-    $project_id = $config->get('field_import_project_id')->value;
+    $project_id = $config->getProjectId();
 
     // Map known project IDs to module names.
     $project_mapping = [
