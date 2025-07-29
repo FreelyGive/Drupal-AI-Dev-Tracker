@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Service;
 
+use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Messenger\MessengerInterface;
@@ -70,26 +71,26 @@ class IssueBatchImportService {
   /**
    * Start a batch import process.
    *
-   * @param \Drupal\node\Entity\Node $config
-   *   The import configuration node.
+   * @param ModuleImport $config
+   *   The import configuration.
    *
    * @return array
    *   Result array with success status and messages.
    */
-  public function startBatchImport(Node $config): array {
+  public function startBatchImport(ModuleImport $config): array {
     $logger = $this->loggerFactory->get('ai_dashboard');
 
     try {
       // Extract configuration parameters.
-      $source_type = $config->get('field_import_source_type')->value;
-      $project_id = $config->get('field_import_project_id')->value;
-      $max_issues = $config->get('field_import_max_issues')->value;
+      $source_type = $config->getSourceType();
+      $project_id = $config->getProjectId();
+      $max_issues = $config->getMaxIssues();
       $max_issues = $max_issues ? (int) $max_issues : 1000;
 
       // Get filter parameters.
-      $filter_tags = $this->getFilterTags($config);
-      $status_filter = $this->getStatusFilter($config);
-      $date_filter = $config->get('field_import_date_filter')->value;
+      $filter_tags = $config->getFilterTags();
+      $status_filter = $config->getStatusFilter();
+      $date_filter = $config->getDateFilter();
 
       $logger->info('Starting batch import from @source for project @project with max @max issues', [
         '@source' => $source_type,
@@ -99,7 +100,8 @@ class IssueBatchImportService {
 
       // For multiple statuses, create operations for each status.
       if (count($status_filter) > 1) {
-        return $this->createMultiStatusBatch($config, $source_type, $project_id, $filter_tags, $status_filter, $date_filter, $max_issues);
+        return $this->createMultiStatusBatch($config, $source_type, $project_id,
+          array_filter(explode(',', $filter_tags)), $status_filter, $date_filter, $max_issues);
       }
 
       // Calculate total estimated operations based on API page size.
@@ -223,9 +225,9 @@ class IssueBatchImportService {
 
     try {
       // Load configuration.
-      $config = \Drupal::entityTypeManager()->getStorage('node')->load($config_id);
+      $config = \Drupal::entityTypeManager()->getStorage('module_import')->load($config_id);
       if (!$config) {
-        throw new \Exception('Configuration node not found');
+        throw new \Exception('Configuration not found');
       }
 
       // Get import service.
@@ -305,9 +307,9 @@ class IssueBatchImportService {
 
     try {
       // Load configuration.
-      $config = \Drupal::entityTypeManager()->getStorage('node')->load($config_id);
+      $config = \Drupal::entityTypeManager()->getStorage('module_import')->load($config_id);
       if (!$config) {
-        throw new \Exception('Configuration node not found');
+        throw new \Exception('Configuration not found');
       }
 
       // Get import service and import this single status.
@@ -424,7 +426,7 @@ class IssueBatchImportService {
   /**
    * Create batch operations for multiple statuses separately.
    */
-  protected function createMultiStatusBatch(Node $config, string $source_type, string $project_id, array $filter_tags, array $status_filter, ?string $date_filter, int $max_issues): array {
+  protected function createMultiStatusBatch(ModuleImport $config, string $source_type, string $project_id, array $filter_tags, array $status_filter, ?string $date_filter, int $max_issues): array {
     $status_names = [
       '1' => 'Active',
       '13' => 'Needs work',

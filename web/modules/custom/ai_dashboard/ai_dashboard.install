@@ -925,3 +925,122 @@ function ai_dashboard_update_8006() {
 
   return t('Added tracker role and GitLab username fields to contributors.');
 }
+
+/**
+ * Migrate ai_import_config nodes to module_import configuration entities.
+ */
+function ai_dashboard_update_9001() {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $node_storage = $entity_type_manager->getStorage('node');
+  $module_import_storage = $entity_type_manager->getStorage('module_import');
+  $messenger = \Drupal::messenger();
+  $logger = \Drupal::logger('ai_dashboard');
+
+  // Load all ai_import_config nodes.
+  $query = $node_storage->getQuery()
+    ->condition('type', 'ai_import_config')
+    ->accessCheck(FALSE);
+  $nids = $query->execute();
+
+  if (empty($nids)) {
+    $messenger->addMessage(t('No AI Import Configuration nodes found to migrate.'));
+    return t('No AI Import Configuration nodes found to migrate.');
+  }
+
+  $nodes = $node_storage->loadMultiple($nids);
+  $migrated_count = 0;
+  $failed_count = 0;
+
+  foreach ($nodes as $node) {
+    try {
+      // Generate a machine name from the node title.
+      $id = preg_replace('/[^a-z0-9_]+/', '_', strtolower($node->getTitle()));
+      $id = preg_replace('/_+/', '_', $id);
+      $id = trim($id, '_');
+
+      // Ensure unique ID.
+      $original_id = $id;
+      $counter = 0;
+      while ($module_import_storage->load($id)) {
+        $counter++;
+        $id = $original_id . '_' . $counter;
+      }
+
+      // Get field values from the node.
+      $source_type = $node->hasField('field_import_source_type') && !$node->get('field_import_source_type')->isEmpty()
+        ? $node->get('field_import_source_type')->first()->getValue()['value']
+        : 'drupal_org';
+
+      $project_id = $node->hasField('field_import_project_id') && !$node->get('field_import_project_id')->isEmpty()
+        ? $node->get('field_import_project_id')->first()->getValue()['value']
+        : '';
+
+      $filter_tags = $node->hasField('field_import_filter_tags') && !$node->get('field_import_filter_tags')->isEmpty()
+        ? $node->get('field_import_filter_tags')->first()->getValue()['value']
+        : '';
+
+      // Process status filter (multi-value field).
+      $status_filter = [];
+      if ($node->hasField('field_import_status_filter') && !$node->get('field_import_status_filter')->isEmpty()) {
+        foreach ($node->get('field_import_status_filter') as $item) {
+          $status_filter[] = $item->getValue()['value'];
+        }
+      }
+
+      $max_issues = $node->hasField('field_import_max_issues') && !$node->get('field_import_max_issues')->isEmpty()
+        ? (int) $node->get('field_import_max_issues')->first()->getValue()['value']
+        : NULL;
+
+      $date_filter = NULL;
+      if ($node->hasField('field_import_date_filter') && !$node->get('field_import_date_filter')->isEmpty()) {
+        $date_value = $node->get('field_import_date_filter')->first()->getValue();
+        if (isset($date_value['value'])) {
+          $date_filter = substr($date_value['value'], 0, 10); // Extract YYYY-MM-DD part
+        }
+      }
+
+      $active = $node->hasField('field_import_active') && !$node->get('field_import_active')->isEmpty()
+        ? (bool) $node->get('field_import_active')->first()->getValue()['value']
+        : TRUE;
+
+      // Create the new configuration entity.
+      $module_import = $module_import_storage->create([
+        'id' => $id,
+        'label' => $node->getTitle(),
+        'source_type' => $source_type,
+        'project_id' => $project_id,
+        'filter_tags' => $filter_tags,
+        'status_filter' => $status_filter,
+        'max_issues' => $max_issues,
+        'date_filter' => $date_filter,
+        'active' => $active,
+        'status' => TRUE,
+      ]);
+
+      $module_import->save();
+      $migrated_count++;
+
+      $logger->notice('Migrated AI Import Configuration node @nid to module_import entity @id', [
+        '@nid' => $node->id(),
+        '@id' => $id,
+      ]);
+    }
+    catch (\Exception $e) {
+      $failed_count++;
+      $logger->error('Failed to migrate AI Import Configuration node @nid: @error', [
+        '@nid' => $node->id(),
+        '@error' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  $messenger->addMessage(t('Migrated @migrated AI Import Configuration nodes to module_import entities. Failed: @failed', [
+    '@migrated' => $migrated_count,
+    '@failed' => $failed_count,
+  ]));
+
+  return t('Migrated @migrated AI Import Configuration nodes to module_import entities. Failed: @failed', [
+    '@migrated' => $migrated_count,
+    '@failed' => $failed_count,
+  ]);
+}
