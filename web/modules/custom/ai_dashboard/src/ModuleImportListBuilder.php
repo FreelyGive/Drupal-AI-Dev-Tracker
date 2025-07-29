@@ -54,7 +54,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
     $operations['run'] = [
       'title' => $this->t('Run import'),
       'weight' => 10,
-      'url' => Url::fromRoute('ai_dashboard.module_import.run', ['module' => $entity->id()]),
+      'url' => Url::fromRoute('ai_dashboard.module_import.run', ['module_import' => $entity->id()]),
     ];
 
     return $operations;

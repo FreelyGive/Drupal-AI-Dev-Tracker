@@ -35,6 +35,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *     "status",
  *     "source_type",
  *     "project_id",
+ *     "project_name",
  *     "filter_tags",
  *     "status_filter",
  *     "max_issues",
@@ -75,6 +76,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
     "status",
     "source_type",
     "project_id",
+    "project_name",
     "filter_tags",
     "status_filter",
     "max_issues",
@@ -117,6 +119,13 @@ class ModuleImport extends ConfigEntityBase {
    * @var string
    */
   protected $project_id;
+
+  /**
+   * The project machine name to import from.
+   *
+   * @var string
+   */
+  protected $project_name;
 
   /**
    * Tags to filter by, comma-separated.
@@ -178,8 +187,23 @@ class ModuleImport extends ConfigEntityBase {
   /**
    * {@inheritdoc}
    */
+  public function getProjectMachineName() {
+    return $this->project_name;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function setProjectId($project_id) {
     $this->project_id = $project_id;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setProjectMachineName($project_name) {
+    $this->project_name = $project_name;
     return $this;
   }
 

@@ -124,7 +124,7 @@ ai_dashboard.admin.import.delete_all:
     _permission: 'administer ai dashboard imports'
 
 # Module Import routes
-ai_dashboard.module_import.collection:
+entity.module_import.collection:
   path: '/admin/config/ai-dashboard/module-import'
   defaults:
     _entity_list: 'module_import'
@@ -148,7 +148,7 @@ entity.module_import.edit_form:
   requirements:
     _permission: 'administer ai dashboard imports'
 
-ai_dashboard.module_import.delete:
+entity.module_import.delete_form:
   path: '/admin/config/ai-dashboard/module-import/{module_import}/delete'
   defaults:
     _entity_form: 'module_import.delete'

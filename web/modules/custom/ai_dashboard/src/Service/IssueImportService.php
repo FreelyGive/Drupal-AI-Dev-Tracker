@@ -718,31 +718,8 @@ class IssueImportService {
       ]);
     }
 
-    // Get module name based on project information.
-    $module_name = 'Unknown Module';
-
-    // Get project ID from import configuration.
-    $project_id = $config->getProjectId();
-
-    // Map known project IDs to module names.
-    $project_mapping = [
-      '3346420' => 'AI',
-      // Add more mappings as needed in the future.
-    ];
-
-    if (isset($project_mapping[$project_id])) {
-      $module_name = $project_mapping[$project_id];
-    }
-    else {
-      // Fallback to configuration title.
-      $module_name = $config->getTitle();
-      if (strpos($module_name, ' Import Configuration') !== FALSE) {
-        $module_name = str_replace(' Import Configuration', '', $module_name);
-      }
-    }
-
     // Find or create the module node.
-    $module_node_id = $this->findOrCreateModule($module_name);
+    $module_node_id = $this->findOrCreateModule($config->getProjectMachineName());
 
     return [
       'external_id' => $issue_data['nid'],
@@ -857,14 +834,17 @@ class IssueImportService {
     $issue_tags = [];
     if (isset($issue_data['taxonomy_vocabulary_9']) && is_array($issue_data['taxonomy_vocabulary_9'])) {
       foreach ($issue_data['taxonomy_vocabulary_9'] as $tag) {
+        if (!isset($tag['name'])) {
+          $tag['name'] = $this->resolveTagName($tag['id']);
+        }
         if (isset($tag['name'])) {
-          $issue_tags[] = strtolower($tag['name']);
+          $issue_tags[] = $tag['name'];
         }
       }
     }
 
     foreach ($filter_tags as $filter_tag) {
-      if (in_array(strtolower($filter_tag), $issue_tags)) {
+      if (in_array($filter_tag, $issue_tags)) {
         return TRUE;
       }
     }
@@ -1127,19 +1107,19 @@ class IssueImportService {
   /**
    * Find existing module or create new one.
    *
-   * @param string $module_name
-   *   The module name.
+   * @param string $machine_name
+   *   The module machine name.
    *
    * @return int|null
    *   The module node ID or null if creation failed.
    */
-  protected function findOrCreateModule(string $module_name): ?int {
+  protected function findOrCreateModule(string $machine_name): ?int {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
     // First, try to find existing module by title.
     $query = $node_storage->getQuery()
       ->condition('type', 'ai_module')
-      ->condition('title', $module_name)
+      ->condition('field_module_machine_name', $machine_name)
       ->accessCheck(FALSE)
       ->range(0, 1);
 
@@ -1153,7 +1133,8 @@ class IssueImportService {
     try {
       $module_node = Node::create([
         'type' => 'ai_module',
-        'title' => $module_name,
+        'title' => $machine_name,
+        'field_module_machine_name' => $machine_name,
         'status' => 1,
       ]);
 

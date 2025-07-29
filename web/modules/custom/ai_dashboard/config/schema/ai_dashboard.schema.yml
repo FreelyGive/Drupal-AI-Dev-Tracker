@@ -22,6 +22,9 @@ ai_dashboard.module_import.*:
     project_id:
       type: string
       label: 'Project ID'
+    project_machine_name:
+      type: string
+      label: 'Project machine name'
     filter_tags:
       type: string
       label: 'Filter tags'

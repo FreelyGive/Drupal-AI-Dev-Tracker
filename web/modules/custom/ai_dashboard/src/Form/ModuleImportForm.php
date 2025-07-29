@@ -18,7 +18,7 @@ class ModuleImportForm extends EntityForm {
     $form = parent::form($form, $form_state);
 
     $module_import = $this->entity;
-    
+
     $form['label'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Name'),
@@ -55,6 +55,14 @@ class ModuleImportForm extends EntityForm {
       '#title' => $this->t('Project ID'),
       '#description' => $this->t('The project ID to import from (e.g., 3294612 for AI module on drupal.org)'),
       '#default_value' => $module_import->getProjectId(),
+      '#required' => TRUE,
+    ];
+
+    $form['project_name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Project Machine Name'),
+      '#description' => $this->t('The project ID to import from (e.g., ai for AI module on drupal.org)'),
+      '#default_value' => $module_import->getProjectMachineName(),
       '#required' => TRUE,
     ];
 
@@ -130,7 +138,7 @@ class ModuleImportForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $module_import = $this->entity;
-    
+
     // Process the date filter
     if (!empty($form_state->getValue('date_filter'))) {
       /** @var \Drupal\Core\Datetime\DrupalDateTime $date */
@@ -142,11 +150,12 @@ class ModuleImportForm extends EntityForm {
     else {
       $module_import->setDateFilter(NULL);
     }
-    
+
     // Process the status filter to remove unchecked values
     $status_filter = array_filter($form_state->getValue('status_filter', []));
-    $module_import->setStatusFilter(array_keys($status_filter));
-    
+    $module_import->setStatusFilter(array_keys($status_filter))
+      ->setProjectMachineName($form_state->getValue('project_name'));
+
     $status = $module_import->save();
 
     if ($status) {
@@ -159,7 +168,7 @@ class ModuleImportForm extends EntityForm {
         '%label' => $module_import->label(),
       ]), 'error');
     }
-    
+
     $form_state->setRedirectUrl($module_import->toUrl('collection'));
   }
 
