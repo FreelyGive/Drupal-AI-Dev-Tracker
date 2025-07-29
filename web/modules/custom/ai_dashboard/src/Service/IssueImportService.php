@@ -126,7 +126,7 @@ class IssueImportService {
   /**
    * Start a batch import process for large imports.
    */
-  protected function startBatchImport(Node $config, string $source_type, string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter): array {
+  protected function startBatchImport(ModuleImport $config, string $source_type, string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter): array {
     $batch = [
       'title' => t('Importing Issues'),
       'operations' => [],
@@ -963,45 +963,6 @@ class IssueImportService {
 
     $this->invalidateImportCaches();
     return $issue;
-  }
-
-  /**
-   * Get filter tags from configuration.
-   */
-  protected function getFilterTags(Node $config): array {
-    $tags = [];
-    if ($config->hasField('field_import_filter_tags') && !$config->get('field_import_filter_tags')->isEmpty()) {
-      $tags_string = $config->get('field_import_filter_tags')->value;
-      if (!empty($tags_string)) {
-        // Split by comma and clean up.
-        $tags = array_map('trim', explode(',', $tags_string));
-        // Remove empty values.
-        $tags = array_filter($tags, function ($tag) {
-          return !empty($tag);
-        });
-      }
-    }
-    return $tags;
-  }
-
-  /**
-   * Get status filter from configuration.
-   */
-  protected function getStatusFilter(Node $config): array {
-    $statuses = [];
-    if ($config->hasField('field_import_status_filter') && !$config->get('field_import_status_filter')->isEmpty()) {
-      foreach ($config->get('field_import_status_filter') as $item) {
-        if (!empty($item->value)) {
-          if ($item->value === 'all_open') {
-            // Return statuses that match drupal.org's complete open filter
-            // including postponed.
-            return ['1', '13', '8', '14', '15', '2', '4', '16'];
-          }
-          $statuses[] = $item->value;
-        }
-      }
-    }
-    return $statuses;
   }
 
   /**
