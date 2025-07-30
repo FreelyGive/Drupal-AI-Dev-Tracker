@@ -161,7 +161,7 @@ class ImportAdminController extends ControllerBase {
           <div style="background: #f9f9f9; border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 5px;">
             <h3>Import Controls</h3>
             <div style="margin: 15px 0;">
-              <a href="' . Url::fromRoute('node.add', ['node_type' => 'ai_import_config'])->toString() . '" class="button" style="background: #0073aa; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">+ Add Configuration</a>
+              <a href="' . Url::fromRoute('ai_dashboard.module_import.add')->toString() . '" class="button" style="background: #0073aa; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;">+ Add Configuration</a>
               <a href="/ai-dashboard/admin/import/run-all" class="button" style="background: #28a745; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px;" onclick="return confirm(\'Run all active import configurations?\')">▶ Run All Active Imports</a>
               <a href="/ai-dashboard/admin/import/delete-all" class="button" style="background: #dc3545; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px;" onclick="return confirm(\'This will delete ALL issues! Are you sure?\')">🗑 Delete All Issues</a>
             </div>
