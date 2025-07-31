@@ -2,6 +2,7 @@
 
 namespace Drupal\ai_dashboard\Drush\Commands;
 
+use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drush\Attributes\Command;
 use Drush\Commands\DrushCommands;
 use Drupal\node\Entity\Node;
@@ -110,92 +111,6 @@ class AiDashboardCommands extends DrushCommands {
 
     $this->output()->writeln('Generated ' . $created_count . ' tag mappings.');
     $this->output()->writeln('You can now manage these mappings at /ai-dashboard/admin/tag-mappings');
-  }
-
-  /**
-   * Test issue import from drupal.org with status filtering.
-   *
-   * @command ai-dashboard:test-import
-   * @aliases aid-import
-   * @usage ai-dashboard:test-import [config_id] [--batch]
-   *   Test issue import functionality with the specified config ID.
-   * @option batch Use batch processing for the import
-   */
-  public function testImport($config_id = 148, $options = ['batch' => FALSE]) {
-    $this->output()->writeln('Testing issue import with status filtering...');
-
-    // Load import configuration.
-    $config_node = $this->entityTypeManager->getStorage('node')->load($config_id);
-    if (!$config_node || $config_node->bundle() !== 'ai_import_config') {
-      $this->output()->writeln('<error>Import configuration not found or invalid.</error>');
-      return;
-    }
-
-    $this->output()->writeln('Configuration: ' . $config_node->getTitle());
-
-    // Show status filter values.
-    $status_filter = [];
-    if ($config_node->hasField('field_import_status_filter') && !$config_node->get('field_import_status_filter')->isEmpty()) {
-      foreach ($config_node->get('field_import_status_filter') as $item) {
-        if (!empty($item->value)) {
-          $status_filter[] = $item->value;
-        }
-      }
-    }
-    $this->output()->writeln('Status filter: ' . implode(', ', $status_filter));
-
-    // Count current issues.
-    $current_count = $this->entityTypeManager->getStorage('node')->getQuery()
-      ->condition('type', 'ai_issue')
-      ->condition('status', 1)
-      ->accessCheck(FALSE)
-      ->count()
-      ->execute();
-
-    $this->output()->writeln('Current issues: ' . $current_count);
-
-    // Get import service and run import.
-    $import_service = \Drupal::service('ai_dashboard.issue_import');
-
-    // Use the configured max issues or 500 if blank for full test.
-    $original_max = $config_node->get('field_import_max_issues')->value;
-    if (!$original_max) {
-      $config_node->set('field_import_max_issues', 500);
-    }
-
-    try {
-      // Use batch processing if requested.
-      $use_batch = $options['batch'];
-      $this->output()->writeln('Import method: ' . ($use_batch ? 'Batch API' : 'Direct import'));
-
-      $results = $import_service->importFromConfig($config_node, $use_batch);
-
-      $this->output()->writeln('Import Results:');
-      $this->output()->writeln('- Success: ' . ($results['success'] ? 'Yes' : 'No'));
-      $this->output()->writeln('- Imported: ' . $results['imported']);
-      $this->output()->writeln('- Skipped: ' . $results['skipped']);
-      $this->output()->writeln('- Errors: ' . $results['errors']);
-      $this->output()->writeln('- Message: ' . $results['message']);
-
-      // Check final count.
-      $final_count = $this->entityTypeManager->getStorage('node')->getQuery()
-        ->condition('type', 'ai_issue')
-        ->condition('status', 1)
-        ->accessCheck(FALSE)
-        ->count()
-        ->execute();
-
-      $this->output()->writeln('Final issues: ' . $final_count);
-      $this->output()->writeln('Net change: ' . ($final_count - $current_count));
-
-    }
-    catch (\Exception $e) {
-      $this->output()->writeln('<error>Import failed: ' . $e->getMessage() . '</error>');
-    }
-
-    // Restore original max issues.
-    $config_node->set('field_import_max_issues', $original_max);
-    $config_node->save();
   }
 
   /**
@@ -488,23 +403,25 @@ class AiDashboardCommands extends DrushCommands {
    *   Test issue import functionality with the specified config ID.
    * @option batch Use batch processing for the import
    */
-  #[Command(name: 'ai_dashboard:import')]
-  public function importFromDO(string $config_id, array $options = []) {
+  #[Command(name: 'ai-dashboard:import')]
+  public function importSingleConfiguration(string $config_id, array $options = []) {
     $this->output()->writeln('Importing issues from drupal.org');
 
     // Load import configuration.
-    $config_node = $this->entityTypeManager->getStorage('node')->load($config_id);
-    if (!$config_node || $config_node->bundle() !== 'ai_import_config') {
+    /** @var ModuleImport $config */
+    $config = $this->entityTypeManager->getStorage('module_import')
+      ->load($config_id);
+    if (!$config) {
       $this->output()->writeln('<error>Import configuration not found or invalid.</error>');
       return;
     }
 
-    $this->output()->writeln('Configuration: ' . $config_node->getTitle());
+    $this->output()->writeln('Configuration: ' . $config->label());
 
     // Show status filter values.
     $status_filter = [];
-    if ($config_node->hasField('field_import_status_filter') && !$config_node->get('field_import_status_filter')->isEmpty()) {
-      foreach ($config_node->get('field_import_status_filter') as $item) {
+    if ($filters = $config->getStatusFilter()) {
+      foreach ($filters as $item) {
         if (!empty($item->value)) {
           $status_filter[] = $item->value;
         }
@@ -526,20 +443,20 @@ class AiDashboardCommands extends DrushCommands {
     $import_service = \Drupal::service('ai_dashboard.issue_import');
 
     // Use the configured max issues or 500 if blank for full test.
-    $original_max = $config_node->get('field_import_max_issues')->value;
+    $original_max = $config->getMaxIssues();
     if (!$original_max) {
-      $config_node->set('field_import_max_issues', 500);
+      $config->setMaxIssues(500);
     }
 
     try {
       // Always use batch mode with drush.
-      $results = $import_service->importFromConfig($config_node, TRUE);
+      $results = $import_service->importFromConfig($config);
 
       $this->output()->writeln('Import Results:');
       $this->output()->writeln('- Success: ' . ($results['success'] ? 'Yes' : 'No'));
-      $this->output()->writeln('- Imported: ' . $results['imported']);
-      $this->output()->writeln('- Skipped: ' . $results['skipped']);
-      $this->output()->writeln('- Errors: ' . $results['errors']);
+      $this->output()->writeln('- Imported: ' . $results['imported'] ?? 0);
+      $this->output()->writeln('- Skipped: ' . $results['skipped'] ?? 0);
+      $this->output()->writeln('- Errors: ' . $results['errors'] ?? 0);
       $this->output()->writeln('- Message: ' . $results['message']);
 
       // Check final count.
@@ -559,8 +476,24 @@ class AiDashboardCommands extends DrushCommands {
     }
 
     // Restore original max issues.
-    $config_node->set('field_import_max_issues', $original_max);
-    $config_node->save();
+    $config->setMaxIssues($original_max);
+    $config->save();
+  }
+
+  /**
+   * Import all active configurations.
+   */
+  #[Command(name: 'ai-dashboard:import-all')]
+  public function importAllConfigurations() {
+    $storage = $this->entityTypeManager->getStorage('module_import');
+    $activeConfigurations = $storage->loadByProperties(['active' => TRUE]);
+    if (!$activeConfigurations) {
+      $this->output()->writeln('No active import configurations.');
+      return;
+    }
+    foreach ($activeConfigurations as $configuration) {
+      $this->importSingleConfiguration($configuration->id());
+    }
   }
 
   /**
