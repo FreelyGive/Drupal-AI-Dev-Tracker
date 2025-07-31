@@ -70,7 +70,7 @@ class ModuleImportForm extends EntityForm {
       '#type' => 'textfield',
       '#title' => $this->t('Filter Tags'),
       '#description' => $this->t('Tags to filter by, comma-separated (e.g., "AIInitiative, AI Core, Provider Integration")'),
-      '#default_value' => $module_import->getFilterTags() ?: 'AIInitiative',
+      '#default_value' => implode(',', $module_import->getFilterTags()),
       '#required' => FALSE,
     ];
 
@@ -155,6 +155,7 @@ class ModuleImportForm extends EntityForm {
     $status_filter = array_filter($form_state->getValue('status_filter', []));
     $module_import->setStatusFilter(array_keys($status_filter))
       ->setProjectMachineName($form_state->getValue('project_name'));
+    $module_import->setFilterTags($form_state->getValue('filter_tags'));
 
     $status = $module_import->save();
 

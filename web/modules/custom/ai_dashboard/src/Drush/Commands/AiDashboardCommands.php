@@ -419,20 +419,24 @@ class AiDashboardCommands extends DrushCommands {
     $this->output()->writeln('Configuration: ' . $config->label());
 
     // Show status filter values.
-    $status_filter = [];
-    if ($filters = $config->getStatusFilter()) {
-      foreach ($filters as $item) {
-        if (!empty($item->value)) {
-          $status_filter[] = $item->value;
-        }
-      }
-    }
+    $status_filter = $config->getStatusFilter();
     $this->output()->writeln('Status filter: ' . implode(', ', $status_filter));
+
+    $moduleNode = $this->entityTypeManager->getStorage('node')
+      ->loadByProperties([
+        'field_module_machine_name' => $config->getProjectMachineName(),
+      ]);
+    if (!$moduleNode) {
+      $this->output()->writeln('<error>Project ' . $config->getProjectMachineName()
+      . ' not found.</error>');
+    }
+    $moduleNode = reset($moduleNode);
 
     // Count current issues.
     $current_count = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('status', 1)
+      ->condition('field_issue_module', $moduleNode->id())
       ->accessCheck(FALSE)
       ->count()
       ->execute();
@@ -450,16 +454,9 @@ class AiDashboardCommands extends DrushCommands {
 
     try {
       // Always use batch mode with drush.
-      $results = $import_service->importFromConfig($config);
+      $batch = $import_service->buildImportBatch($config);
+      drush_backend_batch_process($batch);
 
-      $this->output()->writeln('Import Results:');
-      $this->output()->writeln('- Success: ' . ($results['success'] ? 'Yes' : 'No'));
-      $this->output()->writeln('- Imported: ' . $results['imported'] ?? 0);
-      $this->output()->writeln('- Skipped: ' . $results['skipped'] ?? 0);
-      $this->output()->writeln('- Errors: ' . $results['errors'] ?? 0);
-      $this->output()->writeln('- Message: ' . $results['message']);
-
-      // Check final count.
       $final_count = $this->entityTypeManager->getStorage('node')->getQuery()
         ->condition('type', 'ai_issue')
         ->condition('status', 1)
@@ -469,7 +466,6 @@ class AiDashboardCommands extends DrushCommands {
 
       $this->output()->writeln('Final issues: ' . $final_count);
       $this->output()->writeln('Net change: ' . ($final_count - $current_count));
-
     }
     catch (\Exception $e) {
       $this->output()->writeln('<error>Import failed: ' . $e->getMessage() . '</error>');

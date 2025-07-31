@@ -3,7 +3,7 @@ langcode: en
 status: true
 dependencies: {  }
 id: ai_initiative_community_page
-label: 'Others, AI Initiative Community Page, ECA Integration, AI Agents. - 3528462,3505615'
+label: 'AI Initiative Community Page'
 source_type: drupal_org
 project_id: '3528462'
 filter_tags: ''
