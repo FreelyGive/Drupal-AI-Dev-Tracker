@@ -61,7 +61,16 @@ class CalendarController extends ControllerBase {
       // Get consolidated data.
       $calendar_data = $this->getCalendarData($week_start, $week_end);
 
-      $build = [];
+      $build = [
+        '#cache' => [
+          'tags' => [
+            'ai_dashboard:calendar',
+            'node_list:ai_issue',
+            'node_list:ai_contributor',
+            'ai_dashboard:import',
+          ]
+        ]
+      ];
 
       // Add navigation.
       $build['navigation'] = [

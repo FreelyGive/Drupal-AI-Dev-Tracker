@@ -317,16 +317,8 @@ class ImportAdminController extends ControllerBase {
    * Get active import configurations.
    */
   protected function getActiveImportConfigurations(): array {
-    $node_storage = $this->entityTypeManager->getStorage('node');
-
-    $config_ids = $node_storage->getQuery()
-      ->condition('type', 'ai_import_config')
-      ->condition('status', 1)
-      ->condition('field_import_active', 1)
-      ->accessCheck(FALSE)
-      ->execute();
-
-    return $node_storage->loadMultiple($config_ids);
+    return $this->entityTypeManager->getStorage('module_import')
+      ->loadByProperties(['active' => 1]);
   }
 
   /**
