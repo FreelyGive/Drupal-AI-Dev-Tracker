@@ -4,8 +4,11 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: XNp7gpuE22WlY7lXjMrgVyzgw0wXjS3OHTg6HXb0rD8
-label: 'User: Account Canceled'
 id: user_canceled
+label: 'User: Account Canceled'
+module: user
+key: status_canceled
+easy_email_type: user_canceled
 param_map:
   -
     source: account
@@ -20,6 +23,3 @@ copied_fields:
   body_html: false
   body_plain: false
   attachments: false
-module: user
-key: status_canceled
-easy_email_type: user_canceled

@@ -1,0 +1,22 @@
+uuid: ae4382ce-12ac-4c88-87a4-c287758e9c10
+langcode: en
+status: true
+dependencies: {  }
+id: experience_builder
+label: 'Experience Builder'
+source_type: drupal_org
+project_id: '3437806'
+filter_tags: 'AI Initiative'
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+project_name: experience_builder

@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: Zmd7M6O4e8e4MLmBDlmtGxLjwxZc1fua1Uj5lUQO13M
-label: 'User: Created - By Administrator'
 id: user_created_by_admin
+label: 'User: Created - By Administrator'
 key: ''
 recipient: {  }
 cc: {  }

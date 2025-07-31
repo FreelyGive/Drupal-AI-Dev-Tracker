@@ -18,9 +18,6 @@ settings:
       value: '1'
       label: Active
     -
-      value: '7'
-      label: 'Needs review (maintainer)'
-    -
       value: '8'
       label: 'Needs review'
     -
@@ -33,14 +30,8 @@ settings:
       value: '15'
       label: 'Patch (to be ported)'
     -
-      value: '17'
-      label: 'Needs tests'
-    -
       value: '2'
       label: Fixed
-    -
-      value: '5'
-      label: 'Needs clarification'
     -
       value: '4'
       label: Postponed

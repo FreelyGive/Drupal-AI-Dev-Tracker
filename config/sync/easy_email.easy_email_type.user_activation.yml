@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: IgeiNHsAfxUgOHSdgQ94BJwptt-eVx51_t9N0mqr7Jw
-label: 'User: Account Activation'
 id: user_activation
+label: 'User: Account Activation'
 key: ''
 recipient: {  }
 cc: {  }

@@ -2,5 +2,8 @@ executables:
   composer: null
   rsync: null
 additional_trusted_composer_plugins:
-  - tbachert/spi
+  - cweagans/composer-patches
 include_unknown_files_in_project_root: false
+additional_known_files_in_project_root:
+  - patches.json
+  - patches.lock.json

@@ -10,6 +10,8 @@ dependencies:
     - field.field.node.ai_contributor.field_contributor_skills
     - field.field.node.ai_contributor.field_contributor_type
     - field.field.node.ai_contributor.field_drupal_username
+    - field.field.node.ai_contributor.field_gitlab_username
+    - field.field.node.ai_contributor.field_tracker_role
     - field.field.node.ai_contributor.field_weekly_commitment
     - node.type.ai_contributor
   module:
@@ -88,4 +90,6 @@ content:
     weight: 6
     region: content
 hidden:
+  field_gitlab_username: true
+  field_tracker_role: true
   links: true

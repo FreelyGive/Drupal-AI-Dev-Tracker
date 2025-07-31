@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: 5cKYb7lWoNO7gUjyhPKg1MQPkD8QB_VutMv1JncWDzY
-label: 'User: Created - Awaiting Approval - Admin Notification'
 id: user_created_approval_admin
+label: 'User: Created - Awaiting Approval - Admin Notification'
 key: ''
 recipient:
   - '[site:mail]'

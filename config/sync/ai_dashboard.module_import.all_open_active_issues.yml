@@ -1,0 +1,22 @@
+uuid: 8e7ff87a-a97b-4ce5-8703-46beed8904be
+langcode: en
+status: true
+dependencies: {  }
+id: all_open_active_issues
+label: 'All open Active Issues, AI Module'
+source_type: drupal_org
+project_id: '3346420'
+filter_tags: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+project_name: ai

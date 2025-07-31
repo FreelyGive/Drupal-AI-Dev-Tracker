@@ -1,0 +1,19 @@
+uuid: 0c1c9b7f-9ecb-46f9-b1d1-c74310a01cae
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_gitlab_username
+    - node.type.ai_contributor
+id: node.ai_contributor.field_gitlab_username
+field_name: field_gitlab_username
+entity_type: node
+bundle: ai_contributor
+label: 'GitLab Username/Email'
+description: 'GitLab username or email address'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

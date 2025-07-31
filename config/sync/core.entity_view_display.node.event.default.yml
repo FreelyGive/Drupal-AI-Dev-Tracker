@@ -221,8 +221,8 @@ third_party_settings:
                   leaflet_markercluster:
                     control: false
                     options: '{"spiderfyOnMaxZoom":true,"showCoverageOnHover":true,"removeOutsideVisibleBounds": false}'
-                    excluded: ''
                     include_path: false
+                    excluded: ''
                   fullscreen:
                     control: false
                     options: '{"position":"topleft","pseudoFullscreen":false}'
@@ -232,6 +232,7 @@ third_party_settings:
                   geocoder:
                     control: false
                     settings:
+                      popup: false
                       autocomplete:
                         placeholder: 'Search Address'
                         title: 'Search an Address on the Map'
@@ -244,7 +245,6 @@ third_party_settings:
                       min_terms: 4
                       delay: 800
                       zoom: 16
-                      popup: false
                       options: ''
                   map_lazy_load:
                     lazy_load: true
@@ -497,8 +497,8 @@ content:
       leaflet_markercluster:
         control: false
         options: '{"spiderfyOnMaxZoom":true,"showCoverageOnHover":true,"removeOutsideVisibleBounds": false}'
-        excluded: ''
         include_path: false
+        excluded: ''
       fullscreen:
         control: false
         options: '{"position":"topleft","pseudoFullscreen":false}'
@@ -508,6 +508,7 @@ content:
       geocoder:
         control: false
         settings:
+          popup: false
           autocomplete:
             placeholder: 'Search Address'
             title: 'Search an Address on the Map'
@@ -520,7 +521,6 @@ content:
           min_terms: 4
           delay: 800
           zoom: 16
-          popup: false
           options: ''
       map_lazy_load:
         lazy_load: true

@@ -4,8 +4,11 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: nnyPLVusxAhlFozBQli4AvhjUsZMpc7rX4PjyaKQTww
-label: 'User: Created - By Administrator'
 id: user_created_by_admin
+label: 'User: Created - By Administrator'
+module: user
+key: register_admin_created
+easy_email_type: user_created_by_admin
 param_map:
   -
     source: account
@@ -20,6 +23,3 @@ copied_fields:
   body_html: false
   body_plain: false
   attachments: false
-module: user
-key: register_admin_created
-easy_email_type: user_created_by_admin

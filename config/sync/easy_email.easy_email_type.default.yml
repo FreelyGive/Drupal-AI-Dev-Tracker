@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: wtiD2a3ZqXWw4_OG6-jmSAyjVNeeIsqZf8rVnAe6J7I
-label: Default
 id: default
+label: Default
 key: ''
 recipient: {  }
 cc: {  }

@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: R9i03-dkbYVX5YpNxrXZ4YuXSFE8SQPqsK2KPK3iYIg
-label: 'User: Account Blocked'
 id: user_blocked
+label: 'User: Account Blocked'
 key: ''
 recipient: {  }
 cc: {  }

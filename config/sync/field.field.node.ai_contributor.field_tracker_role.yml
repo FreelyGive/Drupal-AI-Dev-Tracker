@@ -1,0 +1,21 @@
+uuid: d8aae515-dc69-4b3d-82be-c1bcb34fa878
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_tracker_role
+    - node.type.ai_contributor
+  module:
+    - options
+id: node.ai_contributor.field_tracker_role
+field_name: field_tracker_role
+entity_type: node
+bundle: ai_contributor
+label: 'Tracker Role'
+description: 'Select one or more roles for filtering purposes'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -1,0 +1,38 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_company.field_company_ai_maker
+    - field.field.node.ai_company.field_company_drupal_profile
+    - node.type.ai_company
+  module:
+    - user
+id: node.ai_company.default
+targetEntityType: node
+bundle: ai_company
+mode: default
+content:
+  field_company_ai_maker:
+    type: boolean
+    label: above
+    settings:
+      format: yes-no
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  field_company_drupal_profile:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
+hidden: {  }

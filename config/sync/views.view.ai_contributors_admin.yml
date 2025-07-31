@@ -1,4 +1,3 @@
-uuid: dbf4ddd1-b5c1-4f95-a7b9-b2533dca6034
 langcode: en
 status: true
 dependencies:
@@ -6,6 +5,7 @@ dependencies:
     - field.storage.node.field_contributor_company
     - field.storage.node.field_contributor_role
     - field.storage.node.field_contributor_skills
+    - field.storage.node.field_contributor_type
     - node.type.ai_contributor
   module:
     - node
@@ -218,6 +218,55 @@ display:
           multi_type: separator
           separator: ', '
           field_api_classes: false
+        field_drupal_username:
+          id: field_drupal_username
+          table: node__field_drupal_username
+          field: field_drupal_username
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: field
+          label: 'Drupal.org Username'
+          exclude: false
+          alter:
+            alter_text: true
+            text: '<a href="https://drupal.org/u/{{ field_drupal_username }}" target="_blank">{{ field_drupal_username }}</a>'
+            make_link: false
+            absolute: false
+            word_boundary: true
+            ellipsis: true
+            more_link: false
+            more_link_text: ''
+            more_link_path: ''
+            strip_tags: false
+            trim: false
+            preserve_tags: ''
+            html: true
+          element_type: ''
+          element_class: ''
+          element_label_type: ''
+          element_label_class: ''
+          element_label_colon: true
+          element_wrapper_type: ''
+          element_wrapper_class: ''
+          element_default_classes: true
+          empty: '<em>No username</em>'
+          hide_empty: false
+          empty_zero: false
+          hide_alter_empty: false
+          click_sort_column: value
+          type: string
+          settings: {  }
+          group_column: value
+          group_columns: {  }
+          group_rows: true
+          delta_limit: 0
+          delta_offset: 0
+          delta_reversed: false
+          delta_first_last: false
+          multi_type: separator
+          separator: ', '
+          field_api_classes: false
         operations:
           id: operations
           table: node
@@ -255,50 +304,6 @@ display:
           empty_zero: false
           hide_alter_empty: true
           destination: true
-        field_contributor_type:
-          id: field_contributor_type
-          table: node__field_contributor_type
-          field: field_contributor_type
-          relationship: none
-          group_type: group
-          admin_label: ''
-          plugin_id: field
-          label: Type
-          exclude: false
-          alter:
-            alter_text: false
-            make_link: false
-            absolute: false
-            word_boundary: false
-            ellipsis: false
-            strip_tags: false
-            trim: false
-            html: false
-          element_type: ''
-          element_class: ''
-          element_label_type: ''
-          element_label_class: ''
-          element_label_colon: true
-          element_wrapper_type: ''
-          element_wrapper_class: ''
-          element_default_classes: true
-          empty: ''
-          hide_empty: false
-          empty_zero: false
-          hide_alter_empty: true
-          click_sort_column: value
-          type: list_default
-          settings: {  }
-          group_column: value
-          group_columns: {  }
-          group_rows: true
-          delta_limit: 0
-          delta_offset: 0
-          delta_reversed: false
-          delta_first_last: false
-          multi_type: separator
-          separator: ', '
-          field_api_classes: false
       pager:
         type: mini
         options:
@@ -519,52 +524,6 @@ display:
             default_group: All
             default_group_multiple: {  }
             group_items: {  }
-        field_contributor_type_value:
-          id: field_contributor_type_value
-          table: node__field_contributor_type
-          field: field_contributor_type_value
-          relationship: none
-          group_type: group
-          admin_label: ''
-          plugin_id: string
-          operator: '='
-          value: ''
-          group: 1
-          exposed: true
-          expose:
-            operator_id: field_contributor_type_value_op
-            label: 'Contributor Type'
-            description: ''
-            use_operator: false
-            operator: field_contributor_type_value_op
-            operator_limit_selection: false
-            operator_list: {  }
-            identifier: type
-            required: false
-            remember: false
-            multiple: false
-            remember_roles:
-              authenticated: authenticated
-          is_grouped: true
-          group_info:
-            label: 'Contributor Type'
-            description: ''
-            identifier: type
-            optional: true
-            widget: select
-            multiple: false
-            remember: false
-            default_group: All
-            default_group_multiple: {  }
-            group_items:
-              1:
-                title: Developer
-                operator: '='
-                value: dev
-              2:
-                title: Non-Developer
-                operator: '='
-                value: non_dev
       style:
         type: table
         options:
@@ -641,9 +600,6 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
-        - 'url.query_args:sort_by'
-        - 'url.query_args:sort_order'
-        - 'user.node_grants:view'
         - user.permissions
       tags:
         - 'config:field.storage.node.field_contributor_company'
@@ -661,11 +617,11 @@ display:
         type: none
         title: 'AI Contributors'
         description: ''
-        weight: 0
         expanded: false
-        menu_name: main
         parent: ''
+        weight: 0
         context: '0'
+        menu_name: main
     cache_metadata:
       max-age: -1
       contexts:
@@ -673,9 +629,6 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
-        - 'url.query_args:sort_by'
-        - 'url.query_args:sort_order'
-        - 'user.node_grants:view'
         - user.permissions
       tags:
         - 'config:field.storage.node.field_contributor_company'

@@ -1,0 +1,42 @@
+uuid: 28c4542d-7cde-45be-b64e-5db243f0387f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_tracker_role
+field_name: field_tracker_role
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: developer
+      label: Developer
+    -
+      value: frontend
+      label: Front-end
+    -
+      value: management
+      label: Management
+    -
+      value: designer
+      label: Designer
+    -
+      value: qa
+      label: QA/Testing
+    -
+      value: devops
+      label: DevOps
+    -
+      value: pm
+      label: 'Project Manager'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

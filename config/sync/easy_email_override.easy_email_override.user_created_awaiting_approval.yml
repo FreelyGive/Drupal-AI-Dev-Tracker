@@ -4,8 +4,11 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: QN9QzhoJiXRShTGADAWVj7tLGjQeaw0XmiapZ-ByqOI
-label: 'User: Created - Awaiting Approval'
 id: user_created_awaiting_approval
+label: 'User: Created - Awaiting Approval'
+module: user
+key: register_pending_approval
+easy_email_type: user_created_awaiting_approval
 param_map:
   -
     source: account
@@ -20,6 +23,3 @@ copied_fields:
   body_html: false
   body_plain: false
   attachments: false
-module: user
-key: register_pending_approval
-easy_email_type: user_created_awaiting_approval

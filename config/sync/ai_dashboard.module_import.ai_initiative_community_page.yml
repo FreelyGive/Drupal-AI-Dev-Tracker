@@ -1,0 +1,22 @@
+uuid: 023ffc79-5db8-4cea-addf-900a3fb01ded
+langcode: en
+status: true
+dependencies: {  }
+id: ai_initiative_community_page
+label: 'Others, AI Initiative Community Page, ECA Integration, AI Agents. - 3528462,3505615'
+source_type: drupal_org
+project_id: '3528462'
+filter_tags: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+project_name: ai_initiative

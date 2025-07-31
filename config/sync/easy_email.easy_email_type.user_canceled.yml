@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: YhNk9pF6Z6XX7hxg2zo9S8MpzAvcJqC51WxEqdo2nGo
-label: 'User: Account Canceled'
 id: user_canceled
+label: 'User: Account Canceled'
 key: ''
 recipient: {  }
 cc: {  }

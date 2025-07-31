@@ -4,8 +4,8 @@ status: true
 dependencies: {  }
 _core:
   default_config_hash: 1ZAXZxNQwYxLotq6hm5Um5kzE_yUuYJYZBtbZ4Ij4s8
-label: 'User: Created - Awaiting Approval'
 id: user_created_awaiting_approval
+label: 'User: Created - Awaiting Approval'
 key: ''
 recipient: {  }
 cc: {  }
