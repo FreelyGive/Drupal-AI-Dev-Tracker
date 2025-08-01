@@ -16,6 +16,8 @@ use GuzzleHttp\Exception\RequestException;
  */
 class IssueImportService {
 
+  const USER_AGENT = 'AI Dashboard Module/1.0';
+
   /**
    * Limit of per-page results using drupal.org REST API.
    */
@@ -132,6 +134,9 @@ class IssueImportService {
           'query' => $current_params,
           // Increased timeout for large imports.
           'timeout' => 60,
+          'headers' => [
+            'User-Agent' => self::USER_AGENT,
+          ],
         ]);
 
         $data = json_decode($response->getBody()->getContents(), TRUE);
@@ -439,6 +444,9 @@ class IssueImportService {
           'query' => $current_params,
         // Increased timeout for large imports.
           'timeout' => 60,
+          'headers' => [
+            'User-Agent' => self::USER_AGENT,
+          ],
         ]);
 
         $data = json_decode($response->getBody()->getContents(), TRUE);
@@ -552,6 +560,9 @@ class IssueImportService {
       $response = $this->httpClient->request('GET', $url, [
         'query' => $params,
         'timeout' => 60,
+        'headers' => [
+          'User-Agent' => self::USER_AGENT,
+        ],
       ]);
 
       $data = json_decode($response->getBody()->getContents(), TRUE);
@@ -659,8 +670,7 @@ class IssueImportService {
       // Update existing issue.
       $this->updateIssue($existing, $mapped_data);
     }
-    else {
-      // Create new issue.
+    elseif ($this->shouldCreateIssue($config, $issue_data)) {
       $this->createIssue($mapped_data);
     }
   }
@@ -822,7 +832,7 @@ class IssueImportService {
         $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
           'timeout' => 10,
           'headers' => [
-            'User-Agent' => 'AI Dashboard Module/1.0',
+            'User-Agent' => self::USER_AGENT,
           ],
         ]);
 
@@ -1071,6 +1081,9 @@ class IssueImportService {
     try {
       $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/taxonomy_term/{$term_id}.json", [
         'timeout' => 10,
+        'headers' => [
+          'User-Agent' => self::USER_AGENT,
+        ],
       ]);
 
       $data = json_decode($response->getBody()->getContents(), TRUE);
@@ -1191,12 +1204,15 @@ class IssueImportService {
     if (!empty($tagsToQuery)) {
       $response = $this->httpClient->request('GET',
         'https://www.drupal.org/api-d7/taxonomy_term.json', [
-        'query' => [
-          'vocabulary' => 9,
-          'name' => implode(',', $tagsToQuery),
-        ],
-        // Increased timeout for large imports.
-        'timeout' => 60,
+          'query' => [
+            'vocabulary' => 9,
+            'name' => implode(',', $tagsToQuery),
+          ],
+          // Increased timeout for large imports.
+          'timeout' => 60,
+          'headers' => [
+            'User-Agent' => self::USER_AGENT,
+          ],
       ]);
 
       $data = json_decode($response->getBody()->getContents(), TRUE);
@@ -1244,6 +1260,9 @@ class IssueImportService {
             'query' => $params,
             // Increased timeout for large imports.
             'timeout' => 60,
+            'headers' => [
+              'User-Agent' => self::USER_AGENT,
+            ],
           ]);
           $data = json_decode($response->getBody()->getContents(), TRUE);
           if (!$lastPage && preg_match('/&page=(\d+)/', $data['last'], $matches)) {
@@ -1252,12 +1271,21 @@ class IssueImportService {
           $params['page'] = ++$page;
           $timestampHit = FALSE;
           foreach ($data['list'] as $doData) {
-            if ($doData['changed'] < $timestamp) {
+            if ($doData['changed'] <= $timestamp) {
               $timestampHit = TRUE;
+              break;
             }
           }
-          $chunks[] = $data['list'];
           $fetchSuccess = TRUE;
+          if ($timestampHit) {
+            $data['list'] = array_filter($data['list'],
+              function ($item) use ($timestamp) {
+                return $item['changed'] > $timestamp;
+              });
+          }
+          if ($data['list']) {
+            $chunks[] = $data['list'];
+          }
           if ($page > $lastPage || $timestampHit) {
             return $chunks;
           }
@@ -1274,6 +1302,28 @@ class IssueImportService {
       }
     }
     return $chunks;
+  }
+
+  /**
+   * On initial import, we pull all issues to avoid 429 responses from API.
+   *
+   * From another side, there is no sense in creating issues that do not fit
+   * the criteria set in module import configuration.
+   *
+   * @param $config
+   * @param $issue_data
+   *
+   * @return bool
+   */
+  protected function shouldCreateIssue($config, array $issue_data) : bool {
+    if (($filter = $config->getStatusFilter())
+      && !in_array($issue_data['field_issue_status'], $filter)) {
+      return FALSE;
+    }
+    if ($filter = $config->getFilterTags()) {
+      return TRUE;
+    }
+    return TRUE;
   }
 
 }
