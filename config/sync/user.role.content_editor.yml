@@ -30,7 +30,6 @@ dependencies:
     - scheduler
     - system
     - toolbar
-    - trash
 _core:
   default_config_hash: g-zSnaBXJnH7VoimReFb6KcLjIgHCU-hisiShtZ9hjQ
 id: content_editor
@@ -44,7 +43,6 @@ permissions:
   - 'access media overview'
   - 'access navigation'
   - 'access toolbar'
-  - 'access trash'
   - 'administer menu'
   - 'administer redirects'
   - 'administer url aliases'

@@ -1,0 +1,30 @@
+uuid: 1b7cf4f9-650f-4555-8586-6e253e649c9f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.do_tags.field_external_id
+    - taxonomy.vocabulary.do_tags
+  module:
+    - text
+id: taxonomy_term.do_tags.default
+targetEntityType: taxonomy_term
+bundle: do_tags
+mode: default
+content:
+  description:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  field_external_id:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden: {  }

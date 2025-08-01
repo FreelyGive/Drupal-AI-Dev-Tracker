@@ -1,0 +1,20 @@
+uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+langcode: en
+status: true
+dependencies: {  }
+id: ai_integration_eca
+label: 'AI Integration ECA'
+source_type: drupal_org
+project_id: '3505615'
+filter_tags: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+project_name: ai_integration_eca
