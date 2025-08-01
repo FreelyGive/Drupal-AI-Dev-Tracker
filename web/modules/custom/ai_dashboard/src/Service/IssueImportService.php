@@ -7,6 +7,7 @@ use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeStorageInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
@@ -710,6 +711,11 @@ class IssueImportService {
    *   Mapped data.
    */
   protected function mapDrupalOrgIssue(array $issue_data, ModuleImport $config): array {
+    /** @var NodeStorageInterface $nodeStorage */
+    static $nodeStorage;
+    // Array of contributor nodes, keyed by d.o. user id.
+    static $contributors = [];
+
     // Extract tags from the issue.
     $tags = [];
     if (isset($issue_data['taxonomy_vocabulary_9']) && is_array($issue_data['taxonomy_vocabulary_9'])) {
@@ -733,12 +739,43 @@ class IssueImportService {
 
     // Extract drupal.org assignee information.
     $do_assignee = '';
+    $assignee_id = 0;
 
     if (isset($issue_data['field_issue_assigned']) && is_array($issue_data['field_issue_assigned'])) {
       if (isset($issue_data['field_issue_assigned']['id'])) {
         // We have the user ID, need to resolve it to username.
         $user_id = $issue_data['field_issue_assigned']['id'];
-        $do_assignee = $this->resolveUsernameFromId($user_id);
+        if (!$nodeStorage) {
+          $nodeStorage = $this->entityTypeManager->getStorage('node');
+        }
+        if (empty($contributors[$user_id])) {
+          $candidates = $nodeStorage->loadByProperties(
+            ['field_drupal_userid' => $user_id]);
+          if (!empty($candidates)) {
+            $contributors[$user_id] = reset($candidates);
+          }
+          else {
+            $userData = $this->getUserData($user_id);
+            // Can't find user by d.o. user id, but can by username?
+            // Update local userid.
+            if (!empty($userData['name'])) {
+              $candidates = $nodeStorage->loadByProperties([
+                'type' => 'ai_contributor',
+                'field_drupal_username' => $userData['name'],
+              ]);
+              if (!empty($candidates)) {
+                $contributors[$user_id] = reset($candidates);
+                $contributors[$user_id]->set('field_drupal_userid', $user_id);
+                $contributors[$user_id]->save();
+              }
+            }
+          }
+        }
+        if (!empty($contributors[$user_id])) {
+          $do_assignee = $contributors[$user_id]->get('field_drupal_username')
+            ->getString();
+          $assignee_id = $contributors[$user_id]->id();
+        }
       }
     }
 
@@ -765,6 +802,7 @@ class IssueImportService {
       'tags' => $tags,
       'module' => $module_node_id,
       'do_assignee' => $do_assignee,
+      'assignee_id' => $assignee_id,
       'created' => $issue_data['created'] ?? time(),
       'changed' => $issue_data['changed'] ?? time(),
     ];
@@ -818,13 +856,13 @@ class IssueImportService {
    * @param string $user_id
    *   The drupal.org user ID.
    *
-   * @return string
-   *   The username, or empty string if not found.
+   * @return array
+   *   user data returned from d.o. REST API.
    */
-  protected function resolveUsernameFromId(string $user_id): string {
+  protected function getUserData(string $user_id): array {
     // Validate user ID format.
     if (empty($user_id) || !is_numeric($user_id)) {
-      return '';
+      return [];
     }
 
     for ($i = 0; $i < self::MAX_TRIES; $i++) {
@@ -839,7 +877,7 @@ class IssueImportService {
         $user_data = json_decode($response->getBody()->getContents(), TRUE);
 
         if (isset($user_data['name']) && !empty($user_data['name'])) {
-          return $user_data['name'];
+          return $user_data;
         }
         // Response successful but no data.
         break;
@@ -858,7 +896,7 @@ class IssueImportService {
           ]);
       }
     }
-    return '';
+    return [];
   }
 
   /**
@@ -959,6 +997,9 @@ class IssueImportService {
       'changed' => $mapped_data['changed'],
       'status' => 1,
     ]);
+    if (!empty($mapped_data['assignee_id'])) {
+      $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
 
     $issue->save();
 
@@ -974,6 +1015,8 @@ class IssueImportService {
    * Update existing issue.
    */
   protected function updateIssue(Node $issue, array $mapped_data): Node {
+    static $nodeStorage;
+    static $contributors = [];
     // Log the update for debugging.
     $logger = $this->loggerFactory->get('ai_dashboard');
     $logger->info('Updating issue #@number: @title', [
@@ -992,6 +1035,10 @@ class IssueImportService {
     $issue->set('field_issue_tags', $mapped_data['tags']);
     $issue->set('field_issue_module', $mapped_data['module'] ?? '');
     $issue->set('field_issue_do_assignee', $mapped_data['do_assignee'] ?? '');
+    if (!empty($mapped_data['assignee_id'])) {
+      $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
+
     $issue->setChangedTime($mapped_data['changed']);
 
     $issue->save();
