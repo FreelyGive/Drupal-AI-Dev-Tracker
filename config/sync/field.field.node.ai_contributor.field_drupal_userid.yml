@@ -1,0 +1,19 @@
+uuid: 732215bc-eed9-41cb-a661-5cbdda1b676d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_drupal_userid
+    - node.type.ai_contributor
+id: node.ai_contributor.field_drupal_userid
+field_name: field_drupal_userid
+entity_type: node
+bundle: ai_contributor
+label: 'Drupal.org User ID'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string
