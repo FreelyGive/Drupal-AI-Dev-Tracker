@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\Entity\Node;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\RequestException;
 
 /**
@@ -19,6 +20,16 @@ class IssueImportService {
    * Limit of per-page results using drupal.org REST API.
    */
   const BATCH_SIZE = 50;
+
+  /**
+   * Maximum number of tries before giving up.
+   */
+  const MAX_TRIES = 3;
+
+  /**
+   * Number of seconds to wait before retrying the request.
+   */
+  const RETRY_AFTER = 30;
 
   /**
    * The entity type manager.
@@ -89,10 +100,10 @@ class IssueImportService {
     ];
 
     if ($filter = $config->getStatusFilter()) {
-      if (is_array($filter)) {
-        $filter = implode(',', $filter);
+      if (!is_array($filter)) {
+        $filter = array_filter(explode(',', $filter));
       }
-      $params['field_issue_status'] = $filter;
+      $params['field_issue_status'] = count($filter) > 1 ? $filter : reset($filter);
     }
     if ($filter = $this->buildTagIds($config->getFilterTags())) {
       $params['taxonomy_vocabulary_9'] = implode(',', $filter);
@@ -111,7 +122,6 @@ class IssueImportService {
       $per_page = self::BATCH_SIZE;
       $total_processed = 0;
 
-      $list = [];
       do {
         // Set pagination parameters.
         $current_params = $params;
@@ -138,7 +148,7 @@ class IssueImportService {
         $total_processed += $page_issues;
         $batchBuilder->addOperation(
           [IssueBatchImportService::class, 'batchOperationProcessIssueBatch'],
-          [$data['list']]);
+          [$data['list'], $config->id()]);
         $page++;
       }
         // Continue if we got a full page and haven't reached the limit.
@@ -637,8 +647,9 @@ class IssueImportService {
    * @param ModuleImport $config
    *   The import configuration.
    */
-  public function processIssue(array $issue_data, string $source_type, ModuleImport $config): void {
+  public function processIssue(array $issue_data, ModuleImport $config): void {
     // Map API data to Drupal fields based on source.
+    $source_type = $config->getSourceType();
     $mapped_data = $this->mapIssueData($issue_data, $source_type, $config);
 
     // Check for existing issue by external ID.
@@ -806,31 +817,37 @@ class IssueImportService {
       return '';
     }
 
-    try {
-      $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
-        'timeout' => 10,
-        'headers' => [
-          'User-Agent' => 'AI Dashboard Module/1.0',
-        ],
-      ]);
+    for ($i = 0; $i < self::MAX_TRIES; $i++) {
+      try {
+        $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
+          'timeout' => 10,
+          'headers' => [
+            'User-Agent' => 'AI Dashboard Module/1.0',
+          ],
+        ]);
 
-      if ($response->getStatusCode() !== 200) {
-        return '';
+        $user_data = json_decode($response->getBody()->getContents(), TRUE);
+
+        if (isset($user_data['name']) && !empty($user_data['name'])) {
+          return $user_data['name'];
+        }
+        // Response successful but no data.
+        break;
       }
-
-      $user_data = json_decode($response->getBody()->getContents(), TRUE);
-
-      if (isset($user_data['name']) && !empty($user_data['name'])) {
-        return $user_data['name'];
+      catch (ClientException $e) {
+        if ($e->getCode() === 429) {
+          sleep(self::RETRY_AFTER);
+          continue;
+        }
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('ai_dashboard')
+          ->warning('Failed to resolve user ID @id: @message', [
+            '@id' => $user_id,
+            '@message' => $e->getMessage(),
+          ]);
       }
     }
-    catch (\Exception $e) {
-      \Drupal::logger('ai_dashboard')->warning('Failed to resolve user ID @id: @message', [
-        '@id' => $user_id,
-        '@message' => $e->getMessage(),
-      ]);
-    }
-
     return '';
   }
 
@@ -1194,6 +1211,69 @@ class IssueImportService {
       }
     }
     return $terms;
+  }
+
+  /**
+   * @param \Drupal\ai_dashboard\Entity\ModuleImport $config
+   * @param int $timestamp
+   *
+   * @return array
+   *   Array if issue data chunks, up to 50 items in a chunk.
+   */
+  public function getModuleIssuesSince(ModuleImport $config, int $timestamp) : array {
+    // Build the API URL for single status import.
+    $url = 'https://www.drupal.org/api-d7/node.json';
+    $params = [
+      'type' => 'project_issue',
+      'field_project' => $config->getProjectId(),
+      'sort' => 'changed',
+      'direction' => 'DESC',
+      'limit' => self::BATCH_SIZE,
+    ];
+    $page = 0;
+    $chunks = [];
+    $lastPage = 0;
+    while (TRUE) {
+      $fetchSuccess = FALSE;
+      for ($i = 0; $i < self::MAX_TRIES; $i++) {
+        if ($fetchSuccess) {
+          break;
+        }
+        try {
+          $response = $this->httpClient->request('GET', $url, [
+            'query' => $params,
+            // Increased timeout for large imports.
+            'timeout' => 60,
+          ]);
+          $data = json_decode($response->getBody()->getContents(), TRUE);
+          if (!$lastPage && preg_match('/&page=(\d+)/', $data['last'], $matches)) {
+            $lastPage = $matches[1];
+          }
+          $params['page'] = ++$page;
+          $timestampHit = FALSE;
+          foreach ($data['list'] as $doData) {
+            if ($doData['changed'] < $timestamp) {
+              $timestampHit = TRUE;
+            }
+          }
+          $chunks[] = $data['list'];
+          $fetchSuccess = TRUE;
+          if ($page > $lastPage || $timestampHit) {
+            return $chunks;
+          }
+        }
+        catch (ClientException $e) {
+          if ($e->getCode() === 429) {
+            sleep(self::RETRY_AFTER);
+            continue;
+          }
+        }
+        catch (\Throwable $e) {
+          return $chunks;
+        }
+      }
+    }
+    return $chunks;
   }
 
 }

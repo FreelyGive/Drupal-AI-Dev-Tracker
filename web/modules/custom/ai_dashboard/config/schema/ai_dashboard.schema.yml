@@ -40,6 +40,12 @@ ai_dashboard.module_import.*:
     date_filter:
       type: string
       label: 'Date filter'
+    initial_import:
+      type: timestamp
+      label: 'Initial import from'
+    last_import:
+      type: timestamp
+      label: 'Last incremented import'
     active:
       type: boolean
       label: 'Active'

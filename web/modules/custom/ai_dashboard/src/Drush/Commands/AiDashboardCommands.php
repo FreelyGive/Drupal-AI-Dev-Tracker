@@ -3,6 +3,11 @@
 namespace Drupal\ai_dashboard\Drush\Commands;
 
 use Drupal\ai_dashboard\Entity\ModuleImport;
+use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueWorkerManagerInterface;
+use Drush\Attributes as CLI;
 use Drush\Attributes\Command;
 use Drush\Commands\DrushCommands;
 use Drupal\node\Entity\Node;
@@ -14,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class AiDashboardCommands extends DrushCommands {
 
+  const QUEUE_NAME = 'module_import_full_do';
+
   /**
    * The entity type manager.
    *
@@ -22,11 +29,29 @@ class AiDashboardCommands extends DrushCommands {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * @var \Drupal\Core\Queue\QueueFactory
+   */
+  protected QueueFactory $queueFactory;
+
+  /**
+   * @var \Drupal\Core\Queue\QueueWorkerManagerInterface
+   */
+  protected QueueWorkerManagerInterface $workerManager;
+
+  /**
+   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   */
+  protected IssueImportService $importService;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->queueFactory = $container->get('queue');
+    $instance->workerManager = $container->get('plugin.manager.queue_worker');
+    $instance->importService = $container->get('ai_dashboard.issue_import');
     return $instance;
   }
 
@@ -474,6 +499,79 @@ class AiDashboardCommands extends DrushCommands {
     // Restore original max issues.
     $config->setMaxIssues($original_max);
     $config->save();
+  }
+
+  /**
+   * Test issue import from drupal.org with status filtering.
+   *
+   * @command ai-dashboard:import2
+   *
+   */
+  #[CLI\Command(name: 'ai-dashboard:import2')]
+  #[CLI\Argument('config_id', 'Machine name of module import configuration.')]
+  #[CLI\Option(
+    name: 'full-from',
+    description: 'Perform full sync starting from the date in format YYYY-mm-dd')
+  ]
+  public function importSingleNew(string $config_id, array $options = [
+    'full-from' => NULL,
+  ]) {
+    $output = $this->output();
+    $output->writeln('Importing issues from drupal.org');
+
+    // Load import configuration.
+    /** @var ModuleImport $config */
+    $config = $this->entityTypeManager->getStorage('module_import')
+      ->load($config_id);
+    if (!$config) {
+      $output->writeln('<error>Import configuration is not found or invalid.</error>');
+      return;
+    }
+
+    $output->writeln('Configuration: ' . $config->label());
+    if (!empty($options['full-from'])) {
+      $start = \DateTime::createFromFormat('Y-m-d', $options['full-from'])
+        ->getTimestamp();
+    }
+    else {
+      $start = $config->get('last_import') ?: 0;
+    }
+    $output->writeln('Importing issue updates since '
+      . $start ? date('Y-m-d H:i:s', $start) : ' beginning of time');
+    $chunks = $this->importService->getModuleIssuesSince($config, $start);
+    if (!$chunks) {
+      $this->output()->writeln('<error>No issues found.</error>');
+      return;
+    }
+    $queue = $this->queueFactory->get(self::QUEUE_NAME);
+    $numIssues = 0;
+    foreach ($chunks as $chunk) {
+      $numIssues += count($chunk);
+      $queue->createItem([$config_id, $chunk]);
+    }
+    // Signals queue worker to mark the configuration initially processed.
+    $queue->createItem([$config_id, [], $start]);
+    $config->set('last_import', (new DrupalDateTime())->getTimestamp());
+    $config->save();
+    $output->writeln(strtr('Queued @issues for processing', ['@issues' => $numIssues]));
+    $output->writeln('Starting queue processing');
+    $output->writeln('It is safe to stop the processing at any moment');
+    $output->writeln('To resume, run drush queue-run module_import_full_do');
+    $worker = $this->workerManager->createInstance(self::QUEUE_NAME);
+    while ($item = $queue->claimItem()) {
+      try {
+        $worker->processItem($item->data);
+        $queue->deleteItem($item);
+        if (!empty($item->data[1])) {
+          $output->writeln(strtr('Processed @num issues',
+            ['@num' => count($item->data[1])]));
+        }
+      }
+      catch (\Exception $e) {
+        $queue->releaseItem($item);
+      }
+    }
+    $output->writeln('Finished queue processing.');
   }
 
   /**

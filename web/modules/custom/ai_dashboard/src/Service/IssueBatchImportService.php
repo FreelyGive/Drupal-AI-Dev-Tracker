@@ -573,8 +573,17 @@ class IssueBatchImportService {
   /**
    * Batch operation callback for single status import.
    */
-  public static function batchOperationProcessIssueBatch(array $issues, &$context) {
+  public static function batchOperationProcessIssueBatch(
+    array $issues,
+    string $config_id,
+    &$context) {
     $logger = \Drupal::service('logger.factory')->get('ai_dashboard');
+    /** @var ModuleImport $config */
+    $config = \Drupal::entityTypeManager()
+      ->getStorage('module_import')
+      ->load($config_id);
+    assert($config instanceof ModuleImport);
+    $sourceType = $config->getSourceType();
 
     // Initialize sandbox on first operation.
     if (empty($context['sandbox'])) {
@@ -587,14 +596,14 @@ class IssueBatchImportService {
       ];
     }
 
+    // Get import service and import this single status.
+    /** @var IssueImportService $import_service */
+    $import_service = \Drupal::service('ai_dashboard.issue_import');
     foreach ($issues as $issue) {
       try {
-        // Get import service and import this single status.
-        /** @var IssueImportService $import_service */
-        $import_service = \Drupal::service('ai_dashboard.issue_import');
-
-        $import_service->processIssue($issue, $context);
-      } catch (\Exception $e) {
+        $import_service->processIssue($issue, $sourceType, $config);
+      }
+      catch (\Exception $e) {
         $logger->error($e->getMessage());
         $context['results']['errors']++;
         // Continue to next operation even on error.
