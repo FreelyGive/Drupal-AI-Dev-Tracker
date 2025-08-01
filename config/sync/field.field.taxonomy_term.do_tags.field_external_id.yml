@@ -1,0 +1,19 @@
+uuid: aec11ddf-7b54-4a78-afe3-204432869aa6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_external_id
+    - taxonomy.vocabulary.do_tags
+id: taxonomy_term.do_tags.field_external_id
+field_name: field_external_id
+entity_type: taxonomy_term
+bundle: do_tags
+label: 'External ID'
+description: 'Term ID on drupal.org'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

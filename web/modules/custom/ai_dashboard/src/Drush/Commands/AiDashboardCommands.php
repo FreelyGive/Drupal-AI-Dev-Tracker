@@ -3,6 +3,11 @@
 namespace Drupal\ai_dashboard\Drush\Commands;
 
 use Drupal\ai_dashboard\Entity\ModuleImport;
+use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueWorkerManagerInterface;
+use Drupal\Core\State\StateInterface;
+use Drush\Attributes as CLI;
 use Drush\Attributes\Command;
 use Drush\Commands\DrushCommands;
 use Drupal\node\Entity\Node;
@@ -14,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class AiDashboardCommands extends DrushCommands {
 
+  const QUEUE_NAME = 'module_import_full_do';
+
   /**
    * The entity type manager.
    *
@@ -22,11 +29,37 @@ class AiDashboardCommands extends DrushCommands {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * @var \Drupal\Core\Queue\QueueFactory
+   */
+  protected QueueFactory $queueFactory;
+
+  /**
+   * @var \Drupal\Core\Queue\QueueWorkerManagerInterface
+   */
+  protected QueueWorkerManagerInterface $workerManager;
+
+  /**
+   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   */
+  protected IssueImportService $importService;
+
+  /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected StateInterface $state;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->queueFactory = $container->get('queue');
+    $instance->workerManager = $container->get('plugin.manager.queue_worker');
+    $instance->importService = $container->get('ai_dashboard.issue_import');
+    $instance->state = $container->get('state');
     return $instance;
   }
 
@@ -392,92 +425,82 @@ class AiDashboardCommands extends DrushCommands {
   }
 
   /**
-   * Test issue import from drupal.org with status filtering.
+   * Import issues from drupal.org for a given project.
    *
-   * @param string $config_id
-   *   Node ID of import configuration.
-   *
-   * @command ai-dashboard:test-import
-   * @aliases aid-import
-   * @usage ai-dashboard:test-import [config_id] [--batch]
-   *   Test issue import functionality with the specified config ID.
-   * @option batch Use batch processing for the import
+   * When --full-from option is not specified, imports issues from the last
+   * update, or from the beginning of time otherwise.
    */
-  #[Command(name: 'ai-dashboard:import')]
-  public function importSingleConfiguration(string $config_id, array $options = []) {
-    $this->output()->writeln('Importing issues from drupal.org');
+  #[CLI\Command(name: 'ai-dashboard:import')]
+  #[CLI\Argument('config_id', 'Machine name of module import configuration.')]
+  #[CLI\Option(
+    name: 'full-from',
+    description: 'Perform full sync starting from the date in format YYYY-mm-dd')
+  ]
+  #[CLI\Usage('--full-from=2025-07-01')]
+  public function importSingleConfiguration(string $config_id, array $options = [
+    'full-from' => NULL,
+  ]) {
+    $output = $this->output();
+    $output->writeln('Importing issues from drupal.org');
 
     // Load import configuration.
     /** @var ModuleImport $config */
     $config = $this->entityTypeManager->getStorage('module_import')
       ->load($config_id);
     if (!$config) {
-      $this->output()->writeln('<error>Import configuration not found or invalid.</error>');
+      $output->writeln('<error>Import configuration is not found or invalid.</error>');
       return;
     }
 
-    $this->output()->writeln('Configuration: ' . $config->label());
-
-    // Show status filter values.
-    $status_filter = [];
-    if ($filters = $config->getStatusFilter()) {
-      foreach ($filters as $item) {
-        if (!empty($item->value)) {
-          $status_filter[] = $item->value;
+    $output->writeln('Configuration: ' . $config->label());
+    if (!empty($options['full-from'])) {
+      $start = \DateTime::createFromFormat('Y-m-d', $options['full-from'])
+        ->getTimestamp();
+    }
+    else {
+      $start = $this->state->get('ai_dashboard:last_import:' . $config_id) ?: 0;
+    }
+    $output->writeln('Importing issue updates since '
+      . ($start ? date('Y-m-d H:i:s', $start) : ' beginning of time'));
+    $chunks = $this->importService->getModuleIssuesSince($config, $start);
+    if (!$chunks) {
+      $this->output()->writeln('<error>No issues found.</error>');
+      return;
+    }
+    $queue = $this->queueFactory->get(self::QUEUE_NAME);
+    $numIssues = 0;
+    $lastUpdate = 0;
+    foreach ($chunks as $chunk) {
+      // Issues are sorted by updated time.
+      if (!$lastUpdate) {
+        $lastUpdate = $chunk[0]['changed'];
+      }
+      $numIssues += count($chunk);
+      $queue->createItem([$config_id, $chunk]);
+    }
+    // This will update the timestamp of last module import.
+    if ($lastUpdate) {
+      $queue->createItem([$config_id, [], $lastUpdate]);
+    }
+    $output->writeln(strtr('Queued @issues for processing', ['@issues' => $numIssues]));
+    $output->writeln('Starting queue processing');
+    $output->writeln('It is safe to stop the processing at any moment');
+    $output->writeln('To resume, run drush queue-run module_import_full_do');
+    $worker = $this->workerManager->createInstance(self::QUEUE_NAME);
+    while ($item = $queue->claimItem()) {
+      try {
+        $worker->processItem($item->data);
+        $queue->deleteItem($item);
+        if (!empty($item->data[1])) {
+          $output->writeln(strtr('Processed @num issues',
+            ['@num' => count($item->data[1])]));
         }
       }
+      catch (\Exception $e) {
+        $queue->releaseItem($item);
+      }
     }
-    $this->output()->writeln('Status filter: ' . implode(', ', $status_filter));
-
-    // Count current issues.
-    $current_count = $this->entityTypeManager->getStorage('node')->getQuery()
-      ->condition('type', 'ai_issue')
-      ->condition('status', 1)
-      ->accessCheck(FALSE)
-      ->count()
-      ->execute();
-
-    $this->output()->writeln('Current issues: ' . $current_count);
-
-    // Get import service and run import.
-    $import_service = \Drupal::service('ai_dashboard.issue_import');
-
-    // Use the configured max issues or 500 if blank for full test.
-    $original_max = $config->getMaxIssues();
-    if (!$original_max) {
-      $config->setMaxIssues(500);
-    }
-
-    try {
-      // Always use batch mode with drush.
-      $results = $import_service->importFromConfig($config);
-
-      $this->output()->writeln('Import Results:');
-      $this->output()->writeln('- Success: ' . ($results['success'] ? 'Yes' : 'No'));
-      $this->output()->writeln('- Imported: ' . $results['imported'] ?? 0);
-      $this->output()->writeln('- Skipped: ' . $results['skipped'] ?? 0);
-      $this->output()->writeln('- Errors: ' . $results['errors'] ?? 0);
-      $this->output()->writeln('- Message: ' . $results['message']);
-
-      // Check final count.
-      $final_count = $this->entityTypeManager->getStorage('node')->getQuery()
-        ->condition('type', 'ai_issue')
-        ->condition('status', 1)
-        ->accessCheck(FALSE)
-        ->count()
-        ->execute();
-
-      $this->output()->writeln('Final issues: ' . $final_count);
-      $this->output()->writeln('Net change: ' . ($final_count - $current_count));
-
-    }
-    catch (\Exception $e) {
-      $this->output()->writeln('<error>Import failed: ' . $e->getMessage() . '</error>');
-    }
-
-    // Restore original max issues.
-    $config->setMaxIssues($original_max);
-    $config->save();
+    $output->writeln('Finished queue processing.');
   }
 
   /**

@@ -1,11 +1,11 @@
-uuid: 023ffc79-5db8-4cea-addf-900a3fb01ded
+uuid: a214b1e9-948d-4c56-85f2-845c3812f664
 langcode: en
 status: true
 dependencies: {  }
-id: ai_initiative_community_page
-label: 'AI Initiative Community Page'
+id: ai_integration_eca
+label: 'AI Integration ECA'
 source_type: drupal_org
-project_id: '3528462'
+project_id: '3505615'
 filter_tags: ''
 status_filter:
   - '1'
@@ -14,9 +14,7 @@ status_filter:
   - '14'
   - '15'
   - '2'
-  - '4'
-  - '16'
 max_issues: null
 date_filter: null
 active: true
-project_name: ai_initiative
+project_name: ai_integration_eca

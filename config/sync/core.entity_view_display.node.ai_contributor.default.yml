@@ -9,6 +9,7 @@ dependencies:
     - field.field.node.ai_contributor.field_contributor_role
     - field.field.node.ai_contributor.field_contributor_skills
     - field.field.node.ai_contributor.field_contributor_type
+    - field.field.node.ai_contributor.field_drupal_userid
     - field.field.node.ai_contributor.field_drupal_username
     - field.field.node.ai_contributor.field_gitlab_username
     - field.field.node.ai_contributor.field_tracker_role
@@ -69,6 +70,14 @@ content:
     settings: {  }
     third_party_settings: {  }
     weight: 3
+    region: content
+  field_drupal_userid:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 7
     region: content
   field_drupal_username:
     type: string

@@ -128,11 +128,11 @@ class ModuleImport extends ConfigEntityBase {
   protected $project_name;
 
   /**
-   * Tags to filter by, comma-separated.
+   * Tags to filter by, comma separated
    *
    * @var string
    */
-  protected $filter_tags;
+  protected string $filter_tags;
 
   /**
    * Status filter values.
@@ -210,15 +210,15 @@ class ModuleImport extends ConfigEntityBase {
   /**
    * {@inheritdoc}
    */
-  public function getFilterTags() {
-    return $this->filter_tags;
+  public function getFilterTags() : array {
+    return array_filter(explode(',', $this->filter_tags));
   }
 
   /**
    * {@inheritdoc}
    */
   public function setFilterTags($filter_tags) {
-    $this->filter_tags = $filter_tags;
+    $this->filter_tags = '';
     return $this;
   }
 
@@ -226,6 +226,11 @@ class ModuleImport extends ConfigEntityBase {
    * {@inheritdoc}
    */
   public function getStatusFilter() {
+    if (in_array('all_open', $this->status_filter)) {
+      // Return statuses that match drupal.org's combined "open" filter
+      // including "postponed" status.
+      return ['1', '13', '8', '14', '15', '2', '4', '16'];
+    }
     return $this->status_filter;
   }
 

@@ -101,7 +101,7 @@ class IssueBatchImportService {
       // For multiple statuses, create operations for each status.
       if (count($status_filter) > 1) {
         return $this->createMultiStatusBatch($config, $source_type, $project_id,
-          array_filter(explode(',', $filter_tags)), $status_filter, $date_filter, $max_issues);
+          $filter_tags, $status_filter, $date_filter, $max_issues);
       }
 
       // Calculate total estimated operations based on API page size.
@@ -450,6 +450,21 @@ class IssueBatchImportService {
     ];
 
     // Create one operation per status.
+    $batch['operations'][] = [
+      [self::class, 'batchOperationSingleStatus'],
+      [
+        $config->id(),
+        $source_type,
+        $project_id,
+        $filter_tags,
+        $status_filter,
+        $date_filter,
+        'All statuses',
+        $max_issues,
+      ],
+    ];
+
+    $status_filter = [];
     foreach ($status_filter as $single_status) {
       $status_name = $status_names[$single_status] ?? "Status $single_status";
 
@@ -553,6 +568,48 @@ class IssueBatchImportService {
 
     // Invalidate render cache for views and blocks.
     \Drupal::service('cache.render')->deleteAll();
+  }
+
+  /**
+   * Batch operation callback for single status import.
+   */
+  public static function batchOperationProcessIssueBatch(
+    array $issues,
+    string $config_id,
+    &$context) {
+    $logger = \Drupal::service('logger.factory')->get('ai_dashboard');
+    /** @var ModuleImport $config */
+    $config = \Drupal::entityTypeManager()
+      ->getStorage('module_import')
+      ->load($config_id);
+    assert($config instanceof ModuleImport);
+    $sourceType = $config->getSourceType();
+
+    // Initialize sandbox on first operation.
+    if (empty($context['sandbox'])) {
+      $context['sandbox']['progress'] = 0;
+      $context['results'] = [
+        'imported' => 0,
+        'skipped' => 0,
+        'errors' => 0,
+        'total_operations' => 0,
+      ];
+    }
+
+    // Get import service and import this single status.
+    /** @var IssueImportService $import_service */
+    $import_service = \Drupal::service('ai_dashboard.issue_import');
+    foreach ($issues as $issue) {
+      try {
+        $import_service->processIssue($issue, $sourceType, $config);
+      }
+      catch (\Exception $e) {
+        $logger->error($e->getMessage());
+        $context['results']['errors']++;
+        // Continue to next operation even on error.
+        $context['finished'] = 1;
+      }
+    }
   }
 
 }

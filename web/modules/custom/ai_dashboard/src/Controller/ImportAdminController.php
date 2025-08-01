@@ -130,7 +130,7 @@ class ImportAdminController extends ControllerBase {
       foreach ($configs as $config) {
         $source_type = $config->getSourceType() ?? 'drupal_org';
         $project_id = $config->getProjectId() ?? '';
-        $filter_tags = $config->getFilterTags() ?? '';
+        $filter_tags = $config->getFilterTags() ?? [];
         $max_issues = $config->getMaxIssues() ?? 'Unlimited';
         $active = $config->isActive();
 

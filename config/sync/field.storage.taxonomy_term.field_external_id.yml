@@ -1,12 +1,12 @@
-uuid: 9a3d4be0-9300-4d53-ab60-904d1a195833
+uuid: 9bc26912-39e7-4f7a-a449-80daf937d5a5
 langcode: en
 status: true
 dependencies:
   module:
-    - node
-id: node.field_import_project_id
-field_name: field_import_project_id
-entity_type: node
+    - taxonomy
+id: taxonomy_term.field_external_id
+field_name: field_external_id
+entity_type: taxonomy_term
 type: string
 settings:
   max_length: 255

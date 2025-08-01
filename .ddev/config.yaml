@@ -1,9 +1,9 @@
-name: DrupalcMSAItest1
+name: drupalcmsaitest1
 type: drupal11
 docroot: web
 php_version: "8.3"
 webserver_type: nginx-fpm
-xdebug_enabled: false
+xdebug_enabled: true
 additional_hostnames: []
 additional_fqdns: []
 database:
@@ -11,7 +11,8 @@ database:
     version: "10.11"
 use_dns_when_possible: true
 composer_version: "2"
-web_environment: []
+web_environment:
+  - DRUSH_ALLOW_XDEBUG=1
 corepack_enable: true
 
 # Key features of DDEV's config.yaml:
@@ -58,7 +59,7 @@ corepack_enable: true
 
 # host_xhgui_port: 8142
 # Can be used to change the host binding port of the xhgui
-# application. Rarely used; only when port conflict and 
+# application. Rarely used; only when port conflict and
 # bind_all_ports is used (normally with router disabled)
 
 # xhprof_enabled: false  # Set to true to enable Xhprof and "ddev start" or "ddev restart"
