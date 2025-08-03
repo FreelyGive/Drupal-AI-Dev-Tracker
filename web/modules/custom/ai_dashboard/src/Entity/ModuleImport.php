@@ -218,7 +218,7 @@ class ModuleImport extends ConfigEntityBase {
    * {@inheritdoc}
    */
   public function setFilterTags($filter_tags) {
-    $this->filter_tags = '';
+    $this->filter_tags = $filter_tags;
     return $this;
   }
 

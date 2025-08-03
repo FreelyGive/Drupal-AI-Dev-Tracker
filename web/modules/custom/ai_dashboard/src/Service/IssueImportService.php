@@ -865,38 +865,12 @@ class IssueImportService {
       return [];
     }
 
-    for ($i = 0; $i < self::MAX_TRIES; $i++) {
-      try {
-        $response = $this->httpClient->request('GET', "https://www.drupal.org/api-d7/user/{$user_id}.json", [
-          'timeout' => 10,
-          'headers' => [
-            'User-Agent' => self::USER_AGENT,
-          ],
-        ]);
-
-        $user_data = json_decode($response->getBody()->getContents(), TRUE);
-
-        if (isset($user_data['name']) && !empty($user_data['name'])) {
-          return $user_data;
-        }
-        // Response successful but no data.
-        break;
-      }
-      catch (ClientException $e) {
-        if ($e->getCode() === 429) {
-          sleep(self::RETRY_AFTER);
-          continue;
-        }
-      }
-      catch (\Exception $e) {
-        \Drupal::logger('ai_dashboard')
-          ->warning('Failed to resolve user ID @id: @message', [
-            '@id' => $user_id,
-            '@message' => $e->getMessage(),
-          ]);
-      }
+    $result = $this->requestWithRetry('GET',
+      "https://www.drupal.org/api-d7/user/{$user_id}.json");
+    if (!$result['success']) {
+      return [];
     }
-    return [];
+    return empty($result['data']['name']) ? [] : $result['data'];
   }
 
   /**
@@ -1249,21 +1223,16 @@ class IssueImportService {
       $tagsToQuery[] = $tag_name;
     }
     if (!empty($tagsToQuery)) {
-      $response = $this->httpClient->request('GET',
+      $result = $this->requestWithRetry('GET',
         'https://www.drupal.org/api-d7/taxonomy_term.json', [
-          'query' => [
             'vocabulary' => 9,
             'name' => implode(',', $tagsToQuery),
           ],
-          // Increased timeout for large imports.
-          'timeout' => 60,
-          'headers' => [
-            'User-Agent' => self::USER_AGENT,
-          ],
-      ]);
-
-      $data = json_decode($response->getBody()->getContents(), TRUE);
-      foreach ($data['list'] as $doData) {
+      );
+      if (!$result['success']) {
+        return [];
+      }
+      foreach ($result['data']['list'] as $doData) {
         $term = $termStorage->create([
           'vid' => 'do_tags',
           'name' => $doData['name'],
@@ -1296,58 +1265,48 @@ class IssueImportService {
     $page = 0;
     $chunks = [];
     $lastPage = 0;
-    while (TRUE) {
-      $fetchSuccess = FALSE;
-      for ($i = 0; $i < self::MAX_TRIES; $i++) {
-        if ($fetchSuccess) {
-          break;
-        }
-        try {
-          $response = $this->httpClient->request('GET', $url, [
-            'query' => $params,
-            // Increased timeout for large imports.
-            'timeout' => 60,
-            'headers' => [
-              'User-Agent' => self::USER_AGENT,
-            ],
-          ]);
-          $data = json_decode($response->getBody()->getContents(), TRUE);
-          if (!$lastPage && preg_match('/&page=(\d+)/', $data['last'], $matches)) {
-            $lastPage = $matches[1];
-          }
-          $params['page'] = ++$page;
-          $timestampHit = FALSE;
-          foreach ($data['list'] as $doData) {
-            if ($doData['changed'] <= $timestamp) {
-              $timestampHit = TRUE;
-              break;
-            }
-          }
-          $fetchSuccess = TRUE;
-          if ($timestampHit) {
-            $data['list'] = array_filter($data['list'],
-              function ($item) use ($timestamp) {
-                return $item['changed'] > $timestamp;
-              });
-          }
-          if ($data['list']) {
-            $chunks[] = $data['list'];
-          }
-          if ($page > $lastPage || $timestampHit) {
-            return $chunks;
-          }
-        }
-        catch (ClientException $e) {
-          if ($e->getCode() === 429) {
-            sleep(self::RETRY_AFTER);
-            continue;
-          }
-        }
-        catch (\Throwable $e) {
-          return $chunks;
+    do {
+      $filterTags = $this->buildTagIds($config->getFilterTags());
+      if (!empty($filterTags)) {
+        foreach ($filterTags as $filterTag) {
+          // For now, support only one tag.
+          $params['taxonomy_vocabulary_9'] = $filterTag;
         }
       }
+      else {
+        unset($params['taxonomy_vocabulary_9']);
+      }
+      $response = $this->requestWithRetry('GET', $url, $params);
+      if (!$response['success']) {
+        // Multiple failures during fetch, exit.
+        return $chunks;
+      }
+      $data = $response['data'];
+      if (!$lastPage && preg_match('/&page=(\d+)/', $data['last'], $matches)) {
+        $lastPage = $matches[1];
+      }
+      $params['page'] = ++$page;
+      $timestampHit = FALSE;
+      foreach ($data['list'] as $doData) {
+        if ($doData['changed'] <= $timestamp) {
+          $timestampHit = TRUE;
+          break;
+        }
+      }
+      if ($timestampHit) {
+        $data['list'] = array_filter($data['list'],
+          function ($item) use ($timestamp) {
+            return $item['changed'] > $timestamp;
+        });
+      }
+      if ($data['list']) {
+        $chunks[] = $data['list'];
+      }
+      if ($page > $lastPage || $timestampHit) {
+        return $chunks;
+      }
     }
+    while (TRUE);
     return $chunks;
   }
 
@@ -1371,6 +1330,54 @@ class IssueImportService {
       return TRUE;
     }
     return TRUE;
+  }
+
+  /**
+   * Simple wrapper around ClientInterface to overcome 429 too many requests.
+   *
+   * @param string $method
+   *  HTTP method.
+   * @param string $url
+   *  URL to request from.
+   *
+   * @return array
+   *   Processed response. Possible keys:
+   *   - code. HTTP status code.
+   *   - success. Boolean, TRUE in case of success.
+   *   - data. Response data.
+   */
+  protected function requestWithRetry(string $method, string $url, array $query = []) : array {
+    $result = [
+      'success' => FALSE,
+      'attempts' => 0,
+    ];
+    do {
+      try {
+        $response = $this->httpClient->request($method, $url, [
+          'query' => $query,
+          // Increased timeout for large imports.
+          'timeout' => 60,
+          'headers' => [
+            'User-Agent' => self::USER_AGENT,
+          ],
+        ]);
+        $result['code'] = $response->getStatusCode();
+        if ($result['code'] === 200) {
+          $result['data'] = json_decode($response->getBody()->getContents(),
+            TRUE);
+          $result['success'] = TRUE;
+        }
+      }
+      catch (ClientException $e) {
+        if ($e->getCode() === 429) {
+          $result['code'] = 429;
+          sleep(self::RETRY_AFTER);
+          continue;
+        }
+      }
+    }
+    while (!$result['success'] && (++$result['attempts']) < self::MAX_TRIES);
+    return $result;
   }
 
 }
