@@ -182,7 +182,7 @@ class IssueImportService {
 
     try {
       $source_type = $config->getSourceType();
-      $project_id = $config->getProjectId();
+      $project_id = $this->resolveProjectId($config);
       $filter_tags = $config->getFilterTags();
       $status_filter = $config->getStatusFilter();
       $max_issues = $config->getMaxIssues();
@@ -1125,6 +1125,84 @@ class IssueImportService {
 
     $tag_cache[$term_id] = NULL;
     return NULL;
+  }
+
+  /**
+   * Resolve project ID from configuration.
+   *
+   * @param ModuleImport $config
+   *   The import configuration.
+   *
+   * @return string
+   *   The project ID.
+   */
+  protected function resolveProjectId(ModuleImport $config): string {
+    // If project_id is set, use it (for backward compatibility).
+    if ($config->getProjectId()) {
+      return $config->getProjectId();
+    }
+
+    // Otherwise, resolve from machine name.
+    $machine_name = $config->getProjectMachineName();
+    if (empty($machine_name)) {
+      throw new \InvalidArgumentException('Either project_id or project machine name must be provided');
+    }
+
+    return $this->resolveProjectIdFromMachineName($machine_name);
+  }
+
+  /**
+   * Resolve project ID from machine name via drupal.org API.
+   *
+   * @param string $machine_name
+   *   The project machine name.
+   *
+   * @return string
+   *   The project ID.
+   */
+  protected function resolveProjectIdFromMachineName(string $machine_name): string {
+    // Static cache to avoid repeated API calls.
+    static $project_cache = [];
+    
+    if (isset($project_cache[$machine_name])) {
+      return $project_cache[$machine_name];
+    }
+
+    try {
+      // Query drupal.org API for project by machine name.
+      $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json', [
+        'query' => [
+          'type' => 'project_module',
+          'field_project_machine_name' => $machine_name,
+          'limit' => 1,
+        ],
+        'timeout' => 10,
+        'headers' => [
+          'User-Agent' => 'AI Dashboard Module/1.0',
+        ],
+      ]);
+
+      if ($response->getStatusCode() !== 200) {
+        throw new \Exception("API request failed with status: " . $response->getStatusCode());
+      }
+
+      $data = json_decode($response->getBody()->getContents(), TRUE);
+
+      if (!isset($data['list']) || empty($data['list'])) {
+        throw new \Exception("Project with machine name '{$machine_name}' not found on drupal.org");
+      }
+
+      $project = reset($data['list']);
+      $project_id = $project['nid'];
+
+      // Cache the result.
+      $project_cache[$machine_name] = $project_id;
+
+      return $project_id;
+    }
+    catch (\Exception $e) {
+      throw new \Exception("Failed to resolve project ID for machine name '{$machine_name}': " . $e->getMessage());
+    }
   }
 
   /**

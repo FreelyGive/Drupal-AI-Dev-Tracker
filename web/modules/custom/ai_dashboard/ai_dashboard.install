@@ -975,6 +975,31 @@ function ai_dashboard_update_9001() {
         ? $node->get('field_import_project_id')->first()->getValue()['value']
         : '';
 
+      // Try to resolve machine name from project_id if available.
+      $project_name = '';
+      if (!empty($project_id)) {
+        try {
+          $http_client = \Drupal::httpClient();
+          $response = $http_client->request('GET', "https://www.drupal.org/api-d7/node/{$project_id}.json", [
+            'timeout' => 10,
+            'headers' => ['User-Agent' => 'AI Dashboard Module/1.0'],
+          ]);
+          
+          if ($response->getStatusCode() === 200) {
+            $project_data = json_decode($response->getBody()->getContents(), TRUE);
+            if (isset($project_data['field_project_machine_name'])) {
+              $project_name = $project_data['field_project_machine_name'];
+            }
+          }
+        } catch (\Exception $e) {
+          // Ignore errors, we'll just not have a machine name.
+          $logger->warning('Could not resolve machine name for project @id: @error', [
+            '@id' => $project_id,
+            '@error' => $e->getMessage(),
+          ]);
+        }
+      }
+
       $filter_tags = $node->hasField('field_import_filter_tags') && !$node->get('field_import_filter_tags')->isEmpty()
         ? $node->get('field_import_filter_tags')->first()->getValue()['value']
         : '';
@@ -1009,6 +1034,7 @@ function ai_dashboard_update_9001() {
         'label' => $node->getTitle(),
         'source_type' => $source_type,
         'project_id' => $project_id,
+        'project_name' => $project_name,
         'filter_tags' => $filter_tags,
         'status_filter' => $status_filter,
         'max_issues' => $max_issues,
