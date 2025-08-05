@@ -49,15 +49,19 @@ function ai_dashboard_create_content_types() {
   ];
 
   foreach ($types as $type_id => $type_info) {
-    $type = NodeType::create([
-      'type' => $type_id,
-      'name' => $type_info['name'],
-      'description' => $type_info['description'],
-      'new_revision' => TRUE,
-      'preview_mode' => DRUPAL_OPTIONAL,
-      'display_submitted' => FALSE,
-    ]);
-    $type->save();
+    // Check if content type already exists (e.g., created in tests)
+    $existing_type = NodeType::load($type_id);
+    if (!$existing_type) {
+      $type = NodeType::create([
+        'type' => $type_id,
+        'name' => $type_info['name'],
+        'description' => $type_info['description'],
+        'new_revision' => TRUE,
+        'preview_mode' => DRUPAL_OPTIONAL,
+        'display_submitted' => FALSE,
+      ]);
+      $type->save();
+    }
   }
 }
 
