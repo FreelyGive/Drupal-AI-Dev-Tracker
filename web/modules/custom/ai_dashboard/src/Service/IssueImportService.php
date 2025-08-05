@@ -327,11 +327,13 @@ class IssueImportService {
       // Update context with results.
       if (!isset($context['results']['imported'])) {
         $context['results']['imported'] = 0;
+        $context['results']['updated'] = 0;
         $context['results']['skipped'] = 0;
         $context['results']['errors'] = 0;
       }
 
       $context['results']['imported'] += $results['imported'];
+      $context['results']['updated'] += $results['updated'];
       $context['results']['skipped'] += $results['skipped'];
       $context['results']['errors'] += $results['errors'];
 
@@ -357,11 +359,13 @@ class IssueImportService {
 
     if ($success) {
       $imported = $results['imported'] ?? 0;
+      $updated = $results['updated'] ?? 0;
       $skipped = $results['skipped'] ?? 0;
       $errors = is_array($results['errors'] ?? []) ? count($results['errors']) : ($results['errors'] ?? 0);
 
-      $messenger->addMessage(t('✅ Import completed successfully! @imported issues imported, @skipped skipped, @errors errors', [
+      $messenger->addMessage(t('✅ Import completed successfully! @imported issues imported, @updated updated, @skipped skipped, @errors errors', [
         '@imported' => $imported,
+        '@updated' => $updated,
         '@skipped' => $skipped,
         '@errors' => $errors,
       ]));
@@ -433,6 +437,7 @@ class IssueImportService {
       $results = [
         'success' => TRUE,
         'imported' => 0,
+        'updated' => 0,
         'skipped' => 0,
         'errors' => 0,
         'message' => '',
@@ -484,8 +489,14 @@ class IssueImportService {
               continue;
             }
 
-            $this->processIssue($issue_data, $config);
-            $results['imported']++;
+            $result = $this->processIssue($issue_data, $config);
+            if ($result === 'created') {
+              $results['imported']++;
+            } elseif ($result === 'updated') {
+              $results['updated']++;
+            } elseif ($result === 'skipped') {
+              $results['skipped']++;
+            }
             $total_processed++;
           }
           catch (\Exception $e) {
@@ -504,8 +515,9 @@ class IssueImportService {
       } while ($page_issues === $per_page && $total_processed < $max_issues);
 
       $results['message'] = sprintf(
-        'Import completed: %d imported, %d skipped, %d errors',
+        'Import completed: %d imported, %d updated, %d skipped, %d errors',
         $results['imported'],
+        $results['updated'],
         $results['skipped'],
         $results['errors']
       );
@@ -536,6 +548,7 @@ class IssueImportService {
     $results = [
       'success' => TRUE,
       'imported' => 0,
+      'updated' => 0,
       'skipped' => 0,
       'errors' => 0,
       'message' => '',
@@ -606,8 +619,14 @@ class IssueImportService {
             continue;
           }
 
-          $this->processIssue($issue_data, $config);
-          $results['imported']++;
+          $result = $this->processIssue($issue_data, $config);
+          if ($result === 'created') {
+            $results['imported']++;
+          } elseif ($result === 'updated') {
+            $results['updated']++;
+          } elseif ($result === 'skipped') {
+            $results['skipped']++;
+          }
           $total_processed++;
         }
         catch (\Exception $e) {
@@ -621,9 +640,10 @@ class IssueImportService {
       }
 
       $results['message'] = sprintf(
-        'Page %d: %d imported, %d skipped, %d errors',
+        'Page %d: %d imported, %d updated, %d skipped, %d errors',
         $page_number,
         $results['imported'],
+        $results['updated'],
         $results['skipped'],
         $results['errors']
       );
@@ -672,7 +692,7 @@ class IssueImportService {
    * @param ModuleImport $config
    *   The import configuration.
    */
-  public function processIssue(array $issue_data, ModuleImport $config): void {
+  public function processIssue(array $issue_data, ModuleImport $config): string {
     // Map API data to Drupal fields based on source.
     $source_type = $config->getSourceType();
     $mapped_data = $this->mapIssueData($issue_data, $source_type, $config);
@@ -683,10 +703,14 @@ class IssueImportService {
     if ($existing) {
       // Update existing issue.
       $this->updateIssue($existing, $mapped_data);
+      return 'updated';
     }
     elseif ($this->shouldCreateIssue($config, $issue_data)) {
       $this->createIssue($mapped_data);
+      return 'created';
     }
+    
+    return 'skipped';
   }
 
   /**
@@ -1413,13 +1437,19 @@ class IssueImportService {
    * @return bool
    */
   protected function shouldCreateIssue($config, array $issue_data) : bool {
-    if (($filter = $config->getStatusFilter())
-      && !in_array($issue_data['field_issue_status'], $filter)) {
-      return FALSE;
+    // Check status filter - use raw API status values
+    if ($status_filter = $config->getStatusFilter()) {
+      $issue_status = $issue_data['field_issue_status'] ?? '1';
+      if (!in_array($issue_status, $status_filter)) {
+        return FALSE;
+      }
     }
-    if ($filter = $config->getFilterTags()) {
-      return TRUE;
+    
+    // Check tag filter if specified
+    if ($tag_filter = $config->getFilterTags()) {
+      return $this->issueMatchesTagFilter($issue_data, $tag_filter);
     }
+    
     return TRUE;
   }
 
