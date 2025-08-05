@@ -74,6 +74,14 @@ class ModuleImportForm extends EntityForm {
       '#required' => FALSE,
     ];
 
+    $form['filter_component'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Filter Component'),
+      '#description' => $this->t('Component to filter by (e.g., "AI" for experience_builder issues with AI component)'),
+      '#default_value' => $module_import->getFilterComponent(),
+      '#required' => FALSE,
+    ];
+
     $form['status_filter'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Status Filter'),
@@ -197,6 +205,7 @@ class ModuleImportForm extends EntityForm {
     $module_import->setStatusFilter(array_keys($status_filter))
       ->setProjectMachineName($form_state->getValue('project_name'));
     $module_import->setFilterTags($form_state->getValue('filter_tags'));
+    $module_import->setFilterComponent($form_state->getValue('filter_component'));
 
     $status = $module_import->save();
 

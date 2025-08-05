@@ -2,9 +2,7 @@
 
 namespace Drupal\ai_dashboard\Entity;
 
-use Drupal\Core\Config\Entity\Attribute\ConfigEntityType;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Defines the Module import entity.
@@ -37,6 +35,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *     "project_id",
  *     "project_name",
  *     "filter_tags",
+ *     "filter_component",
  *     "status_filter",
  *     "max_issues",
  *     "date_filter",
@@ -50,46 +49,6 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *   }
  * )
  */
-#[ConfigEntityType(
-  id: "module_import",
-  label: new TranslatableMarkup("Module import"),
-  handlers: [
-    "list_builder" => "Drupal\ai_dashboard\ModuleImportListBuilder",
-    "form" => [
-      "add" => "Drupal\ai_dashboard\Form\ModuleImportForm",
-      "edit" => "Drupal\ai_dashboard\Form\ModuleImportForm",
-      "delete" => "Drupal\Core\Entity\EntityDeleteForm",
-    ]
-  ],
-  config_prefix: "module_import",
-  admin_permission: "administer ai dashboard imports",
-  entity_keys: [
-    "id" => "id",
-    "label" => "label",
-    "uuid" => "uuid",
-    "status" => "status"
-  ],
-  config_export: [
-    "id",
-    "label",
-    "uuid",
-    "status",
-    "source_type",
-    "project_id",
-    "project_name",
-    "filter_tags",
-    "status_filter",
-    "max_issues",
-    "date_filter",
-    "active"
-  ],
-  links: [
-    "add-form" => "/admin/config/ai-dashboard/module-import/add",
-    "edit-form" => "/admin/config/ai-dashboard/module-import/{module_import}",
-    "delete-form" => "/admin/config/ai-dashboard/module-import/{module_import}/delete",
-    "collection" => "/admin/config/ai-dashboard/module-import"
-  ]
-)]
 class ModuleImport extends ConfigEntityBase {
 
   /**
@@ -132,7 +91,14 @@ class ModuleImport extends ConfigEntityBase {
    *
    * @var string
    */
-  protected string $filter_tags;
+  protected string $filter_tags = '';
+
+  /**
+   * Component to filter by
+   *
+   * @var string
+   */
+  protected string $filter_component = '';
 
   /**
    * Status filter values.
@@ -211,7 +177,10 @@ class ModuleImport extends ConfigEntityBase {
    * {@inheritdoc}
    */
   public function getFilterTags() : array {
-    return array_filter(explode(',', $this->filter_tags));
+    $tags = explode(',', $this->filter_tags);
+    $tags = array_map('trim', $tags);
+    $tags = array_filter($tags);
+    return array_values($tags);
   }
 
   /**
@@ -219,6 +188,21 @@ class ModuleImport extends ConfigEntityBase {
    */
   public function setFilterTags($filter_tags) {
     $this->filter_tags = $filter_tags;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFilterComponent() {
+    return $this->filter_component ?? '';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setFilterComponent($filter_component) {
+    $this->filter_component = $filter_component;
     return $this;
   }
 

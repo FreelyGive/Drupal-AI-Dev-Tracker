@@ -22,12 +22,15 @@ ai_dashboard.module_import.*:
     project_id:
       type: string
       label: 'Project ID'
-    project_machine_name:
+    project_name:
       type: string
-      label: 'Project machine name'
+      label: 'Project name'
     filter_tags:
       type: string
       label: 'Filter tags'
+    filter_component:
+      type: string
+      label: 'Filter component'
     status_filter:
       type: sequence
       label: 'Status filter'

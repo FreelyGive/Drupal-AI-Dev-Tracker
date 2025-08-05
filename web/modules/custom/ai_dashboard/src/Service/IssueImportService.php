@@ -111,6 +111,9 @@ class IssueImportService {
     if ($filter = $this->buildTagIds($config->getFilterTags())) {
       $params['taxonomy_vocabulary_9'] = implode(',', $filter);
     }
+    if ($component = $config->getFilterComponent()) {
+      $params['field_issue_component'] = $component;
+    }
 
     // Add date filter if specified.
     if ($config->getDateFilter()) {
@@ -413,6 +416,11 @@ class IssueImportService {
       $params['field_issue_status'] = implode(',', $status_filter);
     }
 
+    // Add component filter if specified.
+    if ($component = $config->getFilterComponent()) {
+      $params['field_issue_component'] = $component;
+    }
+
     // Add date filter if specified.
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
@@ -476,7 +484,7 @@ class IssueImportService {
               continue;
             }
 
-            $this->processIssue($issue_data, 'drupal_org', $config);
+            $this->processIssue($issue_data, $config);
             $results['imported']++;
             $total_processed++;
           }
@@ -549,6 +557,11 @@ class IssueImportService {
       $params['field_issue_status'] = implode(',', $status_filter);
     }
 
+    // Add component filter if specified.
+    if ($component = $config->getFilterComponent()) {
+      $params['field_issue_component'] = $component;
+    }
+
     // Add date filter if specified.
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
@@ -593,7 +606,7 @@ class IssueImportService {
             continue;
           }
 
-          $this->processIssue($issue_data, 'drupal_org', $config);
+          $this->processIssue($issue_data, $config);
           $results['imported']++;
           $total_processed++;
         }
