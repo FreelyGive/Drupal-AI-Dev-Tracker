@@ -82,6 +82,27 @@ class IssueImportService {
   }
 
   /**
+   * Import issues from configuration (wrapper method).
+   *
+   * @param ModuleImport $config
+   *   The import configuration.
+   *
+   * @return array
+   *   Array with success status and import results.
+   */
+  public function import(ModuleImport $config): array {
+    $result = $this->importFromConfig($config, TRUE);
+    
+    // Update last run timestamp on successful start.
+    if ($result['success']) {
+      $config->setLastRun(\Drupal::time()->getRequestTime());
+      $config->save();
+    }
+    
+    return $result;
+  }
+
+  /**
    * Build import batch.
    *
    * @param ModuleImport $config

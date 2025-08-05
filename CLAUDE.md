@@ -36,6 +36,8 @@ This project uses **DDEV** for local development with deployment to **Drupal For
 - **Git Commit Policy**:
   - Use developer's name and email for commits
   - Include mention of Claude/AI assistance in commit descriptions when applicable
+  - **NEVER stage changes (`git add`) until user has tested and explicitly asked for commit**
+  - Always let user verify functionality before staging files
 
 ## Common Commands
 

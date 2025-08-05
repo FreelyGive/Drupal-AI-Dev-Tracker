@@ -46,3 +46,6 @@ ai_dashboard.module_import.*:
     active:
       type: boolean
       label: 'Active'
+    last_run:
+      type: integer
+      label: 'Last run timestamp'

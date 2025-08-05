@@ -90,7 +90,7 @@ ai_dashboard.admin.documentation:
 ai_dashboard.admin.import:
   path: '/ai-dashboard/admin/import'
   defaults:
-    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::importManagement'
+    _controller: '\Drupal\ai_dashboard\Controller\ImportAdminController::redirectToModuleImports'
     _title: 'Import Management'
   requirements:
     _permission: 'administer ai dashboard imports'
@@ -175,21 +175,21 @@ ai_dashboard.contributor_csv_import:
     _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::importForm'
     _title: 'Import Contributors from CSV'
   requirements:
-    _permission: 'administer ai dashboard content'
+    _permission: 'administer ai dashboard'
 
 ai_dashboard.contributor_csv_template:
   path: '/ai-dashboard/admin/contributor-import/template'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::downloadTemplate'
   requirements:
-    _permission: 'administer ai dashboard content'
+    _permission: 'administer ai dashboard'
 
 ai_dashboard.contributor_csv_upload:
   path: '/ai-dashboard/admin/contributor-import/upload'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\ContributorCsvController::processImport'
   requirements:
-    _permission: 'administer ai dashboard content'
+    _permission: 'administer ai dashboard'
     _csrf_token: 'TRUE'
   methods: [POST]
 

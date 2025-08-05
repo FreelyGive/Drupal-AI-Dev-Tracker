@@ -68,7 +68,14 @@ class ImportAdminController extends ControllerBase {
   }
 
   /**
-   * Import management page.
+   * Redirect to the new module imports page.
+   */
+  public function redirectToModuleImports() {
+    return new RedirectResponse(Url::fromRoute('entity.module_import.collection')->toString());
+  }
+
+  /**
+   * Import management page (legacy).
    */
   public function importManagement() {
     $build = [];
@@ -219,7 +226,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function runModuleImport(ModuleImport $module_import) {
     try {
-      $results = $this->importService->importFromConfig($module_import, TRUE);
+      $results = $this->importService->import($module_import);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {

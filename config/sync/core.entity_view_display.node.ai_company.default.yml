@@ -1,3 +1,4 @@
+uuid: d5330be4-57ab-41d7-b392-6ac7832756b7
 langcode: en
 status: true
 dependencies:
@@ -35,4 +36,8 @@ content:
     third_party_settings: {  }
     weight: 100
     region: content
-hidden: {  }
+hidden:
+  field_company_color: true
+  field_company_logo: true
+  field_company_size: true
+  field_company_website: true

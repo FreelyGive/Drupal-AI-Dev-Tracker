@@ -1,0 +1,343 @@
+/**
+ * @file
+ * Bulk operations styling for module import configurations.
+ */
+
+/* Configuration statistics */
+.import-configs-summary {
+  margin-bottom: 1rem;
+}
+
+.config-stats {
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.config-stats .stat-item {
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.config-stats .stat-item strong {
+  color: #212529;
+  font-size: 1.1rem;
+}
+
+/* Bulk operations styling */
+.bulk-operations-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+.bulk-operations-bottom {
+  margin-top: 1.5rem;
+  border-top: 2px solid #e9ecef;
+}
+
+.bulk-operations-container p {
+  margin: 0 0 1rem 0;
+  color: #6c757d;
+}
+
+.bulk-operations-container fieldset {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.bulk-operations-container .container-inline > * {
+  margin-right: 0.5rem;
+}
+
+.bulk-operations-container .container-inline > *:last-child {
+  margin-right: 0;
+}
+
+.bulk-operations-container .button {
+  margin-left: 0.5rem;
+}
+
+.bulk-operations-container .button:first-child {
+  margin-left: 0;
+}
+
+/* Table styling improvements */
+.module-import-table .select-all {
+  width: 2rem;
+  text-align: center;
+}
+
+.module-import-table td[data-drupal-selector*="select"] {
+  text-align: center;
+  width: 2rem;
+}
+
+.module-import-table .bulk-select {
+  margin: 0;
+}
+
+/* Status indicators */
+.module-import-table .status-active {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.module-import-table .status-inactive {
+  color: #6c757d;
+}
+
+/* Filter tags styling */
+.module-import-table .filter-tags-none {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.module-import-table .filter-tags-value {
+  color: #28a745;
+  font-weight: 500;
+  background: #d4edda;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Component filter styling */
+.module-import-table .component-filter-none {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.module-import-table .component-filter-value {
+  color: #007bff;
+  font-weight: 500;
+  background: #e3f2fd;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Operations buttons styling */
+.module-import-table .btn {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.module-import-table .btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  background: transparent;
+}
+
+.module-import-table .btn-outline-primary:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+.module-import-table .btn-success {
+  background: #198754;
+  color: white;
+  border-color: #198754;
+}
+
+.module-import-table .btn-success:hover {
+  background: #157347;
+  border-color: #146c43;
+}
+
+.module-import-table .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+/* Link styling */
+.module-import-table a[href*="drupal.org"] {
+  color: #0078d4;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.module-import-table a[href*="drupal.org"]:hover {
+  text-decoration: underline;
+}
+
+.module-import-table a[href*="drupal.org"]::after {
+  content: "↗";
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  opacity: 0.7;
+}
+
+/* Last run timestamp styling */
+.module-import-table .last-run-never {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.module-import-table .last-run-date {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.module-import-table .last-run-date:hover {
+  text-decoration: underline;
+  cursor: help;
+}
+
+/* Import Controls Block */
+.import-controls-block {
+  margin-top: 1rem;
+  width: 100%;
+  display: block;
+}
+
+.import-controls {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.import-controls h3 {
+  margin: 0 0 1rem 0;
+  color: #212529;
+  font-size: 1.1rem;
+}
+
+.controls-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.controls-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  text-decoration: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.controls-actions .btn-primary {
+  background: #0073aa;
+  color: white;
+}
+
+.controls-actions .btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.controls-actions .btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.controls-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.controls-actions .btn-icon {
+  font-size: 0.9rem;
+}
+
+/* Import Status Block */
+.import-status-block {
+  margin-top: 1rem;
+  width: 100%;
+  display: block;
+  clear: both;
+}
+
+.import-status {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.import-status h4 {
+  margin: 0 0 1rem 0;
+  color: #856404;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.status-icon {
+  font-size: 1.2rem;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.status-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.375rem;
+}
+
+.status-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #856404;
+  margin-bottom: 0.25rem;
+}
+
+.status-label {
+  font-size: 0.9rem;
+  color: #6c5600;
+  font-weight: 500;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .bulk-operations-container .container-inline {
+    display: block;
+  }
+  
+  .bulk-operations-container .container-inline > * {
+    display: block;
+    margin: 0.25rem 0;
+    width: 100%;
+  }
+  
+  .controls-actions {
+    flex-direction: column;
+  }
+  
+  .controls-actions .btn {
+    justify-content: center;
+  }
+}

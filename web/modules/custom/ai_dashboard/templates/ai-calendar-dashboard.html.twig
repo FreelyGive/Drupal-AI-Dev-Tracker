@@ -44,10 +44,6 @@
           <a href="/ai-dashboard/calendar?week={{ week_offset + 1 }}" class="btn btn-outline">
             <span class="chevron-right">›</span>
           </a>
-          
-          <a href="/ai-dashboard/admin" class="btn btn-primary admin-tools-btn">
-            <span class="admin-icon">⚙️</span> Admin Tools
-          </a>
         </div>
       </div>
     </div>
@@ -173,8 +169,7 @@
                           <span class="count-number">{{ developer.issues|length }}</span>
                           <span class="count-label">issue{{ developer.issues|length != 1 ? 's' : '' }}</span>
                         </div>
-                        {% set can_edit_contributors = user.hasPermission('edit any ai_contributor content') %}
-                        {% if can_edit_contributors and developer.nid %}
+                        {% if user_has_admin_permission and developer.nid %}
                           <a href="/node/{{ developer.nid }}/edit" class="developer-edit-link" title="Edit contributor">
                             <span class="edit-icon">⚙</span>
                           </a>
@@ -198,8 +193,7 @@
                               <span class="external-icon">↗</span>
                             </a>
                           {% endif %}
-                          {% set can_edit_issues = user.hasPermission('edit any ai_issue content') %}
-                          {% if can_edit_issues and issue.nid %}
+                          {% if user_has_admin_permission and issue.nid %}
                             <button class="issue-remove-btn" data-issue-id="{{ issue.id }}" title="Remove from this week">
                               <span class="remove-icon">✕</span>
                             </button>
@@ -263,17 +257,19 @@
     <div class="backlog-header">
       <h3>📋 Issue Backlog</h3>
       <div class="backlog-controls">
-        <button id="sync-all-drupal-assignments" class="btn btn-primary" title="Sync all assigned issues from drupal.org for this week">
-          🔄 Sync All from Drupal.org
-        </button>
-        {% if week_offset != 0 %}
-          <button id="copy-previous-week" class="btn btn-secondary" title="Add assignments from previous week to this week">
-            📋 Add Previous Week
+        {% if user_has_admin_permission %}
+          <button id="sync-all-drupal-assignments" class="btn btn-primary" title="Sync all assigned issues from drupal.org for this week">
+            🔄 Sync All from Drupal.org
+          </button>
+          {% if week_offset == 0 %}
+            <button id="copy-previous-week" class="btn btn-secondary" title="Add assignments from previous week to this week">
+              📋 Pull from Previous Week
+            </button>
+          {% endif %}
+          <button id="remove-all-week-issues" class="btn btn-danger" title="Remove all issues from this week (moves back to backlog)">
+            🗑️ Remove All from Week
           </button>
         {% endif %}
-        <button id="remove-all-week-issues" class="btn btn-danger" title="Remove all issues from this week (moves back to backlog)">
-          🗑️ Remove All from Week
-        </button>
         <button id="close-backlog" class="btn btn-close" title="Close backlog">✕</button>
       </div>
     </div>

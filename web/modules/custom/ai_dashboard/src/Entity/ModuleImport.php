@@ -39,7 +39,8 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "status_filter",
  *     "max_issues",
  *     "date_filter",
- *     "active"
+ *     "active",
+ *     "last_run"
  *   },
  *   links = {
  *     "add-form" = "/admin/config/ai-dashboard/module-import/add",
@@ -127,6 +128,13 @@ class ModuleImport extends ConfigEntityBase {
    * @var bool
    */
   protected $active = TRUE;
+
+  /**
+   * Timestamp of when this configuration was last run.
+   *
+   * @var int|null
+   */
+  protected $last_run;
 
   /**
    * {@inheritdoc}
@@ -269,6 +277,67 @@ class ModuleImport extends ConfigEntityBase {
   public function setActive($active) {
     $this->active = $active;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function save() {
+    $result = parent::save();
+    
+    // Clear configuration-related caches when entity is saved.
+    $this->invalidateConfigurationCaches();
+    
+    return $result;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function delete() {
+    parent::delete();
+    
+    // Clear configuration-related caches when entity is deleted.
+    $this->invalidateConfigurationCaches();
+  }
+
+  /**
+   * Get the last run timestamp.
+   *
+   * @return int|null
+   *   The timestamp when this configuration was last run, or NULL if never run.
+   */
+  public function getLastRun() {
+    return $this->last_run;
+  }
+
+  /**
+   * Set the last run timestamp.
+   *
+   * @param int|null $timestamp
+   *   The timestamp when this configuration was last run.
+   *
+   * @return $this
+   */
+  public function setLastRun($timestamp) {
+    $this->last_run = $timestamp;
+    return $this;
+  }
+
+  /**
+   * Invalidate caches related to configuration listings.
+   */
+  protected function invalidateConfigurationCaches() {
+    $cache_tags = [
+      'config:module_import_list',
+      'module_import:' . $this->id(),
+      'module_import_list',
+    ];
+    
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
+    
+    // Also clear render cache for the listing page.
+    \Drupal::service('cache.render')->deleteAll();
   }
 
 }

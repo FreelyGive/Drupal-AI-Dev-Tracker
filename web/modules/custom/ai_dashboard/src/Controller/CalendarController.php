@@ -93,7 +93,7 @@ class CalendarController extends ControllerBase {
         '#week_start' => $week_start,
         '#week_end' => $week_end,
         '#week_offset' => $week_offset,
-        '#user_has_admin_permission' => \Drupal::currentUser()->hasPermission('administer ai dashboard content'),
+        '#user_has_admin_permission' => \Drupal::currentUser()->hasPermission('administer ai dashboard'),
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',
@@ -345,22 +345,8 @@ class CalendarController extends ControllerBase {
       return FALSE;
     }
 
-    // Fallback for issues without assignment date (legacy behavior)
-    $status = $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
-    $active_statuses = ['active', 'needs_review', 'needs_work', 'rtbc'];
-
-    if (in_array($status, $active_statuses)) {
-      return TRUE;
-    }
-
-    // Check if deadline is in current week.
-    if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
-      $deadline = new \DateTime($issue->get('field_issue_deadline')->value);
-      if ($deadline >= $week_start && $deadline <= $week_end) {
-        return TRUE;
-      }
-    }
-
+    // STRICT: Only show issues if they have explicit assignment dates for this week.
+    // No fallback logic - issues must be specifically assigned to show in calendar.
     return FALSE;
   }
 

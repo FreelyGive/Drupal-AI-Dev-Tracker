@@ -1,3 +1,4 @@
+uuid: 2fb3d01d-0f18-4ee1-ba00-dc55f51876cd
 langcode: en
 status: true
 dependencies:
@@ -468,9 +469,6 @@ display:
             multiple: false
             remember_roles:
               authenticated: authenticated
-              anonymous: '0'
-              content_editor: '0'
-              administrator: '0'
           is_grouped: false
           group_info:
             label: ''
@@ -509,9 +507,6 @@ display:
             multiple: false
             remember_roles:
               authenticated: authenticated
-              anonymous: '0'
-              content_editor: '0'
-              administrator: '0'
           is_grouped: false
           group_info:
             label: ''
@@ -617,11 +612,11 @@ display:
         type: none
         title: 'AI Contributors'
         description: ''
-        expanded: false
-        parent: ''
         weight: 0
-        context: '0'
+        expanded: false
         menu_name: main
+        parent: ''
+        context: '0'
     cache_metadata:
       max-age: -1
       contexts:

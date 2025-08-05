@@ -1,26 +1,50 @@
 ai_dashboard.admin:
-  title: 'AI Dashboard'
-  description: 'Manage AI contribution tracking'
+  title: 'AI Issue Tracker'
+  description: 'Manage AI contribution tracking and issue assignments'
   route_name: ai_dashboard.main
   parent: system.admin
   weight: 50
 
 ai_dashboard.contributors:
   title: 'Contributors'
-  description: 'Manage AI contributors'
+  description: 'View AI contributors'
   route_name: ai_dashboard.contributors
   parent: ai_dashboard.admin
 
 ai_dashboard.issues:
   title: 'Issues'
-  description: 'Manage AI issues'
+  description: 'View AI issues'
   route_name: ai_dashboard.issues
   parent: ai_dashboard.admin
 
 ai_dashboard.resources:
   title: 'Resource Allocation'
-  description: 'Manage resource allocations'
+  description: 'View resource allocations'
   route_name: ai_dashboard.resources
+  parent: ai_dashboard.admin
+
+ai_dashboard.calendar_menu:
+  title: 'Calendar View'
+  description: 'Weekly issue assignment calendar'
+  route_name: ai_dashboard.calendar
+  parent: ai_dashboard.admin
+
+ai_dashboard.admin_tools:
+  title: 'Admin Tools'
+  description: 'Administration and configuration tools'
+  route_name: ai_dashboard.admin
+  parent: ai_dashboard.admin
+
+ai_dashboard.import_configs:
+  title: 'Import Configurations'
+  description: 'Manage import configurations'
+  route_name: entity.module_import.collection
+  parent: ai_dashboard.admin
+
+ai_dashboard.contributor_import:
+  title: 'Import Contributors'
+  description: 'Import contributors from CSV'
+  route_name: ai_dashboard.contributor_csv_import
   parent: ai_dashboard.admin
 
 ai_dashboard.module_imports:

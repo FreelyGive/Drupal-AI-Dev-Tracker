@@ -76,10 +76,11 @@ class ModuleImportForm extends EntityForm {
 
     $form['filter_component'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Filter Component'),
-      '#description' => $this->t('Component to filter by (e.g., "AI" for experience_builder issues with AI component)'),
+      '#title' => $this->t('Component Filter'),
+      '#description' => $this->t('Filter by component (e.g., "AI" for experience_builder issues with AI component). This is commonly used to narrow down imports to specific functionality areas.'),
       '#default_value' => $module_import->getFilterComponent(),
       '#required' => FALSE,
+      '#attributes' => ['placeholder' => $this->t('e.g., AI, Core, API, etc.')],
     ];
 
     $form['status_filter'] = [
@@ -104,11 +105,12 @@ class ModuleImportForm extends EntityForm {
     $form['max_issues'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum Issues'),
-      '#description' => $this->t('Maximum number of issues to import (leave blank for 1000)'),
+      '#description' => $this->t('Maximum number of issues to import (leave blank for unlimited, recommended for most imports)'),
       '#min' => 1,
       '#max' => 5000,
       '#default_value' => $module_import->getMaxIssues(),
       '#required' => FALSE,
+      '#access' => FALSE, // Hide this field as it's usually unlimited
     ];
 
     // Date filter field

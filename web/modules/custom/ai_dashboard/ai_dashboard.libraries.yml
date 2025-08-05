@@ -54,3 +54,22 @@ admin_navigation:
       css/admin-navigation.css: {}
   dependencies:
     - core/drupal
+
+bulk_operations:
+  version: 1.x
+  css:
+    theme:
+      css/bulk-operations.css: {}
+  js:
+    js/bulk-operations.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+toolbar:
+  version: 1.x
+  css:
+    theme:
+      css/toolbar.css: {}
+  dependencies:
+    - core/drupal

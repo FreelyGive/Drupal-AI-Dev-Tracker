@@ -97,7 +97,6 @@ class ModuleImportFormTest extends BrowserTestBase {
     $this->assertSession()->fieldExists('project_id');
     $this->assertSession()->fieldExists('filter_tags');
     $this->assertSession()->fieldExists('filter_component');
-    $this->assertSession()->fieldExists('max_issues');
     $this->assertSession()->fieldExists('active');
 
     // Test source type options.
@@ -113,8 +112,8 @@ class ModuleImportFormTest extends BrowserTestBase {
 
     // Test component filter field.
     $this->assertSession()->fieldExists('filter_component');
-    $this->assertSession()->pageTextContains('Component to filter by');
-    $this->assertSession()->pageTextContains('(e.g., "AI" for experience_builder issues with AI component)');
+    $this->assertSession()->pageTextContains('Filter by component');
+    $this->assertSession()->pageTextContains('This is commonly used to narrow down imports to specific functionality areas');
 
     // Test required fields.
     $label_field = $this->getSession()->getPage()->findField('label');
@@ -148,7 +147,6 @@ class ModuleImportFormTest extends BrowserTestBase {
       // Then check only the ones we want
       'status_filter[1]' => '1',
       'status_filter[8]' => '8',
-      'max_issues' => '100',
       'active' => '1',
     ];
 
@@ -166,7 +164,6 @@ class ModuleImportFormTest extends BrowserTestBase {
     $this->assertEquals(['AI', 'Testing'], $import->getFilterTags());
     $this->assertEquals('AI', $import->getFilterComponent());
     $this->assertEquals(['1', '8'], $import->getStatusFilter());
-    $this->assertEquals(100, $import->getMaxIssues());
     $this->assertTrue($import->isActive());
 
     // Verify redirect to collection page.
@@ -237,7 +234,6 @@ class ModuleImportFormTest extends BrowserTestBase {
     // Update component filter.
     $edit = [
       'filter_component' => 'AI',
-      'max_issues' => '500',
     ];
     $this->submitForm($edit, 'Save');
 
@@ -247,7 +243,6 @@ class ModuleImportFormTest extends BrowserTestBase {
     // Verify changes were saved.
     $updated_import = ModuleImport::load('test_edit');
     $this->assertEquals('AI', $updated_import->getFilterComponent());
-    $this->assertEquals(500, $updated_import->getMaxIssues());
   }
 
   /**
@@ -364,7 +359,6 @@ class ModuleImportFormTest extends BrowserTestBase {
       'status_filter[1]' => '1',
       'status_filter[8]' => '8',
       'status_filter[13]' => '13',
-      'max_issues' => '200',
     ];
     $this->submitForm($edit, 'Save');
 
@@ -373,7 +367,6 @@ class ModuleImportFormTest extends BrowserTestBase {
     $this->assertEquals(['AI Initiative', 'Core API', 'Testing'], $import->getFilterTags());
     $this->assertEquals('AI', $import->getFilterComponent());
     $this->assertEquals(['1', '8', '13'], $import->getStatusFilter());
-    $this->assertEquals(200, $import->getMaxIssues());
   }
 
   /**

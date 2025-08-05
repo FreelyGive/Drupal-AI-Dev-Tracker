@@ -1,3 +1,4 @@
+uuid: 845b252b-31a6-4c7c-9abb-28c95a45c5f3
 langcode: en
 status: true
 dependencies:
@@ -78,4 +79,17 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-hidden: {  }
+  url_redirects:
+    weight: 50
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  field_company_color: true
+  field_company_logo: true
+  field_company_size: true
+  field_company_website: true
+  publish_on: true
+  publish_state: true
+  unpublish_on: true
+  unpublish_state: true

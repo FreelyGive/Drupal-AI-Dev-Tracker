@@ -1,0 +1,18 @@
+/**
+ * @file
+ * Toolbar styling for AI Dashboard admin tools.
+ */
+
+.toolbar-icon-ai-dashboard-admin:before {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTggMS4zMzMzM0MxMS42NzYgMS4zMzMzMyAxNC42NjY3IDQuMzI0IDE0LjY2NjcgOEMxNC42NjY3IDExLjY3NiAxMS42NzYgMTQuNjY2NyA4IDE0LjY2NjdDNC4zMjQgMTQuNjY2NyAxLjMzMzMzIDExLjY3NiAxLjMzMzMzIDhDMS4zMzMzMyA0LjMyNCA0LjMyNCAxLjMzMzMzIDggMS4zMzMzM1oiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjMzMzMzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTggNi42NjY2N1Y4IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS4zMzMzMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik04IDEwLjY2NjdWMTAuNjY2NyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEuMzMzMzMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K');
+}
+
+.toolbar-tray .menu-item a[href*="ai-dashboard/admin"] {
+  padding-left: 2rem;
+}
+
+.toolbar-tray .menu-item a[href*="ai-dashboard/admin"]:before {
+  content: "⚙";
+  margin-right: 0.5rem;
+  opacity: 0.7;
+}
