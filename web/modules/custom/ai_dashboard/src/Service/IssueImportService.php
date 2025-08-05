@@ -247,24 +247,52 @@ class IssueImportService {
 
     // Calculate number of batches (50 issues per batch due to API limit)
     $batch_size = 50;
-    $num_batches = ceil($max_issues / $batch_size);
-
-    for ($i = 0; $i < $num_batches; $i++) {
-      $batch['operations'][] = [
-        '\Drupal\ai_dashboard\Service\IssueImportService::batchProcess',
-        [
-          $config->id(),
-          $source_type,
-          $project_id,
-          $filter_tags,
-          $status_filter,
-      // Offset.
-          $i * $batch_size,
-      // Limit.
-          min($batch_size, $max_issues - ($i * $batch_size)),
-          $date_filter,
-        ],
-      ];
+    
+    // Handle multiple status filters by creating separate batch operations for each status
+    if (count($status_filter) > 1) {
+      $issues_per_status = max(1, floor($max_issues / count($status_filter)));
+      $batches_per_status = ceil($issues_per_status / $batch_size);
+      
+      foreach ($status_filter as $single_status) {
+        for ($i = 0; $i < $batches_per_status; $i++) {
+          $batch['operations'][] = [
+            '\Drupal\ai_dashboard\Service\IssueImportService::batchProcess',
+            [
+              $config->id(),
+              $source_type,
+              $project_id,
+              $filter_tags,
+              [$single_status], // Single status array
+              // Offset.
+              $i * $batch_size,
+              // Limit.
+              min($batch_size, $issues_per_status - ($i * $batch_size)),
+              $date_filter,
+            ],
+          ];
+        }
+      }
+    } else {
+      // Single status or no status filter - use original logic
+      $num_batches = ceil($max_issues / $batch_size);
+      
+      for ($i = 0; $i < $num_batches; $i++) {
+        $batch['operations'][] = [
+          '\Drupal\ai_dashboard\Service\IssueImportService::batchProcess',
+          [
+            $config->id(),
+            $source_type,
+            $project_id,
+            $filter_tags,
+            $status_filter,
+            // Offset.
+            $i * $batch_size,
+            // Limit.
+            min($batch_size, $max_issues - ($i * $batch_size)),
+            $date_filter,
+          ],
+        ];
+      }
     }
 
     batch_set($batch);
@@ -416,8 +444,14 @@ class IssueImportService {
       'direction' => 'DESC',
     ];
 
+    // Handle multiple status filters by processing each one separately
+    // as drupal.org API doesn't support comma-separated status values reliably
+    if (!empty($status_filter) && count($status_filter) > 1) {
+      return $this->importMultipleStatuses($project_id, $filter_tags, $status_filter, $max_issues, $date_filter, $config);
+    }
+    
     if (!empty($status_filter)) {
-      $params['field_issue_status'] = implode(',', $status_filter);
+      $params['field_issue_status'] = $status_filter[0];
     }
 
     // Add component filter if specified.
@@ -530,6 +564,79 @@ class IssueImportService {
   }
 
   /**
+   * Import multiple status filters separately to ensure all issues are captured.
+   */
+  protected function importMultipleStatuses(string $project_id, array $filter_tags, array $status_filter, int $max_issues, ?string $date_filter, ModuleImport $config): array {
+    $logger = $this->loggerFactory->get('ai_dashboard');
+
+    $combined_results = [
+      'success' => TRUE,
+      'imported' => 0,
+      'updated' => 0,
+      'skipped' => 0,
+      'errors' => 0,
+      'message' => '',
+    ];
+
+    $status_names = [
+      '1' => 'Active',
+      '13' => 'Needs work',
+      '8' => 'Needs review',
+      '14' => 'RTBC',
+      '15' => 'Patch (to be ported)',
+      '2' => 'Fixed',
+      '4' => 'Postponed',
+      '16' => 'Postponed (maintainer needs more info)',
+    ];
+
+    $status_results = [];
+    $issues_per_status = max(1, floor($max_issues / count($status_filter)));
+
+    // Import each status separately.
+    foreach ($status_filter as $single_status) {
+      $status_name = $status_names[$single_status] ?? "Status $single_status";
+      $logger->info('Importing @status issues', ['@status' => $status_name]);
+
+      try {
+        // Import this single status with proportional limit.
+        $single_results = $this->importFromDrupalOrg($project_id, $filter_tags, [$single_status], $issues_per_status, $date_filter, $config);
+
+        // Combine results.
+        $combined_results['imported'] += $single_results['imported'];
+        $combined_results['updated'] += $single_results['updated'];
+        $combined_results['skipped'] += $single_results['skipped'];
+        $combined_results['errors'] += $single_results['errors'];
+
+        $status_results[] = "$status_name: {$single_results['imported']} imported, {$single_results['updated']} updated";
+
+        if (!$single_results['success']) {
+          $combined_results['success'] = FALSE;
+        }
+
+      }
+      catch (\Exception $e) {
+        $logger->error('Failed to import @status: @message', [
+          '@status' => $status_name,
+          '@message' => $e->getMessage(),
+        ]);
+        $combined_results['errors']++;
+        $combined_results['success'] = FALSE;
+        $status_results[] = "$status_name: ERROR";
+      }
+    }
+
+    $combined_results['message'] = sprintf(
+      'Multi-status import completed: %d imported, %d updated, %d skipped (%s)',
+      $combined_results['imported'],
+      $combined_results['updated'],
+      $combined_results['skipped'],
+      implode(', ', $status_results)
+    );
+
+    return $combined_results;
+  }
+
+  /**
    * Import issues from drupal.org API for batch processing.
    */
   public function importFromDrupalOrgBatch(string $project_id, array $filter_tags, array $status_filter, int $offset, int $limit, ?string $date_filter, ModuleImport $config): array {
@@ -565,9 +672,10 @@ class IssueImportService {
       'direction' => 'DESC',
     ];
 
-    // Add status filter if specified.
+    // Add status filter if specified - use first status only for batch processing
+    // Multiple statuses are handled by creating separate batch operations
     if (!empty($status_filter)) {
-      $params['field_issue_status'] = implode(',', $status_filter);
+      $params['field_issue_status'] = is_array($status_filter) ? $status_filter[0] : $status_filter;
     }
 
     // Add component filter if specified.
