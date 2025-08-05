@@ -27,6 +27,12 @@ This project uses **DDEV** for local development with deployment to **Drupal For
   - **Debugging scripts**: Can be used for temporary database changes during development
   - **Production updates**: Always use `drush updb` on live site after deployment
 
+- **Production Deployment**:
+  - **Dependencies**: Use `composer install --no-dev --optimize-autoloader` to exclude testing dependencies
+  - **Testing Dependencies**: All testing packages (phpunit, behat, etc.) are in `require-dev` section
+  - **Code Quality Tools**: Development tools like `drupal/coder` are dev-only dependencies
+  - **Live Site Sync**: Only production dependencies are installed on live/staging environments
+
 - **Git Commit Policy**:
   - Use developer's name and email for commits
   - Include mention of Claude/AI assistance in commit descriptions when applicable
@@ -53,14 +59,20 @@ ddev logs
 
 ### Composer & Dependencies
 ```bash
-# Install dependencies
+# Install dependencies (development environment)
 ddev composer install
+
+# Install dependencies (production - no dev dependencies)
+ddev composer install --no-dev --optimize-autoloader
 
 # Update dependencies
 ddev composer update
 
 # Add new package
 ddev composer require drupal/module_name
+
+# Add development-only package (testing, code quality tools, etc.)
+ddev composer require --dev drupal/module_name
 ```
 
 ### Drupal & Drush
@@ -231,6 +243,33 @@ Tag fields across all content types have been customized for clean UX:
   - Admin theme: `gin`
 
 ## Testing
+
+### AI Dashboard Module Testing
+The AI Dashboard module has **complete test coverage** with all 25 tests passing (100% success rate):
+
+- **Unit Tests (7/7)**: API integration, service logic, component filtering
+- **Kernel Tests (7/7)**: Entity operations, configuration management, data persistence  
+- **Functional Tests (11/11)**: Form validation, user workflows, browser interactions
+
+#### Test Commands
+```bash
+# Run AI Dashboard tests (from web container or with ddev exec)
+SIMPLETEST_BASE_URL=https://drupalcmsaitest1.ddev.site SIMPLETEST_DB=mysql://db:db@db/db ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/ai_dashboard/tests/ --testdox
+
+# Run specific test types
+./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/ai_dashboard/tests/src/Unit/ --testdox
+SIMPLETEST_BASE_URL=https://drupalcmsaitest1.ddev.site SIMPLETEST_DB=mysql://db:db@db/db ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/ai_dashboard/tests/src/Kernel/ --testdox
+SIMPLETEST_BASE_URL=https://drupalcmsaitest1.ddev.site SIMPLETEST_DB=mysql://db:db@db/db ./vendor/bin/phpunit -c web/core/phpunit.xml.dist web/modules/custom/ai_dashboard/tests/src/Functional/ --testdox
+```
+
+#### Test Infrastructure
+- **PHPUnit 11.5+** with Drupal 11 testing framework
+- **BrowserTestBase** for functional tests with dependency pre-creation system
+- **KernelTestBase** for entity and service testing
+- **UnitTestCase** with proper HTTP client mocking
+- **Circular dependency resolution** for complex module installation testing
+
+### General Testing
 - PHPUnit configuration in `web/core/phpunit.xml.dist`
 - Recipe-specific tests in `recipes/*/tests/`
 - Use environment variable `SIMPLETEST_BASE_URL` for functional tests

@@ -18,7 +18,6 @@
     "require": {
         "composer/installers": "^2.3",
         "drupal/backup_migrate": "^5.1",
-        "drupal/coder": "^8.3",
         "drupal/config_ignore": "^3.3",
         "drupal/core-composer-scaffold": "^11.1.5",
         "drupal/core-project-message": "^11.1.5",
@@ -93,5 +92,16 @@
                 "  * Get involved with the Drupal community: https://drupal.org/getting-involved"
             ]
         }
+    },
+    "require-dev": {
+        "behat/mink": "^1.12",
+        "behat/mink-browserkit-driver": "^2.2",
+        "behat/mink-selenium2-driver": "^1.7",
+        "drupal/coder": "^8.3",
+        "mikey179/vfsstream": "^1.6",
+        "phpspec/prophecy-phpunit": "^2.4",
+        "phpunit/phpunit": "^11.5",
+        "symfony/css-selector": "^7.3",
+        "symfony/dom-crawler": "^7.3"
     }
 }
