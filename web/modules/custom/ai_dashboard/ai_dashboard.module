@@ -40,6 +40,7 @@ function ai_dashboard_theme() {
         'week_start' => NULL,
         'week_end' => NULL,
         'week_offset' => 0,
+        'user_has_admin_permission' => FALSE,
       ],
     ],
     'admin_navigation' => [

@@ -93,7 +93,7 @@ class CalendarController extends ControllerBase {
         '#week_start' => $week_start,
         '#week_end' => $week_end,
         '#week_offset' => $week_offset,
-        '#user_has_admin_permission' => \Drupal::currentUser()->hasPermission('administer ai dashboard'),
+        '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',
