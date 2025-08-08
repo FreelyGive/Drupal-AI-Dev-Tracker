@@ -6,6 +6,8 @@ This document explains how to integrate data from drupal.org using the tag mappi
 
 The AI Dashboard includes a flexible tag mapping system that allows you to map flat tags from drupal.org to structured categories in your dashboard. This is essential because drupal.org uses simple tags for categorization, but your dashboard needs structured data.
 
+In addition, the import system resolves drupal.org project IDs from a machine name across multiple project types (module, theme, distribution, core, profile). If resolution fails (for initiatives or non-project pages), provide the numeric Project ID directly in the import configuration.
+
 ## How Tag Mapping Works
 
 ### Example drupal.org Tags

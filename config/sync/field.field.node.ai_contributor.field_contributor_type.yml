@@ -13,7 +13,7 @@ entity_type: node
 bundle: ai_contributor
 label: 'Contributor Type'
 description: 'Select whether this person is a developer or non-developer contributor.'
-required: true
+required: false
 translatable: true
 default_value:
   -

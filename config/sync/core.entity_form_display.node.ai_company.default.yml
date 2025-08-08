@@ -4,9 +4,15 @@ status: true
 dependencies:
   config:
     - field.field.node.ai_company.field_company_ai_maker
+    - field.field.node.ai_company.field_company_audience
+    - field.field.node.ai_company.field_company_color
     - field.field.node.ai_company.field_company_drupal_profile
+    - field.field.node.ai_company.field_company_logo
+    - field.field.node.ai_company.field_company_size
+    - field.field.node.ai_company.field_company_website
     - node.type.ai_company
   module:
+    - content_moderation
     - path
 id: node.ai_company.default
 targetEntityType: node
@@ -33,6 +39,12 @@ content:
     settings:
       size: 60
       placeholder: 'e.g., acquia'
+    third_party_settings: {  }
+  moderation_state:
+    type: moderation_state_default
+    weight: 100
+    region: content
+    settings: {  }
     third_party_settings: {  }
   path:
     type: path
@@ -84,7 +96,14 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_company_audience:
+    type: options_buttons
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
 hidden:
+  field_company_audience: true
   field_company_color: true
   field_company_logo: true
   field_company_size: true

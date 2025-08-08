@@ -40,6 +40,8 @@ Drupal CMS has adopted a [code of conduct](https://www.drupal.org/dcoc) that we 
 
 To contribute to Drupal CMS development, see the [drupal_cms project](https://www.drupal.org/project/drupal_cms).
 
+For local development workflows, testing, and style conventions in this repository, see the contributor guide in [AGENTS.md](AGENTS.md).
+
 ## License
 
 Drupal CMS and all derivative works are licensed under the [GNU General Public License, version 2 or later](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html).

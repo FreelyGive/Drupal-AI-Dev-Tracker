@@ -220,6 +220,14 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 - `ai_dashboard_update_8004()` - Fix missing field storage tables
 - `ai_dashboard_update_8005()` - Force creation of database tables
 - `ai_dashboard_update_8006()` - Add tracker role and GitLab username fields
+ - `ai_dashboard_update_9002()` - Ensure Dashboard Category field exists and appears on AI Issue forms/views
+ - `ai_dashboard_update_9003()` - Final pass to write field config programmatically if missing
+ - `ai_dashboard_update_9004()` - Add Dashboard Category to AI Issue form display
+ - `ai_dashboard_update_9005()` - Make AI Issue Dashboard Category multi-valued; add Company Audience field
+ - `ai_dashboard_update_9006()` - Make Contributor Type multi-valued and adjust form display
+ - `ai_dashboard_update_9007()` - Set widgets to select (later superseded by 9008)
+ - `ai_dashboard_update_9008()` - Switch Issue/Contributor widgets to checkboxes
+ - `ai_dashboard_update_9009()` - Migrate import configs to Audience checkboxes; purge legacy boolean
 
 ### Permissions
 - **View**: Public access to dashboard views

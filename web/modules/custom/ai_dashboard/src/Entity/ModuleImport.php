@@ -18,7 +18,7 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *       "delete" = "Drupal\Core\Entity\EntityDeleteForm",
  *     }
  *   },
- *   config_prefix = "module_import",
+   *   config_prefix = "module_import",
  *   admin_permission = "administer ai dashboard imports",
  *   entity_keys = {
  *     "id" = "id",
@@ -40,8 +40,9 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "max_issues",
  *     "date_filter",
  *     "active",
- *     "last_run"
- *   },
+ *     "last_run",
+ *     "import_audiences"
+   *   },
  *   links = {
  *     "add-form" = "/admin/config/ai-dashboard/module-import/add",
  *     "edit-form" = "/admin/config/ai-dashboard/module-import/{module_import}",
@@ -135,6 +136,15 @@ class ModuleImport extends ConfigEntityBase {
    * @var int|null
    */
   protected $last_run;
+
+  
+
+  /**
+   * Selected audiences to assign to imported issues (e.g., dev, non_dev).
+   *
+   * @var array
+   */
+  protected array $import_audiences = [];
 
   /**
    * {@inheritdoc}
@@ -321,6 +331,26 @@ class ModuleImport extends ConfigEntityBase {
    */
   public function setLastRun($timestamp) {
     $this->last_run = $timestamp;
+    return $this;
+  }
+
+  
+
+  /**
+   * Get selected audiences for imported issues.
+   */
+  public function getImportAudiences(): array {
+    return is_array($this->import_audiences) ? array_values(array_filter($this->import_audiences)) : [];
+  }
+
+  /**
+   * Set selected audiences for imported issues.
+   */
+  public function setImportAudiences(array $values) {
+    // Normalize to distinct values and known options.
+    $allowed = ['dev', 'non_dev'];
+    $values = array_values(array_unique(array_intersect($values, $allowed)));
+    $this->import_audiences = $values;
     return $this;
   }
 

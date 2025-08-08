@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_dashboard_category
+    - node.type.ai_issue
+id: node.ai_issue.field_issue_dashboard_category
+field_name: field_issue_dashboard_category
+entity_type: node
+bundle: ai_issue
+label: 'Dashboard Category'
+description: 'Categorize issue as Developer (default) or Non-Developer.'
+required: false
+translatable: true
+default_value:
+  -
+    value: dev
+default_value_callback: ''
+settings: { }
+field_type: list_string

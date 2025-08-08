@@ -33,6 +33,96 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Display the Organisational calendar view.
+   */
+  public function calendarViewNonDev(Request $request) {
+    try {
+      // Get current week or requested week.
+      $week_offset = (int) $request->query->get('week', 0);
+      $current_week = new \DateTime();
+      if ($week_offset !== 0) {
+        $current_week->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
+      }
+
+      // Set to Monday of the week.
+      $current_week->modify('Monday this week');
+      $week_start = clone $current_week;
+      $week_end = (clone $current_week)->modify('+6 days');
+
+      // Get consolidated data for organisational audience only.
+      $calendar_data = $this->getCalendarData($week_start, $week_end, TRUE);
+
+      $build = [
+        '#cache' => [
+          'tags' => [
+            // Use core-provided node_list tag so edits invalidate this page.
+            'node_list',
+            'ai_dashboard:calendar',
+            'node_list:ai_issue',
+            'node_list:ai_contributor',
+            'ai_dashboard:import',
+          ]
+        ]
+      ];
+
+      // Add navigation.
+      $build['navigation'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['dashboard-navigation']],
+        '#markup' => '<div class="nav-links">
+          <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+          <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+          <a href="/ai-dashboard/calendar/non-developer" class="nav-link active">Organisational View</a>
+          <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
+        </div>',
+      ];
+
+      // Get backlog data filtered to organisational issues.
+      $backlog_data = $this->getBacklogData(TRUE);
+
+      $build['calendar'] = [
+        '#theme' => 'ai_calendar_dashboard',
+        '#calendar_data' => $calendar_data,
+        '#backlog_data' => $backlog_data,
+        '#week_start' => $week_start,
+        '#week_end' => $week_end,
+        '#week_offset' => $week_offset,
+        '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
+        '#attached' => [
+          'library' => [
+            'ai_dashboard/calendar_dashboard',
+          ],
+          'drupalSettings' => [
+            'aiDashboard' => [
+              'weekOffset' => $week_offset,
+              'weekStart' => $week_start->format('Y-m-d'),
+              'weekEnd' => $week_end->format('Y-m-d'),
+              'csrfToken' => \Drupal::csrfToken()->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY),
+            ],
+          ],
+        ],
+      ];
+
+      return $build;
+    }
+    catch (\Exception $e) {
+      // Log the error for debugging.
+      \Drupal::logger('ai_dashboard')->error('Calendar view (organisational) error: @message @trace', [
+        '@message' => $e->getMessage(),
+        '@trace' => $e->getTraceAsString(),
+      ]);
+
+      return [
+        '#markup' => '<div style="padding: 20px; background: #fee; border: 1px solid #f00; color: #900;">
+          <h2>Calendar Error</h2>
+          <p>Unable to load organisational calendar view. Please try again or contact an administrator if the problem persists.</p>
+          <a href="/ai-dashboard">← Back to Dashboard</a>
+        </div>',
+      ];
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
@@ -59,11 +149,13 @@ class CalendarController extends ControllerBase {
       $week_end = (clone $current_week)->modify('+6 days');
 
       // Get consolidated data.
-      $calendar_data = $this->getCalendarData($week_start, $week_end);
+      $calendar_data = $this->getCalendarData($week_start, $week_end, FALSE);
 
       $build = [
         '#cache' => [
           'tags' => [
+            // Use core-provided node_list tag so edits invalidate this page.
+            'node_list',
             'ai_dashboard:calendar',
             'node_list:ai_issue',
             'node_list:ai_contributor',
@@ -79,12 +171,13 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link active">Calendar View</a>
+          <a href="/ai-dashboard/calendar/non-developer" class="nav-link">Non-Developer View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
 
       // Get backlog data.
-      $backlog_data = $this->getBacklogData();
+      $backlog_data = $this->getBacklogData(FALSE);
 
       $build['calendar'] = [
         '#theme' => 'ai_calendar_dashboard',
@@ -132,7 +225,7 @@ class CalendarController extends ControllerBase {
   /**
    * Get calendar data organized by companies and developers.
    */
-  private function getCalendarData(\DateTime $week_start, \DateTime $week_end) {
+  private function getCalendarData(\DateTime $week_start, \DateTime $week_end, bool $non_developer_only = FALSE) {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
     // Load all companies.
@@ -161,7 +254,7 @@ class CalendarController extends ControllerBase {
     foreach ($companies as $company) {
       $company_data = [
         'id' => $company->id(),
-        'name' => $company->getTitle(),
+        'name' => $this->sanitizeText($company->getTitle()),
         'color' => $company->hasField('field_company_color') ? $company->get('field_company_color')->value : '#0073bb',
         'logo_url' => NULL,
         'is_ai_maker' => $company->hasField('field_company_ai_maker') ? (bool) $company->get('field_company_ai_maker')->value : FALSE,
@@ -184,10 +277,45 @@ class CalendarController extends ControllerBase {
             !$contributor->get('field_contributor_company')->isEmpty() &&
             $contributor->get('field_contributor_company')->target_id == $company->id()) {
 
+          // If filtering to non-developers, include only contributors whose
+          // contributor type equals 'non_dev'. This matches the configured
+          // In non-developer-only view, include contributors with any
+          // 'non_dev' value in their (possibly multi-valued) type field.
+          if ($non_developer_only) {
+            if (!$contributor->hasField('field_contributor_type') || $contributor->get('field_contributor_type')->isEmpty()) {
+              continue;
+            }
+            $is_non_dev_contributor = FALSE;
+            foreach ($contributor->get('field_contributor_type') as $type_item) {
+              if ($type_item->value === 'non_dev') {
+                $is_non_dev_contributor = TRUE;
+                break;
+              }
+            }
+            if (!$is_non_dev_contributor) {
+              continue;
+            }
+          }
+          else {
+            // Developer view: include only contributors that have 'dev'.
+            if ($contributor->hasField('field_contributor_type') && !$contributor->get('field_contributor_type')->isEmpty()) {
+              $is_dev_contributor = FALSE;
+              foreach ($contributor->get('field_contributor_type') as $type_item) {
+                if ($type_item->value === 'dev') {
+                  $is_dev_contributor = TRUE;
+                  break;
+                }
+              }
+              if (!$is_dev_contributor) {
+                continue;
+              }
+            }
+          }
+
           $developer_data = [
             'id' => $contributor->id(),
             'nid' => $contributor->id(),
-            'name' => $contributor->getTitle(),
+            'name' => $this->sanitizeText($contributor->getTitle()),
             'username' => $contributor->hasField('field_drupal_username') ? $contributor->get('field_drupal_username')->value : '',
             'role' => $contributor->hasField('field_contributor_role') ? $contributor->get('field_contributor_role')->value : '',
             'weekly_commitment' => $contributor->hasField('field_weekly_commitment') ? (float) $contributor->get('field_weekly_commitment')->value : 0,
@@ -205,13 +333,37 @@ class CalendarController extends ControllerBase {
 
           // Find issues for this contributor in the current week.
           foreach ($issues as $issue) {
+            // In non-developer view, rely on contributor type; no extra
+            // issue-level filter is applied here.
             if ($this->isIssueAssignedToContributor($issue, $contributor->id()) &&
                 $this->isIssueInCurrentWeek($issue, $week_start, $week_end)) {
+
+              // For non-developer view, include only issues marked as non_dev.
+              // For developer view, exclude any issue marked as non_dev.
+              if ($issue->hasField('field_issue_dashboard_category') && !$issue->get('field_issue_dashboard_category')->isEmpty()) {
+                $has_non_dev = FALSE;
+                foreach ($issue->get('field_issue_dashboard_category') as $item) {
+                  if ($item->value === 'non_dev') {
+                    $has_non_dev = TRUE;
+                    break;
+                  }
+                }
+                if ($non_developer_only && !$has_non_dev) {
+                  continue;
+                }
+                if (!$non_developer_only && $has_non_dev) {
+                  continue;
+                }
+              }
+              elseif ($non_developer_only) {
+                // No category set: exclude from non-developer view.
+                continue;
+              }
 
               $issue_data = [
                 'id' => $issue->id(),
                 'nid' => $issue->id(),
-                'title' => $issue->getTitle(),
+                'title' => $this->sanitizeText($issue->getTitle()),
                 'status' => $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active',
                 'priority' => $issue->hasField('field_issue_priority') ? $issue->get('field_issue_priority')->value : 'normal',
                 'category' => $issue->hasField('field_issue_category') ? $issue->get('field_issue_category')->value : 'ai_integration',
@@ -288,6 +440,20 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Clean display text by removing literal newline artifacts.
+   */
+  private function sanitizeText($text) {
+    if (!is_string($text)) {
+      return $text;
+    }
+    // Replace literal sequences and actual line breaks with a single space.
+    $text = str_replace(["\\n", "\\r", "/n", "\r\n", "\n", "\r"], ' ', $text);
+    // Collapse excessive whitespace.
+    $text = preg_replace('/\s+/', ' ', $text);
+    return trim($text);
+  }
+
+  /**
    * Sort calendar data by AI Maker status, company name, and developer name.
    */
   private function sortCalendarData(&$calendar_data) {
@@ -353,7 +519,7 @@ class CalendarController extends ControllerBase {
   /**
    * Get backlog data for unassigned issues.
    */
-  private function getBacklogData() {
+  private function getBacklogData(bool $non_developer_only = FALSE) {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
     // Use direct database query to get all AI issues (entity query seems
@@ -402,13 +568,34 @@ class CalendarController extends ControllerBase {
     $all_tags = [];
 
     foreach ($issues as $issue) {
+      // For the non-developer view, only include issues marked as non-dev.
+      // For the developer view, exclude issues marked as non-dev from backlog.
+      if ($issue->hasField('field_issue_dashboard_category') && !$issue->get('field_issue_dashboard_category')->isEmpty()) {
+        $has_non_dev = FALSE;
+        foreach ($issue->get('field_issue_dashboard_category') as $item) {
+          if ($item->value === 'non_dev') {
+            $has_non_dev = TRUE;
+            break;
+          }
+        }
+        if ($non_developer_only && !$has_non_dev) {
+          continue;
+        }
+        if (!$non_developer_only && $has_non_dev) {
+          // Developer backlog should not show non-developer issues.
+          continue;
+        }
+      } elseif ($non_developer_only) {
+        // If no category set, exclude from non-developer view.
+        continue;
+      }
       // Get module info.
       $module_name = 'N/A';
       $module_id = NULL;
       if ($issue->hasField('field_issue_module') && !$issue->get('field_issue_module')->isEmpty()) {
         $module = $issue->get('field_issue_module')->entity;
         if ($module) {
-          $module_name = $module->getTitle();
+          $module_name = $this->sanitizeText($module->getTitle());
           $module_id = $module->id();
           $all_modules[$module_id] = $module_name;
         }
@@ -419,8 +606,9 @@ class CalendarController extends ControllerBase {
       if ($issue->hasField('field_issue_tags') && !$issue->get('field_issue_tags')->isEmpty()) {
         foreach ($issue->get('field_issue_tags') as $tag_field) {
           if (!empty($tag_field->value)) {
-            $tags[] = $tag_field->value;
-            $all_tags[$tag_field->value] = $tag_field->value;
+            $clean = $this->sanitizeText($tag_field->value);
+            $tags[] = $clean;
+            $all_tags[$clean] = $clean;
           }
         }
       }
@@ -439,7 +627,7 @@ class CalendarController extends ControllerBase {
 
       $backlog_issues[] = [
         'id' => $issue->id(),
-        'title' => $issue->getTitle(),
+        'title' => $this->sanitizeText($issue->getTitle()),
         'number' => $issue_number,
         'status' => $status,
         'priority' => $priority,

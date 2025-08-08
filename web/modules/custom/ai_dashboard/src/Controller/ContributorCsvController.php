@@ -70,11 +70,14 @@ class ContributorCsvController extends ControllerBase {
       'drupal_username',
       'organization',
       'ai_maker',
+      // Tracker Role (comma-separated): Developer, Organisational
       'tracker_role',
       'skills',
       'weekly_commitment',
       'company_drupal_profile',
       'gitlab_username',
+      // Role/Title should be the last column
+      'role_title',
     ];
 
     // Create sample rows.
@@ -84,21 +87,35 @@ class ContributorCsvController extends ControllerBase {
         'john_doe',
         array_key_exists('Acquia', $companies) ? 'Acquia' : array_keys($companies)[0] ?? 'Example Company',
         'Yes',
-        'Developer, Management',
+        'Developer, Organisational',
         'PHP, JavaScript, Drupal',
         '5',
         'acquia',
         'john.doe@example.com',
+        'Senior Developer',
       ],
       [
         'Jane Smith',
         'jane_smith',
         array_key_exists('Lullabot', $companies) ? 'Lullabot' : array_keys($companies)[1] ?? 'Another Company',
         'No',
-        'Front-end',
+        'Organisational',
         'AI/ML, Python, DevOps',
         '3',
         'lullabot',
+        'jsmith_gitlab',
+        'Programme Manager',
+      ],
+      // Keep a second sample distinct.
+      [
+        'Alex Taylor',
+        'alex_taylor',
+        array_keys($companies)[2] ?? 'Third Company',
+        'No',
+        'Developer',
+        'AI/ML, Python, DevOps',
+        '3',
+        'example_profile',
         'jsmith_gitlab',
       ],
     ];
@@ -216,6 +233,7 @@ class ContributorCsvController extends ControllerBase {
       'weekly_commitment',
       'company_drupal_profile',
       'gitlab_username',
+      'role_title',
     ];
 
     foreach ($required_headers as $required) {
@@ -241,6 +259,7 @@ class ContributorCsvController extends ControllerBase {
     $weekly_commitment = floatval($data['weekly_commitment']);
     $company_drupal_profile = trim($data['company_drupal_profile']);
     $gitlab_username = trim($data['gitlab_username']);
+    $role_title = isset($data['role_title']) ? trim($data['role_title']) : '';
 
     if (empty($name) || empty($drupal_username)) {
       throw new \Exception('Name and Drupal username are required');
@@ -249,38 +268,20 @@ class ContributorCsvController extends ControllerBase {
     // Convert AI maker string to boolean.
     $is_ai_maker = in_array($ai_maker, ['yes', 'y', '1', 'true']);
 
-    // Parse tracker roles (comma-separated, multi-value)
-    $tracker_roles = [];
+    // Parse Developer / Organisational (comma-separated) from tracker_role.
+    $contrib_types = [];
     if (!empty($tracker_role)) {
-      $roles = explode(',', $tracker_role);
-      foreach ($roles as $role) {
-        $role = trim(strtolower($role));
-        // Map common variations to our field values.
-        $role_mapping = [
-          'developer' => 'developer',
-          'dev' => 'developer',
-          'front-end' => 'frontend',
-          'frontend' => 'frontend',
-          'front end' => 'frontend',
-          'management' => 'management',
-          'manager' => 'management',
-          'designer' => 'designer',
-          'design' => 'designer',
-          'qa' => 'qa',
-          'testing' => 'qa',
-          'qa/testing' => 'qa',
-          'devops' => 'devops',
-          'dev ops' => 'devops',
-          'pm' => 'pm',
-          'project manager' => 'pm',
-          'project management' => 'pm',
-        ];
-
-        if (isset($role_mapping[$role])) {
-          $tracker_roles[] = $role_mapping[$role];
+      $parts = explode(',', $tracker_role);
+      foreach ($parts as $part) {
+        $val = strtolower(trim($part));
+        if (in_array($val, ['developer', 'dev'])) {
+          $contrib_types[] = 'dev';
+        }
+        elseif (in_array($val, ['organisational', 'organizational', 'non-developer', 'nondeveloper', 'management', 'manager', 'org'])) {
+          $contrib_types[] = 'non_dev';
         }
       }
-      $tracker_roles = array_unique($tracker_roles);
+      $contrib_types = array_values(array_unique($contrib_types));
     }
 
     // Find or create company using drupal profile as unique identifier.
@@ -294,17 +295,24 @@ class ContributorCsvController extends ControllerBase {
       $existing->setTitle($name);
       $existing->set('field_drupal_username', $drupal_username);
       $existing->set('field_contributor_company', $company_id);
-      // Keep old role field for backwards compatibility.
-      $existing->set('field_contributor_role', $organization);
+      // Set Role/Title field.
+      $existing->set('field_contributor_role', $role_title);
       $existing->set('field_contributor_skills', $skills);
       $existing->set('field_weekly_commitment', $weekly_commitment);
 
       // Set new fields if they exist.
       if ($existing->hasField('field_tracker_role')) {
-        $existing->set('field_tracker_role', $tracker_roles);
+        // Map to existing tracker_role values.
+        $mapped = [];
+        if (in_array('dev', $contrib_types, TRUE)) { $mapped[] = 'developer'; }
+        if (in_array('non_dev', $contrib_types, TRUE)) { $mapped[] = 'management'; }
+        $existing->set('field_tracker_role', $mapped);
       }
       if ($existing->hasField('field_gitlab_username')) {
         $existing->set('field_gitlab_username', $gitlab_username);
+      }
+      if ($existing->hasField('field_contributor_type') && !empty($contrib_types)) {
+        $existing->set('field_contributor_type', array_map(function ($v) { return ['value' => $v]; }, $contrib_types));
       }
 
       $existing->save();
@@ -319,8 +327,7 @@ class ContributorCsvController extends ControllerBase {
         'title' => $name,
         'field_drupal_username' => $drupal_username,
         'field_contributor_company' => $company_id,
-      // Keep old role field for backwards compatibility.
-        'field_contributor_role' => $organization,
+        'field_contributor_role' => $role_title,
         'field_contributor_skills' => $skills,
         'field_weekly_commitment' => $weekly_commitment,
         'status' => 1,
@@ -329,10 +336,16 @@ class ContributorCsvController extends ControllerBase {
       // Add new fields if they exist in the system.
       $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
       if ($field_storage_manager->load('node.field_tracker_role')) {
-        $contributor_data['field_tracker_role'] = $tracker_roles;
+        $mapped = [];
+        if (in_array('dev', $contrib_types, TRUE)) { $mapped[] = 'developer'; }
+        if (in_array('non_dev', $contrib_types, TRUE)) { $mapped[] = 'management'; }
+        $contributor_data['field_tracker_role'] = $mapped;
       }
       if ($field_storage_manager->load('node.field_gitlab_username')) {
         $contributor_data['field_gitlab_username'] = $gitlab_username;
+      }
+      if ($field_storage_manager->load('node.field_contributor_type') && !empty($contrib_types)) {
+        $contributor_data['field_contributor_type'] = array_map(function ($v) { return ['value' => $v]; }, $contrib_types);
       }
 
       $contributor = Node::create($contributor_data);
@@ -570,6 +583,25 @@ class ContributorCsvController extends ControllerBase {
     fclose($output);
 
     return $csv_content;
+    // Parse audience (Developer / Organisational) column.
+    $contrib_types = [];
+    if (!empty($audience_raw)) {
+      $parts = explode(',', $audience_raw);
+      foreach ($parts as $part) {
+        $val = strtolower(trim($part));
+        if (in_array($val, ['developer', 'dev'])) {
+          $contrib_types[] = 'dev';
+        }
+        elseif (in_array($val, ['organisational', 'organizational', 'non-developer', 'nondeveloper', 'management', 'manager'])) {
+          $contrib_types[] = 'non_dev';
+        }
+      }
+      $contrib_types = array_values(array_unique($contrib_types));
+    }
+
+      if ($existing->hasField('field_contributor_type') && !empty($contrib_types)) {
+        $existing->set('field_contributor_type', array_map(function ($v) { return ['value' => $v]; }, $contrib_types));
+      }
   }
 
 }

@@ -109,10 +109,11 @@ The AI Dashboard module provides a comprehensive project management system for t
   - Auto-creates companies if they don't exist
   - Duplicate detection via drupal_username
   - Validation and error reporting
-- **API Import** - Automated issue import from external APIs with status filtering
+- **API Import** - Automated issue import from external APIs with status filtering and audience tagging
   - Drupal.org integration with comprehensive status filtering
   - Auto-creates module options during import
   - Configurable import limits (optional)
+  - Audience checkboxes (Developer / Non‑Developer) applied to imported issues
   - Real-time import execution with progress feedback
 
 #### ✅ User Interface Features
@@ -697,5 +698,16 @@ administer ai dashboard content:
 **Last Updated**: January 2025  
 **Security Audit**: January 2025  
 **Maintainer**: AI Dashboard Team
+
+- **Audience Selection**: Import configuration now uses a single set of checkboxes to mark issues as Developer and/or Non‑Developer. Imported issues are tagged in the Dashboard Category accordingly.
+
+### Developer vs Non‑Developer Views
+- **Multi-select Fields**:
+  - AI Issue → Dashboard Category supports multiple values: `dev`, `non_dev` (checkboxes).
+  - AI Contributor → Contributor Type supports multiple values: `dev`, `non_dev` (checkboxes).
+- **Calendars & Backlog**:
+  - Developer calendar includes only contributors tagged `dev` and excludes any issue tagged `non_dev`.
+  - Non‑Developer calendar includes only contributors tagged `non_dev` and only issues tagged `non_dev`.
+  - Developer backlog excludes `non_dev` issues; Non‑Developer backlog shows only `non_dev` issues.
 
 For questions or contributions, see the project repository or contact the development team.

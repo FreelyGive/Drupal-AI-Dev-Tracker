@@ -6,8 +6,8 @@
  */
 
 use Drupal\Core\Config\FileStorage;
-use Drupal\Core\Entity\Entity\EntityViewDisplay;
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Display\EntityViewDisplay;
+use Drupal\Core\Entity\Display\EntityFormDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
@@ -931,6 +931,177 @@ function ai_dashboard_update_8006() {
 }
 
 /**
+ * Add Dashboard Category field to AI Issues (developer/non-developer).
+ */
+function ai_dashboard_update_8008() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+
+  // Create field storage for list_string with allowed values dev/non_dev.
+  $storage = $field_storage_manager->load('node.field_issue_dashboard_category');
+  if (!$storage) {
+    $storage = $field_storage_manager->create([
+      'field_name' => 'field_issue_dashboard_category',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        // For entity create(), allowed_values expects an associative map.
+        'allowed_values' => [
+          'dev' => 'Developer',
+          'non_dev' => 'Non-Developer',
+        ],
+      ],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => 1,
+      'translatable' => TRUE,
+    ]);
+    $storage->save();
+  }
+
+  // Create field instance on ai_issue bundle with default 'dev'.
+  $field = $field_manager->load('node.ai_issue.field_issue_dashboard_category');
+  if (!$field) {
+    $field = $field_manager->create([
+      'field_storage' => $storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Dashboard Category',
+      'required' => FALSE,
+      'default_value' => [['value' => 'dev']],
+      'settings' => [],
+    ]);
+    $field->save();
+  }
+
+  // Add to form and view displays if not already present.
+  $form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && !$form_display->getComponent('field_issue_dashboard_category')) {
+    $form_display->setComponent('field_issue_dashboard_category', [
+      'type' => 'options_select',
+      'weight' => 9,
+    ])->save();
+  }
+
+  $view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && !$view_display->getComponent('field_issue_dashboard_category')) {
+    $view_display->setComponent('field_issue_dashboard_category', [
+      'type' => 'list_default',
+      'weight' => 9,
+    ])->save();
+  }
+
+  // Clear field caches to register definitions.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+  return t('Added Dashboard Category field to AI Issues with default Developer.');
+}
+
+/**
+ * Ensure Dashboard Category appears on AI Issue form/view displays.
+ */
+function ai_dashboard_update_8009() {
+  // Add to form display if missing.
+  if ($form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_issue.default')) {
+    if (!$form_display->getComponent('field_issue_dashboard_category')) {
+      $form_display->setComponent('field_issue_dashboard_category', [
+        'type' => 'options_select',
+        'weight' => 6,
+      ])->save();
+    }
+  }
+
+  // Add to view display if missing.
+  if ($view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_issue.default')) {
+    if (!$view_display->getComponent('field_issue_dashboard_category')) {
+      $view_display->setComponent('field_issue_dashboard_category', [
+        'type' => 'list_default',
+        'weight' => 6,
+      ])->save();
+    }
+  }
+
+  // Clear caches.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Ensured Dashboard Category field is visible on AI Issue forms and views.');
+}
+
+/**
+ * Add non-developer flags to contributors and issues.
+ */
+function ai_dashboard_update_8007() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+
+  // Contributor flag: field_non_developer (boolean).
+  $c_storage = $field_storage_manager->load('node.field_non_developer');
+  if (!$c_storage) {
+    $c_storage = $field_storage_manager->create([
+      'field_name' => 'field_non_developer',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [
+        'on_label' => 'Yes',
+        'off_label' => 'No',
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ]);
+    $c_storage->save();
+  }
+  $c_field = $field_manager->load('node.ai_contributor.field_non_developer');
+  if (!$c_field) {
+    $c_field = $field_manager->create([
+      'field_name' => 'field_non_developer',
+      'entity_type' => 'node',
+      'bundle' => 'ai_contributor',
+      'label' => 'Non-developer',
+      'required' => FALSE,
+      'settings' => [],
+      'default_value' => [['value' => 0]],
+    ]);
+    $c_field->save();
+  }
+
+  // Issue flag: field_issue_non_developer (boolean).
+  $i_storage = $field_storage_manager->load('node.field_issue_non_developer');
+  if (!$i_storage) {
+    $i_storage = $field_storage_manager->create([
+      'field_name' => 'field_issue_non_developer',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [
+        'on_label' => 'Yes',
+        'off_label' => 'No',
+      ],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ]);
+    $i_storage->save();
+  }
+  $i_field = $field_manager->load('node.ai_issue.field_issue_non_developer');
+  if (!$i_field) {
+    $i_field = $field_manager->create([
+      'field_name' => 'field_issue_non_developer',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'label' => 'Non-developer Issue',
+      'required' => FALSE,
+      'settings' => [],
+      'default_value' => [['value' => 0]],
+    ]);
+    $i_field->save();
+  }
+
+  // Clear field caches.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Added non-developer flags to contributors and issues.');
+}
+
+/**
  * Migrate ai_import_config nodes to module_import configuration entities.
  */
 function ai_dashboard_update_9001() {
@@ -1073,4 +1244,502 @@ function ai_dashboard_update_9001() {
     '@migrated' => $migrated_count,
     '@failed' => $failed_count,
   ]);
+}
+
+/**
+ * Ensure Dashboard Category field exists and is on forms (post-9001 sites).
+ */
+function ai_dashboard_update_9002() {
+  try {
+    // Ensure the ai_issue bundle exists before proceeding.
+    if (!\Drupal\node\Entity\NodeType::load('ai_issue')) {
+      return t('AI Issue content type not found. Skipping Dashboard Category field setup.');
+    }
+
+    $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+    $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+
+    // 1) Ensure field storage exists.
+    $storage = $field_storage_manager->load('node.field_issue_dashboard_category');
+    if (!$storage) {
+      $storage = $field_storage_manager->create([
+        'field_name' => 'field_issue_dashboard_category',
+        'entity_type' => 'node',
+        'type' => 'list_string',
+        'settings' => [
+          'allowed_values' => [
+            ['value' => 'dev', 'label' => 'Developer'],
+            ['value' => 'non_dev', 'label' => 'Non-Developer'],
+          ],
+        ],
+        'module' => 'core',
+        'locked' => FALSE,
+        'cardinality' => 1,
+        'translatable' => TRUE,
+      ]);
+      $storage->save();
+    }
+
+    // 2) Ensure field instance exists on ai_issue with default 'dev'.
+    $field = $field_manager->load('node.ai_issue.field_issue_dashboard_category');
+    if (!$field) {
+      $field = $field_manager->create([
+        'field_storage' => $storage,
+        'bundle' => 'ai_issue',
+        'label' => 'Dashboard Category',
+        'required' => FALSE,
+        'default_value' => [['value' => 'dev']],
+        'settings' => [],
+      ]);
+      $field->save();
+    }
+
+    // 3) Ensure it is present on the form display.
+    if ($form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_issue.default')) {
+      if (!$form_display->getComponent('field_issue_dashboard_category')) {
+        $form_display->setComponent('field_issue_dashboard_category', [
+          'type' => 'options_select',
+          'weight' => 6,
+        ])->save();
+      }
+    }
+
+    // 4) Ensure it is present on the view display (optional).
+    if ($view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_issue.default')) {
+      if (!$view_display->getComponent('field_issue_dashboard_category')) {
+        $view_display->setComponent('field_issue_dashboard_category', [
+          'type' => 'list_default',
+          'weight' => 6,
+        ])->save();
+      }
+    }
+
+    // Clear caches.
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+    \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+    return t('Ensured Dashboard Category field exists and appears on AI Issue forms and views.');
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('ai_dashboard')->error('Update 9002 failed: @msg', ['@msg' => $e->getMessage()]);
+    // Do not abort the update process; report a message.
+    return t('Dashboard Category field setup encountered an error but did not abort: @msg', ['@msg' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Ensure Dashboard Category field exists (final pass) and is on displays.
+ *
+ * Some environments installed the module before the config/install definitions
+ * for this field existed, and update 9002 may have been skipped due to
+ * transient bundle checks. This update re-validates creation idempotently.
+ */
+function ai_dashboard_update_9003() {
+  // Ensure the ai_issue bundle exists before proceeding.
+  if (!\Drupal\node\Entity\NodeType::load('ai_issue')) {
+    return t('AI Issue content type not found. Skipping Dashboard Category setup.');
+  }
+
+  $messages = [];
+
+  // 1) Ensure field storage and field config exist by writing module config.
+  $config_path = \Drupal::service('extension.list.module')->getPath('ai_dashboard') . '/config/install';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+
+  $storage_config_name = 'field.storage.node.field_issue_dashboard_category';
+  if (!$config_storage->exists($storage_config_name) && $source->exists($storage_config_name)) {
+    $config_storage->write($storage_config_name, $source->read($storage_config_name));
+    $messages[] = 'Wrote config: ' . $storage_config_name;
+  }
+
+  $field_config_name = 'field.field.node.ai_issue.field_issue_dashboard_category';
+  if (!$config_storage->exists($field_config_name) && $source->exists($field_config_name)) {
+    $config_storage->write($field_config_name, $source->read($field_config_name));
+    $messages[] = 'Wrote config: ' . $field_config_name;
+  }
+
+  // Clear caches for field definitions to register changes.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Ensured Dashboard Category field exists. @details', [
+    '@details' => implode(' | ', $messages),
+  ]);
+}
+
+/**
+ * Add Dashboard Category field to AI Issue form display if missing.
+ */
+function ai_dashboard_update_9004() {
+  // Skip if the bundle is missing.
+  if (!\Drupal\node\Entity\NodeType::load('ai_issue')) {
+    return t('AI Issue content type not found. Skipping form display update.');
+  }
+
+  // Ensure the field exists before adding to form display.
+  if (!\Drupal\field\Entity\FieldConfig::load('node.ai_issue.field_issue_dashboard_category')) {
+    return t('Dashboard Category field not found on AI Issue; nothing to add to form display.');
+  }
+
+  $config_name = 'core.entity_form_display.node.ai_issue.default';
+  $storage = \Drupal::service('config.storage');
+  if (!$storage->exists($config_name)) {
+    return t('AI Issue default form display config not found.');
+  }
+
+  $editable = \Drupal::configFactory()->getEditable($config_name);
+  $content = $editable->get('content') ?: [];
+  if (!isset($content['field_issue_dashboard_category'])) {
+    $content['field_issue_dashboard_category'] = [
+      'type' => 'options_select',
+      'weight' => 6,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ];
+    $editable->set('content', $content)->save();
+    // Clear field caches so the UI reflects the new component.
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+    return t('Added Dashboard Category to AI Issue form display.');
+  }
+
+  return t('Dashboard Category already present on AI Issue form display.');
+}
+
+/**
+ * Make Dashboard Category on AI Issues multi-select; add Company audience field.
+ */
+function ai_dashboard_update_9005() {
+  $messages = [];
+  // 1) Update issue dashboard category to be multi-valued.
+  $field_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_issue_dashboard_category');
+  if ($field_storage && $field_storage->getCardinality() !== -1) {
+    $field_storage->setCardinality(-1)->save();
+    $messages[] = 'Updated field_issue_dashboard_category cardinality to multiple.';
+  }
+
+  // 2) Add company audience field if missing.
+  $fsm = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $fm = \Drupal::entityTypeManager()->getStorage('field_config');
+  $storage = $fsm->load('node.field_company_audience');
+  if (!$storage) {
+    $storage = $fsm->create([
+      'field_name' => 'field_company_audience',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'settings' => [
+        'allowed_values' => [
+          'dev' => 'Developer',
+          'non_dev' => 'Non-Developer',
+        ],
+      ],
+      'cardinality' => -1,
+      'translatable' => TRUE,
+    ]);
+    $storage->save();
+    $messages[] = 'Created field storage for company audience.';
+  }
+  $field = $fm->load('node.ai_company.field_company_audience');
+  if (!$field) {
+    $field = $fm->create([
+      'field_name' => 'field_company_audience',
+      'entity_type' => 'node',
+      'bundle' => 'ai_company',
+      'label' => 'Audience',
+      'required' => FALSE,
+      'settings' => [],
+    ]);
+    $field->save();
+    $messages[] = 'Created company audience field on ai_company.';
+  }
+
+  // 3) Ensure appears on company form display (write config directly).
+  $config_name = 'core.entity_form_display.node.ai_company.default';
+  $config_factory = \Drupal::configFactory();
+  if (\Drupal::service('config.storage')->exists($config_name)) {
+    $editable = $config_factory->getEditable($config_name);
+    $content = $editable->get('content') ?: [];
+    $changed = FALSE;
+    if (!isset($content['field_company_audience'])) {
+      $content['field_company_audience'] = [
+        'type' => 'options_buttons',
+        'weight' => 7,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content);
+      $changed = TRUE;
+    }
+    $hidden = $editable->get('hidden') ?: [];
+    if (isset($hidden['field_company_audience'])) {
+      unset($hidden['field_company_audience']);
+      $editable->set('hidden', $hidden);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $editable->save();
+      $messages[] = 'Updated company form display for audience field.';
+    }
+  }
+
+  // Clear caches for field definitions.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated dashboard category to multi-select and added company audience. @m', ['@m' => implode(' | ', $messages)]);
+}
+
+/**
+ * Make Contributor Type multi-select and adjust requirements.
+ */
+function ai_dashboard_update_9006() {
+  $messages = [];
+  $field_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_contributor_type');
+  if ($field_storage && $field_storage->getCardinality() !== -1) {
+    $field_storage->setCardinality(-1)->save();
+    $messages[] = 'Updated field_contributor_type cardinality to multiple.';
+  }
+
+  // Make field not required to allow saving without selection when needed.
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config')->load('node.ai_contributor.field_contributor_type');
+  if ($field_config && $field_config->isRequired()) {
+    $field_config->setRequired(FALSE)->save();
+    $messages[] = 'Set contributor type field to not required.';
+  }
+
+  // Ensure contributor form display uses buttons and includes the field.
+  $config_name = 'core.entity_form_display.node.ai_contributor.default';
+  if (\Drupal::service('config.storage')->exists($config_name)) {
+    $editable = \Drupal::configFactory()->getEditable($config_name);
+    $content = $editable->get('content') ?: [];
+    $changed = FALSE;
+    if (!isset($content['field_contributor_type'])) {
+      $content['field_contributor_type'] = [
+        'type' => 'options_buttons',
+        'weight' => 2,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content);
+      $changed = TRUE;
+    }
+    if ($changed) {
+      $editable->save();
+      $messages[] = 'Updated contributor form display for type field.';
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Contributor type updated to multi-select. @m', ['@m' => implode(' | ', $messages)]);
+}
+
+/**
+ * Set widgets to select lists for multi-valued fields on issues and contributors.
+ */
+function ai_dashboard_update_9007() {
+  $messages = [];
+  // Issue form: set field_issue_dashboard_category to options_select.
+  $issue_form = 'core.entity_form_display.node.ai_issue.default';
+  if (\Drupal::service('config.storage')->exists($issue_form)) {
+    $editable = \Drupal::configFactory()->getEditable($issue_form);
+    $content = $editable->get('content') ?: [];
+    $comp = $content['field_issue_dashboard_category'] ?? NULL;
+    if ($comp === NULL || ($comp['type'] ?? '') !== 'options_select') {
+      $content['field_issue_dashboard_category'] = [
+        'type' => 'options_select',
+        'weight' => isset($comp['weight']) ? $comp['weight'] : 6,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content)->save();
+      $messages[] = 'Set issue dashboard category widget to select.';
+    }
+  }
+
+  // Contributor form: set field_contributor_type to options_select.
+  $contrib_form = 'core.entity_form_display.node.ai_contributor.default';
+  if (\Drupal::service('config.storage')->exists($contrib_form)) {
+    $editable = \Drupal::configFactory()->getEditable($contrib_form);
+    $content = $editable->get('content') ?: [];
+    $comp = $content['field_contributor_type'] ?? NULL;
+    if ($comp === NULL || ($comp['type'] ?? '') !== 'options_select') {
+      $content['field_contributor_type'] = [
+        'type' => 'options_select',
+        'weight' => isset($comp['weight']) ? $comp['weight'] : 2,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content)->save();
+      $messages[] = 'Set contributor type widget to select.';
+    }
+  }
+
+  // Clear field caches for UI.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated widgets to selects. @m', ['@m' => implode(' | ', $messages)]);
+}
+
+/**
+ * Switch issue/contributor audience widgets to checkboxes.
+ */
+function ai_dashboard_update_9008() {
+  $messages = [];
+  // Issue form: set dashboard category to options_buttons (checkboxes).
+  $issue_form = 'core.entity_form_display.node.ai_issue.default';
+  if (\Drupal::service('config.storage')->exists($issue_form)) {
+    $editable = \Drupal::configFactory()->getEditable($issue_form);
+    $content = $editable->get('content') ?: [];
+    $comp = $content['field_issue_dashboard_category'] ?? [];
+    if (($comp['type'] ?? '') !== 'options_buttons') {
+      $content['field_issue_dashboard_category'] = [
+        'type' => 'options_buttons',
+        'weight' => isset($comp['weight']) ? $comp['weight'] : 6,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content)->save();
+      $messages[] = 'Issue dashboard category widget set to checkboxes.';
+    }
+  }
+
+  // Contributor form: set contributor type to options_buttons (checkboxes).
+  $contrib_form = 'core.entity_form_display.node.ai_contributor.default';
+  if (\Drupal::service('config.storage')->exists($contrib_form)) {
+    $editable = \Drupal::configFactory()->getEditable($contrib_form);
+    $content = $editable->get('content') ?: [];
+    $comp = $content['field_contributor_type'] ?? [];
+    if (($comp['type'] ?? '') !== 'options_buttons') {
+      $content['field_contributor_type'] = [
+        'type' => 'options_buttons',
+        'weight' => isset($comp['weight']) ? $comp['weight'] : 2,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      $editable->set('content', $content)->save();
+      $messages[] = 'Contributor type widget set to checkboxes.';
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Switched widgets to checkboxes. @m', ['@m' => implode(' | ', $messages)]);
+}
+
+/**
+ * Migrate import configs: legacy boolean -> audiences; remove boolean usage.
+ */
+function ai_dashboard_update_9009() {
+  $messages = [];
+  /** @var \Drupal\ai_dashboard\Entity\ModuleImport[] $configs */
+  $storage = \Drupal::entityTypeManager()->getStorage('module_import');
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  if (!empty($ids)) {
+    $configs = $storage->loadMultiple($ids);
+    foreach ($configs as $config) {
+      $audiences = method_exists($config, 'getImportAudiences') ? $config->getImportAudiences() : [];
+      // Remove legacy boolean key from config if present.
+      $raw = $config->toArray();
+      $legacy = !empty($raw['mark_non_developer_issues']);
+      if (array_key_exists('mark_non_developer_issues', $raw)) {
+        unset($raw['mark_non_developer_issues']);
+        foreach ($raw as $k => $v) { $config->set($k, $v); }
+        $config->save();
+      }
+      if (empty($audiences) && $legacy) {
+        if (method_exists($config, 'setImportAudiences')) {
+          $config->setImportAudiences(['non_dev']);
+        }
+        $config->save();
+        $messages[] = t('Migrated @id to audiences [non_dev]', ['@id' => $config->id()]);
+      }
+    }
+  }
+  return t('Migrated legacy Non-developer checkbox to audiences. @m', ['@m' => implode(' | ', $messages)]);
+}
+
+/**
+ * Rename labels from Non-Developer/Management to Organisational.
+ */
+function ai_dashboard_update_9010() {
+  $messages = [];
+  // Update Issue Dashboard Category labels.
+  $fs = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  if ($storage = $fs->load('node.field_issue_dashboard_category')) {
+    $allowed = $storage->getSetting('allowed_values');
+    if (is_array($allowed)) {
+      // Allowed values may be associative or sequential arrays.
+      $changed = FALSE;
+      foreach ($allowed as $k => $v) {
+        if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+          if (($v['label'] ?? '') !== 'Organisational') {
+            $allowed[$k]['label'] = 'Organisational';
+            $changed = TRUE;
+          }
+        }
+        elseif (!is_array($v) && $k === 'non_dev' && $v !== 'Organisational') {
+          $allowed[$k] = 'Organisational';
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $storage->setSetting('allowed_values', $allowed)->save();
+        $messages[] = 'Updated issue dashboard category label to Organisational.';
+      }
+    }
+  }
+
+  // Update Contributor Type labels.
+  if ($storage = $fs->load('node.field_contributor_type')) {
+    $allowed = $storage->getSetting('allowed_values');
+    if (is_array($allowed)) {
+      $changed = FALSE;
+      foreach ($allowed as $k => $v) {
+        if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+          if (($v['label'] ?? '') !== 'Organisational') {
+            $allowed[$k]['label'] = 'Organisational';
+            $changed = TRUE;
+          }
+        }
+        elseif (!is_array($v) && $k === 'non_dev' && $v !== 'Organisational') {
+          $allowed[$k] = 'Organisational';
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $storage->setSetting('allowed_values', $allowed)->save();
+        $messages[] = 'Updated contributor type label to Organisational.';
+      }
+    }
+  }
+
+  // Update Company Audience labels (if field exists).
+  if ($storage = $fs->load('node.field_company_audience')) {
+    $allowed = $storage->getSetting('allowed_values');
+    if (is_array($allowed)) {
+      $changed = FALSE;
+      foreach ($allowed as $k => $v) {
+        if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+          if (($v['label'] ?? '') !== 'Organisational') {
+            $allowed[$k]['label'] = 'Organisational';
+            $changed = TRUE;
+          }
+        }
+        elseif (!is_array($v) && $k === 'non_dev' && $v !== 'Organisational') {
+          $allowed[$k] = 'Organisational';
+          $changed = TRUE;
+        }
+      }
+      if ($changed) {
+        $storage->setSetting('allowed_values', $allowed)->save();
+        $messages[] = 'Updated company audience label to Organisational.';
+      }
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated labels to Organisational. @m', ['@m' => implode(' | ', $messages)]);
 }

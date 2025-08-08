@@ -48,7 +48,10 @@
     "scripts": {
         "prl": [
             "composer install --no-dev --optimize-autoloader"
-        ]
+        ],
+        "lint": "vendor/bin/phpcs --standard=Drupal,DrupalPractice web/modules/custom web/themes/custom",
+        "lint:fix": "vendor/bin/phpcbf --standard=Drupal,DrupalPractice web/modules/custom web/themes/custom",
+        "test": "vendor/bin/phpunit -c web/core/phpunit.xml.dist"
     },
     "config": {
         "allow-plugins": {

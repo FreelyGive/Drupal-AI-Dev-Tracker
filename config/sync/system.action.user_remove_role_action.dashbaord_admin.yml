@@ -1,0 +1,14 @@
+uuid: 97d8e458-d141-4116-9662-0267d04042db
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.dashbaord_admin
+  module:
+    - user
+id: user_remove_role_action.dashbaord_admin
+label: 'Remove the Dashbaord admin role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: dashbaord_admin

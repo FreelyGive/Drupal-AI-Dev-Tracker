@@ -53,9 +53,9 @@ class ModuleImportForm extends EntityForm {
     $form['project_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Project Machine Name'),
-      '#description' => $this->t('The project machine name from drupal.org (e.g., "ai" for AI module, "webform" for Webform module). This will be automatically resolved to the project ID.'),
+      '#description' => $this->t('The project machine name from drupal.org (e.g., "ai" for AI module, "webform" for Webform module). If the project is not a module (e.g., an initiative), provide the numeric Project ID below instead.'),
       '#default_value' => $module_import->getProjectMachineName(),
-      '#required' => TRUE,
+      '#required' => FALSE,
     ];
 
     $form['project_id'] = [
@@ -140,6 +140,23 @@ class ModuleImportForm extends EntityForm {
       '#default_value' => $module_import->isNew() ? TRUE : $module_import->isActive(),
     ];
 
+    // Audience multi-select to support Developer and/or Non-Developer.
+    $default_audiences = method_exists($module_import, 'getImportAudiences') ? $module_import->getImportAudiences() : [];
+    if (empty($default_audiences)) {
+      // Default to Developer if not set.
+      $default_audiences = ['dev'];
+    }
+    $form['import_audiences'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Audience for Imported Issues'),
+      '#description' => $this->t('Select who the imported issues are intended for. Choose one or both.'),
+      '#options' => [
+        'dev' => $this->t('Developer'),
+        'non_dev' => $this->t('Non-Developer'),
+      ],
+      '#default_value' => $default_audiences,
+    ];
+
     return $form;
   }
 
@@ -158,8 +175,8 @@ class ModuleImportForm extends EntityForm {
       return;
     }
 
-    // If project name is provided, validate it can be resolved.
-    if (!empty($project_name)) {
+    // If project name is provided but no explicit ID, validate it can be resolved.
+    if (!empty($project_name) && empty($project_id)) {
       try {
         $import_service = \Drupal::service('ai_dashboard.issue_import');
         // Test the resolution by calling the protected method via reflection.
@@ -206,8 +223,16 @@ class ModuleImportForm extends EntityForm {
     $status_filter = array_filter($form_state->getValue('status_filter', []));
     $module_import->setStatusFilter(array_keys($status_filter))
       ->setProjectMachineName($form_state->getValue('project_name'));
+    // Persist explicit project ID when provided.
+    if (!empty($form_state->getValue('project_id'))) {
+      $module_import->setProjectId($form_state->getValue('project_id'));
+    }
     $module_import->setFilterTags($form_state->getValue('filter_tags'));
     $module_import->setFilterComponent($form_state->getValue('filter_component'));
+    if (method_exists($module_import, 'setImportAudiences')) {
+      $audiences = array_values(array_filter($form_state->getValue('import_audiences') ?? []));
+      $module_import->setImportAudiences($audiences);
+    }
 
     $status = $module_import->save();
 

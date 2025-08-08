@@ -49,3 +49,9 @@ ai_dashboard.module_import.*:
     last_run:
       type: integer
       label: 'Last run timestamp'
+    import_audiences:
+      type: sequence
+      label: 'Import issue audiences'
+      sequence:
+        type: string
+        label: 'audience'

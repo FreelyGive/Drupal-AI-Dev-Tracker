@@ -1,12 +1,12 @@
-uuid: acf9571d-110c-4b87-b150-fbde5c419845
+uuid: 7eed9044-903e-49f4-9672-9a6ef32e3349
 langcode: en
 status: true
 dependencies:
   module:
     - node
     - options
-id: node.field_contributor_type
-field_name: field_contributor_type
+id: node.field_company_audience
+field_name: field_company_audience
 entity_type: node
 type: list_string
 settings:

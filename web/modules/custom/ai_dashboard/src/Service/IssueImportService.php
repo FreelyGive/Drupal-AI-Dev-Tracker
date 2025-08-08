@@ -956,6 +956,15 @@ class IssueImportService {
     // Find or create the module node.
     $module_node_id = $this->findOrCreateModule($config->getProjectMachineName());
 
+    // Determine non-developer flag: presence of a non-developer tag.
+    $non_dev_flag = FALSE;
+    foreach ($tags as $t) {
+      if (strcasecmp(trim($t), 'non-developer') === 0 || strcasecmp(trim($t), 'non_developer') === 0) {
+        $non_dev_flag = TRUE;
+        break;
+      }
+    }
+
     return [
       'external_id' => $issue_data['nid'],
       'source_type' => 'drupal_org',
@@ -971,6 +980,8 @@ class IssueImportService {
       'assignee_id' => $assignee_id,
       'created' => $issue_data['created'] ?? time(),
       'changed' => $issue_data['changed'] ?? time(),
+      'non_developer' => $non_dev_flag,
+      'config' => $config,
     ];
   }
 
@@ -1137,8 +1148,24 @@ class IssueImportService {
       'changed' => $mapped_data['changed'],
       'status' => 1,
     ]);
+    // Set non-developer flag if provided and field exists.
+    if (isset($mapped_data['non_developer']) && $issue->hasField('field_issue_non_developer')) {
+      $issue->set('field_issue_non_developer', $mapped_data['non_developer'] ? 1 : 0);
+    }
     if (!empty($mapped_data['assignee_id'])) {
       $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
+
+    // Set dashboard category from import config audiences or mapped flag.
+    $audiences = [];
+    if (!empty($mapped_data['config']) && method_exists($mapped_data['config'], 'getImportAudiences')) {
+      $audiences = $mapped_data['config']->getImportAudiences();
+    }
+    if (empty($audiences)) {
+      $audiences = !empty($mapped_data['non_developer']) ? ['non_dev'] : ['dev'];
+    }
+    if ($issue->hasField('field_issue_dashboard_category')) {
+      $issue->set('field_issue_dashboard_category', array_map(function ($v) { return ['value' => $v]; }, $audiences));
     }
 
     $issue->save();
@@ -1175,8 +1202,24 @@ class IssueImportService {
     $issue->set('field_issue_tags', $mapped_data['tags']);
     $issue->set('field_issue_module', $mapped_data['module'] ?? '');
     $issue->set('field_issue_do_assignee', $mapped_data['do_assignee'] ?? '');
+    // Update non-developer flag if provided.
+    if (isset($mapped_data['non_developer']) && $issue->hasField('field_issue_non_developer')) {
+      $issue->set('field_issue_non_developer', $mapped_data['non_developer'] ? 1 : 0);
+    }
     if (!empty($mapped_data['assignee_id'])) {
       $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
+
+    // Update dashboard category as well.
+    $audiences = [];
+    if (!empty($mapped_data['config']) && method_exists($mapped_data['config'], 'getImportAudiences')) {
+      $audiences = $mapped_data['config']->getImportAudiences();
+    }
+    if (empty($audiences)) {
+      $audiences = !empty($mapped_data['non_developer']) ? ['non_dev'] : ['dev'];
+    }
+    if ($issue->hasField('field_issue_dashboard_category')) {
+      $issue->set('field_issue_dashboard_category', array_map(function ($v) { return ['value' => $v]; }, $audiences));
     }
 
     $issue->setChangedTime($mapped_data['changed']);
@@ -1329,46 +1372,68 @@ class IssueImportService {
   protected function resolveProjectIdFromMachineName(string $machine_name): string {
     // Static cache to avoid repeated API calls.
     static $project_cache = [];
-    
+
     if (isset($project_cache[$machine_name])) {
       return $project_cache[$machine_name];
     }
 
-    try {
-      // Query drupal.org API for project by machine name.
-      $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json', [
-        'query' => [
-          'type' => 'project_module',
-          'field_project_machine_name' => $machine_name,
-          'limit' => 1,
-        ],
-        'timeout' => 10,
-        'headers' => [
-          'User-Agent' => 'AI Dashboard Module/1.0',
-        ],
-      ]);
+    // Try multiple project types commonly used on drupal.org.
+    // Some initiatives or non-module projects are not 'project_module'.
+    $project_types = [
+      'project_module',
+      'project_theme',
+      'project_distribution',
+      'project_core',
+      'project_profile',
+      // Fallback types (rare but included for resilience):
+      'project_theme_engine',
+      'project_translation',
+    ];
 
-      if ($response->getStatusCode() !== 200) {
-        throw new \Exception("API request failed with status: " . $response->getStatusCode());
+    $last_error = NULL;
+    foreach ($project_types as $type) {
+      try {
+        $response = $this->httpClient->request('GET', 'https://www.drupal.org/api-d7/node.json', [
+          'query' => [
+            'type' => $type,
+            'field_project_machine_name' => $machine_name,
+            'limit' => 1,
+          ],
+          'timeout' => 10,
+          'headers' => [
+            'User-Agent' => self::USER_AGENT,
+          ],
+        ]);
+
+        if ($response->getStatusCode() !== 200) {
+          $last_error = "API request failed with status: " . $response->getStatusCode();
+          continue;
+        }
+
+        $data = json_decode($response->getBody()->getContents(), TRUE);
+        if (!empty($data['list'])) {
+          $project = reset($data['list']);
+          if (!empty($project['nid'])) {
+            $project_id = (string) $project['nid'];
+            $project_cache[$machine_name] = $project_id;
+            return $project_id;
+          }
+        }
       }
-
-      $data = json_decode($response->getBody()->getContents(), TRUE);
-
-      if (!isset($data['list']) || empty($data['list'])) {
-        throw new \Exception("Project with machine name '{$machine_name}' not found on drupal.org");
+      catch (\Exception $e) {
+        $last_error = $e->getMessage();
+        // Try next type.
+        continue;
       }
-
-      $project = reset($data['list']);
-      $project_id = $project['nid'];
-
-      // Cache the result.
-      $project_cache[$machine_name] = $project_id;
-
-      return $project_id;
     }
-    catch (\Exception $e) {
-      throw new \Exception("Failed to resolve project ID for machine name '{$machine_name}': " . $e->getMessage());
+
+    // Give a clear guidance if not found.
+    $hint = 'Ensure this is a drupal.org project with an issue queue. If it is not a module (e.g., an initiative), provide the numeric Project ID instead.';
+    $msg = "Failed to resolve project ID for machine name '{$machine_name}'. {$hint}";
+    if ($last_error) {
+      $msg .= ' Last error: ' . $last_error;
     }
+    throw new \Exception($msg);
   }
 
   /**

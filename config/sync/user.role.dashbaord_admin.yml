@@ -1,0 +1,14 @@
+uuid: 17109a5a-b29c-40f0-a8ee-af5ec459c6b1
+langcode: en
+status: true
+dependencies:
+  module:
+    - ai_dashboard
+id: dashbaord_admin
+label: 'Dashbaord admin'
+weight: 4
+is_admin: false
+permissions:
+  - 'access ai dashboard'
+  - 'administer ai dashboard'
+  - 'administer ai dashboard imports'

@@ -122,6 +122,12 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
+  field_issue_dashboard_category:
+    type: options_buttons
+    weight: 6
+    region: content
+    settings: {  }
+    third_party_settings: {  }
 hidden:
   created: true
   promote: true
