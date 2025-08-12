@@ -185,16 +185,35 @@ class ContributorCsvController extends ControllerBase {
       'error_details' => [],
     ];
 
-    // Read file content and convert to UTF-8 if needed
+    // Handle CSV encoding issues (Mac Excel, etc.)
     $content = file_get_contents($file_path);
+    
+    // Fix common character corruptions
+    $content = str_replace('‡', 'á', $content);
+    $content = str_replace('â€¡', 'á', $content);
+    $content = str_replace('Â', 'ý', $content);
+    
+    // Convert from common encodings if needed
     if (!mb_check_encoding($content, 'UTF-8')) {
-      $content = mb_convert_encoding($content, 'UTF-8', 'auto');
-      // Write back UTF-8 content to a temporary file
+      $encodings = ['Windows-1252', 'ISO-8859-1', 'CP1252'];
+      
+      foreach ($encodings as $encoding) {
+        $converted = @mb_convert_encoding($content, 'UTF-8', $encoding);
+        if ($converted && mb_check_encoding($converted, 'UTF-8')) {
+          $content = $converted;
+          // Apply character fixes after conversion
+          $content = str_replace('‡', 'á', $content);
+          $content = str_replace('â€¡', 'á', $content);
+          $content = str_replace('Â', 'ý', $content);
+          break;
+        }
+      }
+      
       $temp_file = tempnam(sys_get_temp_dir(), 'csv_utf8_');
       file_put_contents($temp_file, $content);
       $file_path = $temp_file;
     }
-
+    
     if (($handle = fopen($file_path, 'r')) !== FALSE) {
       $header = fgetcsv($handle);
 

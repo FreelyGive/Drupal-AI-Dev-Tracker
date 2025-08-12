@@ -207,6 +207,20 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 - **Company Linking**: Uses `Company Drupal Profile` as primary unique identifier
 - **Multi-role Support**: Handles comma-separated tracker roles with intelligent mapping
 - **UTF-8 Support**: Automatically detects and converts file encoding to handle accented characters (e.g., Gábor Hojtsy)
+- **Mac Excel Compatibility**: Handles Mac Roman encoding from Mac Excel CSV exports automatically
+
+#### CSV Export Best Practices
+For best results when exporting CSV from Google Sheets:
+
+1. **Google Sheets** (Recommended workflow):
+   - File → Download → Comma Separated Values (.csv) 
+   - Upload directly to the importer **without opening in Excel**
+   - This preserves UTF-8 encoding and handles accented characters perfectly
+
+2. **Important**: **Do not open CSV files in Mac Excel** after downloading from Google Sheets
+   - Opening in Mac Excel corrupts the UTF-8 encoding
+   - This causes accented characters (á, ý, etc.) to display incorrectly
+   - The importer includes automatic encoding fixes for common issues
 
 #### Issue Import System
 - **Deduplication**: Uses issue numbers as unique identifiers to prevent duplicates
