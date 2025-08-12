@@ -185,6 +185,16 @@ class ContributorCsvController extends ControllerBase {
       'error_details' => [],
     ];
 
+    // Read file content and convert to UTF-8 if needed
+    $content = file_get_contents($file_path);
+    if (!mb_check_encoding($content, 'UTF-8')) {
+      $content = mb_convert_encoding($content, 'UTF-8', 'auto');
+      // Write back UTF-8 content to a temporary file
+      $temp_file = tempnam(sys_get_temp_dir(), 'csv_utf8_');
+      file_put_contents($temp_file, $content);
+      $file_path = $temp_file;
+    }
+
     if (($handle = fopen($file_path, 'r')) !== FALSE) {
       $header = fgetcsv($handle);
 
@@ -214,6 +224,11 @@ class ContributorCsvController extends ControllerBase {
         }
       }
       fclose($handle);
+    }
+
+    // Clean up temporary file if created
+    if (isset($temp_file) && file_exists($temp_file)) {
+      unlink($temp_file);
     }
 
     return $results;

@@ -206,6 +206,7 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 - **Re-import Capability**: Updates existing contributors/companies based on unique identifiers
 - **Company Linking**: Uses `Company Drupal Profile` as primary unique identifier
 - **Multi-role Support**: Handles comma-separated tracker roles with intelligent mapping
+- **UTF-8 Support**: Automatically detects and converts file encoding to handle accented characters (e.g., Gábor Hojtsy)
 
 #### Issue Import System
 - **Deduplication**: Uses issue numbers as unique identifiers to prevent duplicates
