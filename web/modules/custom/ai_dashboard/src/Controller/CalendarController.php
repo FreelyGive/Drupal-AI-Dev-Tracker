@@ -171,7 +171,7 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link active">Calendar View</a>
-          <a href="/ai-dashboard/calendar/non-developer" class="nav-link">Non-Developer View</a>
+          <a href="/ai-dashboard/calendar/non-developer" class="nav-link">Organisational View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
@@ -454,12 +454,12 @@ class CalendarController extends ControllerBase {
   }
 
   /**
-   * Sort calendar data by AI Maker status, company name, and developer name.
+   * Sort calendar data by AI Sponsor status, company name, and developer name.
    */
   private function sortCalendarData(&$calendar_data) {
-    // Sort companies: AI Makers first, then alphabetical by name.
+    // Sort companies: AI Sponsors first, then alphabetical by name.
     usort($calendar_data['companies'], function ($a, $b) {
-      // First sort by AI Maker status (true first, false second)
+      // First sort by AI Sponsor status (true first, false second)
       if ($a['is_ai_maker'] !== $b['is_ai_maker']) {
         // True (1) comes before false (0)
         return $b['is_ai_maker'] <=> $a['is_ai_maker'];

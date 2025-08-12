@@ -160,7 +160,7 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 
 #### Content Types
 - **AI Company**: Organizations contributing to AI modules
-  - `field_company_ai_maker` - Boolean indicating AI Maker status
+  - `field_company_ai_maker` - Boolean indicating AI Sponsor status
   - `field_company_drupal_profile` - Drupal.org profile name for linking
   - `field_company_color`, `field_company_logo`, `field_company_size`, `field_company_website`
 
@@ -180,12 +180,12 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 
 #### Calendar Dashboard
 - **URL**: `/ai-dashboard/calendar`
-- **Sorting**: AI Makers first, then alphabetical by company, then by developer name
+- **Sorting**: AI Sponsors first, then alphabetical by company, then by developer name
 - **Features**:
   - Weekly view with issue assignments
   - Drag-and-drop issue assignment
   - Backlog drawer with filtering
-  - AI Maker badges (blue "MAKER" for makers, strikethrough for non-makers)
+  - AI Sponsor badges (blue "SPONSOR" for sponsors, strikethrough for non-sponsors)
   - Company links to drupal.org profiles
   - Edit buttons for admins (⚙️ cog icon)
   - Sync buttons to pull drupal.org assignments
@@ -196,7 +196,7 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
   1. Name - Contributor's full name
   2. Username (d.o) - Drupal.org username (unique identifier)
   3. Organization - Company name
-  4. AI Maker? - Yes/No for AI Maker status
+  4. AI Sponsor? - Yes/No for AI Sponsor status
   5. Tracker Role - Comma-separated roles (Developer, Front-end, Management, etc.)
   6. Skills - Comma-separated skills
   7. Commitment (days/week) - Weekly time commitment
