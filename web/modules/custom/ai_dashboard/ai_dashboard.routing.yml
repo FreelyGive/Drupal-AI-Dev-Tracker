@@ -39,7 +39,7 @@ ai_dashboard.calendar:
     _access: 'TRUE'
 
 ai_dashboard.calendar_non_dev:
-  path: '/ai-dashboard/calendar/non-developer'
+  path: '/ai-dashboard/calendar/organisational'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::calendarViewNonDev'
     _title: 'Organisational Issues Calendar'

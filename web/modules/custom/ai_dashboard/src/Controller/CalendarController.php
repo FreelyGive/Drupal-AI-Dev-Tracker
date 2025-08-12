@@ -72,7 +72,7 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/calendar/non-developer" class="nav-link active">Organisational View</a>
+          <a href="/ai-dashboard/calendar/organisational" class="nav-link active">Organisational View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
@@ -171,7 +171,7 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link active">Calendar View</a>
-          <a href="/ai-dashboard/calendar/non-developer" class="nav-link">Organisational View</a>
+          <a href="/ai-dashboard/calendar/organisational" class="nav-link">Organisational View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
