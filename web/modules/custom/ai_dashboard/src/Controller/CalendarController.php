@@ -331,86 +331,101 @@ class CalendarController extends ControllerBase {
             }
           }
 
-          // Find issues for this contributor in the current week.
-          foreach ($issues as $issue) {
-            // In non-developer view, rely on contributor type; no extra
-            // issue-level filter is applied here.
-            if ($this->isIssueAssignedToContributor($issue, $contributor->id()) &&
-                $this->isIssueInCurrentWeek($issue, $week_start, $week_end)) {
+          // Find assignments for this contributor in the current week using AssignmentRecord.
+          $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($week_start);
+          $assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+            'assignee_id' => $contributor->id(),
+            'week_id' => $week_id,
+          ]);
 
-              // For non-developer view, include only issues marked as non_dev.
-              // For developer view, exclude any issue marked as non_dev.
-              if ($issue->hasField('field_issue_dashboard_category') && !$issue->get('field_issue_dashboard_category')->isEmpty()) {
-                $has_non_dev = FALSE;
-                foreach ($issue->get('field_issue_dashboard_category') as $item) {
-                  if ($item->value === 'non_dev') {
-                    $has_non_dev = TRUE;
-                    break;
-                  }
-                }
-                if ($non_developer_only && !$has_non_dev) {
-                  continue;
-                }
-                if (!$non_developer_only && $has_non_dev) {
-                  continue;
+          foreach ($assignments as $assignment) {
+            $issue_id = $assignment->get('issue_id')->target_id;
+            if (empty($issue_id)) {
+              // Skip assignments with NULL issue_id
+              continue;
+            }
+            
+            $issue = \Drupal\node\Entity\Node::load($issue_id);
+            if (!$issue || $issue->bundle() !== 'ai_issue') {
+              continue;
+            }
+
+            // Determine assignment status (current vs historical)
+            $assignment_status = $this->isCurrentlyAssigned($issue, $contributor->id()) ? 'current' : 'historical';
+
+            // For non-developer view, include only issues marked as non_dev.
+            // For developer view, exclude any issue marked as non_dev.
+            if ($issue->hasField('field_issue_dashboard_category') && !$issue->get('field_issue_dashboard_category')->isEmpty()) {
+              $has_non_dev = FALSE;
+              foreach ($issue->get('field_issue_dashboard_category') as $item) {
+                if ($item->value === 'non_dev') {
+                  $has_non_dev = TRUE;
+                  break;
                 }
               }
-              elseif ($non_developer_only) {
-                // No category set: exclude from non-developer view.
+              if ($non_developer_only && !$has_non_dev) {
                 continue;
               }
-
-              $issue_data = [
-                'id' => $issue->id(),
-                'nid' => $issue->id(),
-                'title' => $this->sanitizeText($issue->getTitle()),
-                'status' => $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active',
-                'priority' => $issue->hasField('field_issue_priority') ? $issue->get('field_issue_priority')->value : 'normal',
-                'category' => $issue->hasField('field_issue_category') ? $issue->get('field_issue_category')->value : 'ai_integration',
-                'deadline' => NULL,
-                'url' => '#',
-                'issue_number' => $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : '',
-                'updated' => $issue->getChangedTime(),
-                'do_assignee' => $issue->hasField('field_issue_do_assignee') ? $issue->get('field_issue_do_assignee')->value : '',
-                'has_conflict' => FALSE,
-              ];
-
-              // Get deadline.
-              if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
-                $issue_data['deadline'] = $issue->get('field_issue_deadline')->value;
+              if (!$non_developer_only && $has_non_dev) {
+                continue;
               }
+            }
+            elseif ($non_developer_only) {
+              // No category set: exclude from non-developer view.
+              continue;
+            }
 
-              // Get issue URL.
-              if ($issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty()) {
-                $issue_data['url'] = $issue->get('field_issue_url')->uri;
-              }
+            $issue_data = [
+              'id' => $issue->id(),
+              'nid' => $issue->id(),
+              'title' => $this->sanitizeText($issue->getTitle()),
+              'status' => $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active',
+              'priority' => $issue->hasField('field_issue_priority') ? $issue->get('field_issue_priority')->value : 'normal',
+              'category' => $issue->hasField('field_issue_category') ? $issue->get('field_issue_category')->value : 'ai_integration',
+              'deadline' => NULL,
+              'url' => '#',
+              'issue_number' => $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : '',
+              'updated' => $issue->getChangedTime(),
+              'do_assignee' => $issue->hasField('field_issue_do_assignee') ? $issue->get('field_issue_do_assignee')->value : '',
+              'assignment_status' => $assignment_status, // 'current', 'historical', or 'none'
+              'has_conflict' => FALSE,
+            ];
 
-              // Check for d.o assignment conflict.
-              if (!empty($issue_data['do_assignee']) && !empty($developer_data['username'])) {
-                $issue_data['has_conflict'] = (strtolower($issue_data['do_assignee']) !== strtolower($developer_data['username']));
-              }
+            // Get deadline.
+            if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
+              $issue_data['deadline'] = $issue->get('field_issue_deadline')->value;
+            }
 
-              $developer_data['issues'][] = $issue_data;
+            // Get issue URL.
+            if ($issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty()) {
+              $issue_data['url'] = $issue->get('field_issue_url')->uri;
+            }
 
-              // Update week summary.
-              switch ($issue_data['status']) {
-                case 'active':
-                  $calendar_data['week_summary']['active']++;
-                  break;
+            // Check for d.o assignment conflict.
+            if (!empty($issue_data['do_assignee']) && !empty($developer_data['username'])) {
+              $issue_data['has_conflict'] = (strtolower($issue_data['do_assignee']) !== strtolower($developer_data['username']));
+            }
 
-                case 'needs_review':
-                  $calendar_data['week_summary']['needs_review']++;
-                  break;
+            $developer_data['issues'][] = $issue_data;
 
-                case 'needs_work':
-                  $calendar_data['week_summary']['needs_work']++;
-                  break;
+            // Update week summary.
+            switch ($issue_data['status']) {
+              case 'active':
+                $calendar_data['week_summary']['active']++;
+                break;
 
-                case 'fixed':
-                case 'rtbc':
-                  $calendar_data['week_summary']['fixed']++;
-                  break;
-              }
+              case 'needs_review':
+                $calendar_data['week_summary']['needs_review']++;
+                break;
+
+              case 'needs_work':
+                $calendar_data['week_summary']['needs_work']++;
+                break;
+
+              case 'fixed':
+              case 'rtbc':
+                $calendar_data['week_summary']['fixed']++;
+                break;
             }
           }
 
@@ -498,21 +513,80 @@ class CalendarController extends ControllerBase {
    * Check if an issue is relevant to the current week.
    */
   private function isIssueInCurrentWeek($issue, \DateTime $week_start, \DateTime $week_end) {
-    // If issue has assignment dates, check if any fall within this week.
-    if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-      foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-        $assignment_date = new \DateTime($date_item->value);
-        // Check if any assignment date falls within this week.
-        if ($assignment_date >= $week_start && $assignment_date <= $week_end) {
-          return TRUE;
+    // Calculate week ID for the target week.
+    $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($week_start);
+    
+    // Check if there are any assignments for this issue in the target week.
+    $assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+      'issue_id' => $issue->id(),
+      'week_id' => $week_id,
+    ]);
+
+    return !empty($assignments);
+  }
+
+  /**
+   * Get the assignment status for an issue and contributor.
+   *
+   * @param $issue
+   *   The issue node.
+   * @param $contributor_id
+   *   The contributor node ID.
+   *
+   * @return string
+   *   'current' if currently assigned, 'historical' if historically assigned but not current, 'none' if never assigned.
+   */
+  private function getIssueAssignmentStatus($issue, $contributor_id) {
+    $is_current_assignee = FALSE;
+    $is_historical_assignee = FALSE;
+
+    // Check current assignees.
+    if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
+      foreach ($issue->get('field_issue_assignees') as $assignee) {
+        if ($assignee->target_id == $contributor_id) {
+          $is_current_assignee = TRUE;
+          break;
         }
       }
-      // If there are assignment dates but none match this week, return false.
+    }
+
+    // If currently assigned, return 'current' regardless of historical status.
+    if ($is_current_assignee) {
+      return 'current';
+    }
+
+    // Check if this contributor has any historical assignments for this issue.
+    $historical_assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+      'issue_id' => $issue->id(),
+      'assignee_id' => $contributor_id,
+    ]);
+
+    // Return 'historical' if there are past assignments but not currently assigned, otherwise 'none'.
+    return !empty($historical_assignments) ? 'historical' : 'none';
+  }
+
+  /**
+   * Check if an issue is currently assigned to a contributor.
+   *
+   * @param $issue
+   *   The issue node.
+   * @param $contributor_id
+   *   The contributor node ID.
+   *
+   * @return bool
+   *   TRUE if currently assigned, FALSE otherwise.
+   */
+  private function isCurrentlyAssigned($issue, $contributor_id) {
+    if (!$issue->hasField('field_issue_assignees') || $issue->get('field_issue_assignees')->isEmpty()) {
       return FALSE;
     }
 
-    // STRICT: Only show issues if they have explicit assignment dates for this week.
-    // No fallback logic - issues must be specifically assigned to show in calendar.
+    foreach ($issue->get('field_issue_assignees') as $assignee) {
+      if ($assignee->target_id == $contributor_id) {
+        return TRUE;
+      }
+    }
+
     return FALSE;
   }
 
@@ -690,37 +764,31 @@ class CalendarController extends ControllerBase {
         return new JsonResponse(['success' => FALSE, 'message' => 'Developer not found']);
       }
 
-      // Assign the issue to the developer.
-      $issue->set('field_issue_assignees', [['target_id' => $developer_id]]);
-
-      // Set assignment date based on week offset.
+      // Calculate target week.
       $assignment_date = new \DateTime();
       if ($week_offset !== 0) {
         $assignment_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
       }
       $assignment_date->modify('Monday this week');
-      $assignment_date_string = $assignment_date->format('Y-m-d');
+      $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($assignment_date);
 
-      if ($issue->hasField('field_issue_assignment_date')) {
-        // Get existing assignment dates.
-        $existing_dates = [];
-        if (!$issue->get('field_issue_assignment_date')->isEmpty()) {
-          foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-            $existing_dates[] = $date_item->value;
-          }
-        }
+      // Get current issue status.
+      $issue_status = $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
 
-        // Add new date if not already present.
-        if (!in_array($assignment_date_string, $existing_dates)) {
-          $existing_dates[] = $assignment_date_string;
-          $date_values = array_map(function ($date) {
-            return ['value' => $date];
-          }, $existing_dates);
-          $issue->set('field_issue_assignment_date', $date_values);
-        }
+      // Create assignment record using AssignmentRecord system.
+      $assignment_record = \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+        $issue_id,
+        $developer_id,
+        $week_id,
+        'drag_drop',
+        $issue_status
+      );
+
+      if ($assignment_record) {
+        // Update current assignees for compatibility.
+        $issue->set('field_issue_assignees', [['target_id' => $developer_id]]);
+        $issue->save();
       }
-
-      $issue->save();
 
       // Invalidate relevant caches.
       $this->invalidateCalendarCaches();
@@ -754,63 +822,51 @@ class CalendarController extends ControllerBase {
       $from_week = (int) $request->request->get('from_week', 0);
       $to_week = (int) $request->request->get('to_week', 0);
 
-      // Calculate date ranges.
+      // Calculate week IDs.
       $from_date = new \DateTime();
       if ($from_week !== 0) {
         $from_date->modify($from_week > 0 ? "+{$from_week} weeks" : $from_week . " weeks");
       }
       $from_date->modify('Monday this week');
-      $from_start = clone $from_date;
-      $from_end = (clone $from_date)->modify('+6 days');
+      $from_week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($from_date);
 
       $to_date = new \DateTime();
       if ($to_week !== 0) {
         $to_date->modify($to_week > 0 ? "+{$to_week} weeks" : $to_week . " weeks");
       }
       $to_date->modify('Monday this week');
+      $to_week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($to_date);
 
-      $node_storage = $this->entityTypeManager->getStorage('node');
-
-      // Get all issues from the source week.
-      $issues = $node_storage->loadByProperties(['type' => 'ai_issue']);
+      // Get all assignments from the source week.
+      $from_assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::getAssignmentsForWeek($from_week_id);
       $copied_count = 0;
 
-      foreach ($issues as $issue) {
-        // Check if issue was assigned in the source week.
-        if ($this->isIssueInCurrentWeek($issue, $from_start, $from_end) &&
-            $this->hasAssignees($issue)) {
+      foreach ($from_assignments as $from_assignment) {
+        $issue_id = $from_assignment->get('issue_id')->target_id;
+        $assignee_id = $from_assignment->get('assignee_id')->target_id;
+        
+        // Check if assignment already exists for target week.
+        $already_exists = \Drupal\ai_dashboard\Entity\AssignmentRecord::assignmentExists(
+          $issue_id,
+          $assignee_id,
+          $to_week_id
+        );
 
-          $to_date_string = $to_date->format('Y-m-d');
+        if (!$already_exists) {
+          // Load the issue to get current status.
+          $issue = \Drupal\node\Entity\Node::load($issue_id);
+          $issue_status = $issue && $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
 
-          // Check if this issue is already assigned to the target week.
-          $already_assigned_to_target_week = FALSE;
-          if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-            foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-              if ($date_item->value === $to_date_string) {
-                $already_assigned_to_target_week = TRUE;
-                break;
-              }
-            }
-          }
+          // Create new assignment record for target week.
+          $new_assignment = \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+            $issue_id,
+            $assignee_id,
+            $to_week_id,
+            'copy_week',
+            $issue_status
+          );
 
-          // Only add the target week if not already assigned.
-          if (!$already_assigned_to_target_week) {
-            // Get existing assignment dates.
-            $existing_dates = [];
-            if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-              foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-                $existing_dates[] = $date_item->value;
-              }
-            }
-
-            // Add the new week to existing assignments.
-            $existing_dates[] = $to_date_string;
-            $date_values = array_map(function ($date) {
-              return ['value' => $date];
-            }, $existing_dates);
-
-            $issue->set('field_issue_assignment_date', $date_values);
-            $issue->save();
+          if ($new_assignment) {
             $copied_count++;
           }
         }
@@ -852,6 +908,7 @@ class CalendarController extends ControllerBase {
   public function unassignIssue(Request $request) {
     try {
       $issue_id = $request->request->get('issue_id');
+      $developer_id = $request->request->get('developer_id'); // Add this parameter
       $week_offset = (int) $request->request->get('week_offset', 0);
 
       if (!$issue_id) {
@@ -866,32 +923,54 @@ class CalendarController extends ControllerBase {
         return new JsonResponse(['success' => FALSE, 'message' => 'Issue not found']);
       }
 
-      // Calculate the current week's Monday date.
+      // Calculate the current week.
       $current_week_date = new \DateTime();
       if ($week_offset !== 0) {
         $current_week_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
       }
       $current_week_date->modify('Monday this week');
-      $current_week_string = $current_week_date->format('Y-m-d');
+      $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($current_week_date);
 
-      // Remove only the current week's assignment date.
-      if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-        $remaining_dates = [];
-        foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-          if ($date_item->value !== $current_week_string) {
-            $remaining_dates[] = ['value' => $date_item->value];
-          }
-        }
-        $issue->set('field_issue_assignment_date', $remaining_dates);
-
-        // Only clear assignees if no more assignment dates remain.
-        if (empty($remaining_dates)) {
-          $issue->set('field_issue_assignees', []);
-        }
+      // Remove assignment records for this week.
+      $assignments_to_remove = [];
+      if ($developer_id) {
+        // Remove specific developer's assignment for this week.
+        $assignments_to_remove = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+          'issue_id' => $issue_id,
+          'assignee_id' => $developer_id,
+          'week_id' => $week_id,
+        ]);
+      } else {
+        // Remove all assignments for this issue in this week.
+        $assignments_to_remove = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+          'issue_id' => $issue_id,
+          'week_id' => $week_id,
+        ]);
       }
-      else {
-        // Fallback: clear assignees if no assignment dates exist.
+
+      // Delete the assignment records.
+      if (!empty($assignments_to_remove)) {
+        $assignment_storage = \Drupal::entityTypeManager()->getStorage('assignment_record');
+        $assignment_storage->delete($assignments_to_remove);
+      }
+
+      // Update current assignees field if needed.
+      // Check if this issue has any current assignments.
+      $current_week_assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::loadByProperties([
+        'issue_id' => $issue_id,
+        'week_id' => $week_id,
+      ]);
+
+      if (empty($current_week_assignments)) {
+        // No more assignments for current week - clear assignees.
         $issue->set('field_issue_assignees', []);
+      } else {
+        // Update assignees to reflect remaining assignments.
+        $assignee_ids = [];
+        foreach ($current_week_assignments as $assignment) {
+          $assignee_ids[] = ['target_id' => $assignment->get('assignee_id')->target_id];
+        }
+        $issue->set('field_issue_assignees', $assignee_ids);
       }
 
       $issue->save();
@@ -959,53 +1038,39 @@ class CalendarController extends ControllerBase {
       $issue_ids = $query->execute();
       $synced_count = 0;
 
+      // Calculate week ID for assignment checking.
+      $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($assignment_date);
+
       if (!empty($issue_ids)) {
         $issues = $node_storage->loadMultiple($issue_ids);
 
         foreach ($issues as $issue) {
-          // Check if issue is already assigned to this developer for this week.
-          $already_assigned = FALSE;
-
-          // Check current assignees.
-          if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
-            foreach ($issue->get('field_issue_assignees') as $assignee) {
-              if ($assignee->target_id == $developer_id) {
-                // Check if already assigned for this week.
-                if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-                  foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-                    if ($date_item->value === $assignment_date_string) {
-                      $already_assigned = TRUE;
-                      break 2;
-                    }
-                  }
-                }
-                break;
-              }
-            }
-          }
+          // Check if assignment already exists for this issue/developer/week.
+          $already_assigned = \Drupal\ai_dashboard\Entity\AssignmentRecord::assignmentExists(
+            $issue->id(),
+            $developer_id,
+            $week_id
+          );
 
           if (!$already_assigned) {
-            // Assign the issue to this developer.
-            $issue->set('field_issue_assignees', [['target_id' => $developer_id]]);
+            // Get current issue status.
+            $issue_status = $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
+            
+            // Create assignment record.
+            $assignment_record = \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+              $issue->id(),
+              $developer_id,
+              $week_id,
+              'drupal_org_sync',
+              $issue_status
+            );
 
-            // Add assignment date.
-            $existing_dates = [];
-            if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-              foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-                $existing_dates[] = $date_item->value;
-              }
+            if ($assignment_record) {
+              // Update current assignees for compatibility.
+              $issue->set('field_issue_assignees', [['target_id' => $developer_id]]);
+              $issue->save();
+              $synced_count++;
             }
-
-            if (!in_array($assignment_date_string, $existing_dates)) {
-              $existing_dates[] = $assignment_date_string;
-              $date_values = array_map(function ($date) {
-                return ['value' => $date];
-              }, $existing_dates);
-              $issue->set('field_issue_assignment_date', $date_values);
-            }
-
-            $issue->save();
-            $synced_count++;
           }
         }
       }
@@ -1096,50 +1161,37 @@ class CalendarController extends ControllerBase {
         $contributor_synced = 0;
 
         foreach ($issues as $issue) {
-          // Check if the issue is already assigned to this contributor
-          // for this week.
-          $already_assigned = FALSE;
-
-          if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
-            foreach ($issue->get('field_issue_assignees') as $assignee) {
-              if ($assignee->target_id == $contributor->id()) {
-                // Check if already assigned for this week.
-                if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-                  foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-                    if ($date_item->value === $assignment_date_string) {
-                      $already_assigned = TRUE;
-                      break 2;
-                    }
-                  }
-                }
-                break;
-              }
-            }
-          }
+          // Calculate week_id for the assignment date.
+          $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($assignment_date);
+          
+          // Check if assignment record already exists for this issue/contributor/week.
+          $already_assigned = \Drupal\ai_dashboard\Entity\AssignmentRecord::assignmentExists(
+            $issue->id(),
+            $contributor->id(),
+            $week_id
+          );
 
           if (!$already_assigned) {
-            // Assign the issue to this contributor.
-            $issue->set('field_issue_assignees', [['target_id' => $contributor->id()]]);
-
-            // Add assignment date.
-            $existing_dates = [];
-            if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-              foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-                $existing_dates[] = $date_item->value;
-              }
+            // Get current issue status for the snapshot.
+            $issue_status = $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
+            
+            // Create assignment record using the new system.
+            $assignment_record = \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+              $issue->id(),
+              $contributor->id(),
+              $week_id,
+              'drupal_org_sync',
+              $issue_status
+            );
+            
+            if ($assignment_record) {
+              // Update current assignees field for backward compatibility.
+              $issue->set('field_issue_assignees', [['target_id' => $contributor->id()]]);
+              $issue->save();
+              
+              $contributor_synced++;
+              $total_synced++;
             }
-
-            if (!in_array($assignment_date_string, $existing_dates)) {
-              $existing_dates[] = $assignment_date_string;
-              $date_values = array_map(function ($date) {
-                return ['value' => $date];
-              }, $existing_dates);
-              $issue->set('field_issue_assignment_date', $date_values);
-            }
-
-            $issue->save();
-            $contributor_synced++;
-            $total_synced++;
           }
         }
 
@@ -1179,53 +1231,46 @@ class CalendarController extends ControllerBase {
     try {
       $week_offset = (int) $request->request->get('week_offset', 0);
 
-      // Calculate the target week date.
+      // Calculate the target week date and week_id.
       $target_date = new \DateTime();
       if ($week_offset !== 0) {
         $target_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
       }
       $target_date->modify('Monday this week');
-      $target_date_string = $target_date->format('Y-m-d');
+      $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($target_date);
 
-      $node_storage = $this->entityTypeManager->getStorage('node');
-
-      // Find all AI issues that have assignments for this specific week.
-      $query = $node_storage->getQuery()
-        ->condition('type', 'ai_issue')
-        ->condition('field_issue_assignment_date', $target_date_string)
-        ->accessCheck(FALSE);
-
-      $issue_ids = $query->execute();
+      // Find all assignment records for this specific week.
+      $assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::getAssignmentsForWeek($week_id);
       $removed_count = 0;
+      $affected_issues = [];
 
-      if (!empty($issue_ids)) {
-        $issues = $node_storage->loadMultiple($issue_ids);
+      // Delete all assignment records for this week.
+      foreach ($assignments as $assignment) {
+        $issue_id = $assignment->get('issue_id')->target_id;
+        $affected_issues[$issue_id] = $issue_id;
+        $assignment->delete();
+        $removed_count++;
+      }
+
+      // Update field_issue_assignees for affected issues by checking remaining assignments.
+      if (!empty($affected_issues)) {
+        $node_storage = $this->entityTypeManager->getStorage('node');
+        $issues = $node_storage->loadMultiple($affected_issues);
 
         foreach ($issues as $issue) {
-          $updated = FALSE;
-
-          // Remove the specific assignment date.
-          if ($issue->hasField('field_issue_assignment_date') && !$issue->get('field_issue_assignment_date')->isEmpty()) {
-            $remaining_dates = [];
-            foreach ($issue->get('field_issue_assignment_date') as $date_item) {
-              if ($date_item->value !== $target_date_string) {
-                $remaining_dates[] = ['value' => $date_item->value];
-              }
-            }
-
-            $issue->set('field_issue_assignment_date', $remaining_dates);
-            $updated = TRUE;
-          }
-
-          // If no assignment dates remain, also clear assignees.
-          if (empty($remaining_dates)) {
+          // Check if this issue has any remaining assignments.
+          $remaining_assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::getAssignmentsForIssue($issue->id());
+          
+          if (empty($remaining_assignments)) {
+            // No more assignments, clear current assignees.
             $issue->set('field_issue_assignees', []);
-            $updated = TRUE;
-          }
-
-          if ($updated) {
             $issue->save();
-            $removed_count++;
+          } else {
+            // Update current assignees based on most recent assignment.
+            $latest_assignment = end($remaining_assignments);
+            $assignee_id = $latest_assignment->get('assignee_id')->target_id;
+            $issue->set('field_issue_assignees', [['target_id' => $assignee_id]]);
+            $issue->save();
           }
         }
       }

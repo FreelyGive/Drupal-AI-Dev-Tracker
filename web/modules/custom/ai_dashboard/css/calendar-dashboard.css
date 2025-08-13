@@ -597,6 +597,37 @@ body.path-ai-dashboard {
   border-left-color: #6b7280 !important;
 }
 
+/* Assignment Status Styles */
+.issue-card.assignment-current {
+  opacity: 1.0;
+}
+
+.issue-card.assignment-historical {
+  opacity: 0.6;
+  position: relative;
+}
+
+.issue-card.assignment-historical::before {
+  content: "Historical";
+  position: absolute;
+  top: -8px;
+  right: 4px;
+  background: #6b7280;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.issue-card.assignment-historical .issue-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(107, 114, 128, 0.5);
+  text-decoration-thickness: 1px;
+}
+
 .issue-header {
   display: flex;
   align-items: center;

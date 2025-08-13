@@ -1170,6 +1170,27 @@ class IssueImportService {
 
     $issue->save();
 
+    // Create AssignmentRecord for current week if assignee exists.
+    if (!empty($mapped_data['assignee_id'])) {
+      $current_week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::getCurrentWeekId();
+      $issue_status = $mapped_data['status'] ?? 'active';
+      
+      // Check if assignment already exists to avoid duplicates.
+      if (!\Drupal\ai_dashboard\Entity\AssignmentRecord::assignmentExists(
+        $issue->id(),
+        $mapped_data['assignee_id'],
+        $current_week_id
+      )) {
+        \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+          $issue->id(),
+          $mapped_data['assignee_id'],
+          $current_week_id,
+          'drupal_org_sync',
+          $issue_status
+        );
+      }
+    }
+
     // Cache this newly created issue to prevent duplicates in
     // the same import session.
     static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
@@ -1225,6 +1246,27 @@ class IssueImportService {
     $issue->setChangedTime($mapped_data['changed']);
 
     $issue->save();
+
+    // Create AssignmentRecord for current week if assignee exists.
+    if (!empty($mapped_data['assignee_id'])) {
+      $current_week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::getCurrentWeekId();
+      $issue_status = $mapped_data['status'] ?? 'active';
+      
+      // Check if assignment already exists to avoid duplicates.
+      if (!\Drupal\ai_dashboard\Entity\AssignmentRecord::assignmentExists(
+        $issue->id(),
+        $mapped_data['assignee_id'],
+        $current_week_id
+      )) {
+        \Drupal\ai_dashboard\Entity\AssignmentRecord::createAssignment(
+          $issue->id(),
+          $mapped_data['assignee_id'],
+          $current_week_id,
+          'drupal_org_sync',
+          $issue_status
+        );
+      }
+    }
 
     // Cache this updated issue in the session.
     static::$importSessionCache[$mapped_data['issue_number']] = $issue->id();
@@ -1571,6 +1613,19 @@ class IssueImportService {
       'direction' => 'DESC',
       'limit' => self::BATCH_SIZE,
     ];
+
+    // Apply component filter if set.
+    $component = $config->getFilterComponent();
+    if (!empty($component)) {
+      $params['field_issue_component'] = $component;
+    }
+
+    // Apply status filter - use first status if multiple selected.
+    $status_filter = $config->getStatusFilter();
+    if (!empty($status_filter) && is_array($status_filter)) {
+      $params['field_issue_status'] = $status_filter[0];
+    }
+
     $page = 0;
     $chunks = [];
     $lastPage = 0;

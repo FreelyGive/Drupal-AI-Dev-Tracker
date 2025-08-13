@@ -52,6 +52,103 @@ function ai_dashboard_theme() {
     'admin_tools_landing' => [
       'variables' => [],
     ],
+    'assignment_records_table' => [
+      'variables' => [
+        'assignments' => [],
+        'issue_id' => NULL,
+      ],
+    ],
   ];
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ */
+function ai_dashboard_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\node\NodeInterface $node */
+  $node = $form_state->getFormObject()->getEntity();
+  
+  // Only add assignment records display to AI Issue content type.
+  if ($node->bundle() !== 'ai_issue') {
+    return;
+  }
+  
+  // Only show for existing nodes (not new ones).
+  if ($node->isNew()) {
+    return;
+  }
+  
+  // Get all assignment records for this issue.
+  $assignments = \Drupal\ai_dashboard\Entity\AssignmentRecord::getAssignmentsForIssue($node->id());
+  
+  if (!empty($assignments)) {
+    // Build assignment records display.
+    $assignment_data = [];
+    foreach ($assignments as $assignment) {
+      $assignee = $assignment->get('assignee_id')->entity;
+      $week_date = \Drupal\ai_dashboard\Entity\AssignmentRecord::weekIdToDate($assignment->get('week_id')->value);
+      
+      $assignment_data[] = [
+        'id' => $assignment->id(),
+        'assignee_name' => $assignee ? $assignee->getTitle() : 'Unknown',
+        'assignee_id' => $assignment->get('assignee_id')->target_id,
+        'week_id' => $assignment->get('week_id')->value,
+        'week_date' => $week_date->format('M j, Y'),
+        'week_start' => $week_date->format('Y-m-d'),
+        'issue_status' => $assignment->get('issue_status_at_assignment')->value,
+        'source' => $assignment->get('source')->value,
+        'assigned_date' => date('M j, Y g:i A', $assignment->get('assigned_date')->value),
+      ];
+    }
+    
+    // Sort by week_id descending (most recent first).
+    usort($assignment_data, function($a, $b) {
+      return $b['week_id'] <=> $a['week_id'];
+    });
+    
+    // Add assignment records section to form.
+    $form['assignment_records'] = [
+      '#type' => 'details',
+      '#title' => t('Assignment History (@count records)', ['@count' => count($assignment_data)]),
+      '#description' => t('Shows all week-specific assignments for this issue. You can manage assignments through the calendar interface or add/remove records here.'),
+      '#open' => FALSE,
+      '#weight' => 50,
+    ];
+    
+    // Add the assignment table.
+    $form['assignment_records']['table'] = [
+      '#theme' => 'assignment_records_table',
+      '#assignments' => $assignment_data,
+      '#issue_id' => $node->id(),
+    ];
+    
+    // Add action links.
+    $form['assignment_records']['actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['assignment-actions']],
+    ];
+    
+    $form['assignment_records']['actions']['add_assignment'] = [
+      '#type' => 'link',
+      '#title' => t('Add New Assignment Record'),
+      '#url' => \Drupal\Core\Url::fromRoute('entity.assignment_record.add_form', [], [
+        'query' => ['issue_id' => $node->id()],
+      ]),
+      '#attributes' => [
+        'class' => ['button', 'button--primary'],
+        'target' => '_blank',
+      ],
+    ];
+    
+    $form['assignment_records']['actions']['manage_assignments'] = [
+      '#type' => 'link',  
+      '#title' => t('Manage All Assignment Records'),
+      '#url' => \Drupal\Core\Url::fromRoute('entity.assignment_record.collection'),
+      '#attributes' => [
+        'class' => ['button'],
+        'target' => '_blank',
+      ],
+    ];
+  }
 }
 

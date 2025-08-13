@@ -2,77 +2,107 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Current Implementation](#current-implementation)
-3. [System Architecture](#system-architecture)
-4. [Content Types & Data Structure](#content-types--data-structure)
-5. [Tag Mapping System](#tag-mapping-system)
-6. [Dashboard Views & Controllers](#dashboard-views--controllers)
-7. [API Integration Plan](#api-integration-plan)
-8. [API Documentation References](#api-documentation-references)
-9. [Installation & Configuration](#installation--configuration)
-10. [Development & Extensibility](#development--extensibility)
+2. [Assignment Record System](#assignment-record-system)
+3. [Current Implementation](#current-implementation)
+4. [System Architecture](#system-architecture)
+5. [Content Types & Data Structure](#content-types--data-structure)
+6. [Assignment Management](#assignment-management)
+7. [Drush Commands](#drush-commands)
+8. [Dashboard Views & Controllers](#dashboard-views--controllers)
+9. [API Integration](#api-integration)
+10. [Installation & Configuration](#installation--configuration)
+11. [Development & Extensibility](#development--extensibility)
 
 ## Overview
 
-The AI Dashboard module provides a comprehensive project management system for tracking AI-related contributions, issues, and resource allocation in Drupal. It integrates with external APIs (drupal.org, GitLab, GitHub) to automatically import and categorize issues using a flexible tag mapping system.
+The AI Dashboard module provides a comprehensive project management system for tracking AI-related contributions, issues, and resource allocation in Drupal. It features a sophisticated assignment tracking system that maintains complete history of who worked on which issues during specific weeks.
 
 **Key Features:**
-- Multi-company contributor tracking (simplified without email)
+- Multi-company contributor tracking
+- **Week-based assignment history system** (NEW)
 - Issue management with structured categorization
-- Calendar-based resource allocation views
+- Calendar-based resource allocation views with historical transparency
 - Flexible tag mapping from external sources
 - Administrative interfaces with filtering
-- Permission-based edit capabilities
 - CSV import system for bulk contributor management
-- API import system with intelligent status filtering
+- API import system with intelligent assignment tracking
+- Complete Drush command integration
 - Auto-creation of modules during import process
+
+## Assignment Record System (NEW - January 2025)
+
+### Core Concept
+The AI Dashboard now uses a sophisticated **AssignmentRecord** entity system that tracks WHO was assigned to WHICH issue during WHICH specific week. This replaces the previous field-based assignment system with a robust, history-preserving approach.
+
+### Key Benefits
+- **Week-specific assignments**: Each assignment is tied to a specific week (YYYYWW format)
+- **Complete history preservation**: See who worked on what issue during which exact weeks
+- **Transparent calendar view**: Historical assignments show with transparency effects
+- **Source tracking**: Know how assignments were created (sync, drag/drop, manual, etc.)
+- **Status snapshots**: Preserve issue status at the time of assignment
+- **No data loss**: Assignment changes only affect the current week
+
+### AssignmentRecord Entity Structure
+```php
+- issue_id (Entity Reference → AI Issue)
+- assignee_id (Entity Reference → AI Contributor) 
+- week_id (Integer) // YYYYWW format (e.g., 202533)
+- week_date (Date) // Monday of assignment week (for display)
+- issue_status_at_assignment (String) // Issue status when assigned
+- assigned_date (Timestamp) // When assignment record was created
+- source (List) // How assignment was created:
+  - manual
+  - drupal_org_sync  
+  - drag_drop
+  - copy_week
+  - batch_import
+```
+
+### Week ID System
+- **Format**: YYYYWW (e.g., 202533 = Week 33 of 2025)
+- **Calculation**: Automatic from any DateTime using `AssignmentRecord::dateToWeekId()`
+- **Conversion**: Back to DateTime using `AssignmentRecord::weekIdToDate()`
+- **Current Week**: Get with `AssignmentRecord::getCurrentWeekId()`
 
 ## Recent Improvements (January 2025)
 
-### Data Simplification
-- **Email Field Removal**: Removed email from contributor profiles to focus on essential information (full name, drupal.org username, company, role, skills, commitment)
-- **CSV Import Streamlined**: Updated CSV template and import process to match simplified contributor structure
-- **Duplicate Detection**: Enhanced duplicate detection using drupal.org username as primary identifier
+### 🆕 MAJOR: Assignment Record System
+- **Complete system rewrite**: Replaced field-based assignments with dedicated AssignmentRecord entity
+- **Week-specific tracking**: Each assignment tied to specific week (YYYYWW format)
+- **History preservation**: Complete audit trail of who worked on what during which weeks  
+- **Source tracking**: Track assignment origin (drupal_org_sync, drag_drop, manual, copy_week, batch_import)
+- **Status snapshots**: Preserve issue status at time of assignment
+- **No data loss**: Changes only affect current week, history remains intact
+- **Migration**: Database update hook removes old fields and creates new entity tables
+- **Calendar integration**: Transparent display of historical vs current assignments
 
-### Enhanced Import System  
-- **Status Filtering**: Added comprehensive status filtering for issue imports with intelligent defaults
-  - Pre-selects Active, Needs work, Needs review, RTBC, Patch to be ported, Fixed
-  - Excludes Postponed and Closed issues by default
-  - Fully customizable via checkboxes
-- **Flexible Import Limits**: Made maximum issues field optional - leave empty to import all matching issues
-- **Module Auto-Creation**: Automatically creates module nodes during import based on configuration name
-- **Real-time Progress**: Import management interface with progress feedback and error reporting
-- **Assignee Import**: Fixed issue import to properly capture assignee information from drupal.org
-  - Extracts `field_issue_assigned` data from API responses
-  - Resolves user IDs to usernames automatically
-  - Stores assignee information in `field_issue_do_assignee` field
-  - Enables proper sync functionality with assigned issues
+### 🆕 Enhanced Assignment Management
+- **Issue edit form integration**: View complete assignment history on any AI Issue edit page
+- **Manual assignment records**: Add/edit/delete assignment records through admin interface
+- **Week-based operations**: All assignment operations work with specific weeks
+- **Import integration**: Drupal.org imports automatically create assignment records
+- **Copy week functionality**: Copy assignments between weeks with full tracking
+
+### Improved Import & Sync System  
+- **AssignmentRecord integration**: All imports now create proper assignment records
+- **Status filtering**: Comprehensive status filtering for issue imports with intelligent defaults
+- **Assignee resolution**: Automatic resolution of drupal.org usernames to contributors
+- **Module auto-creation**: Automatically creates module nodes during import
+- **Duplicate prevention**: Robust duplicate detection for assignment records
 
 ### Calendar & Sync Features
-- **Drupal.org Sync Integration**: Added comprehensive sync functionality for assigned issues
-  - "Sync All from Drupal.org" button in calendar backlog drawer
-  - Syncs all assigned issues from drupal.org for contributors with drupal.org usernames
-  - Automatically assigns issues to the correct week based on current view
-  - Real-time progress indication and success/error messaging
-- **Remove All Issues**: Added bulk removal functionality for weekly assignments
-  - "Remove All from Week" button with confirmation dialog
-  - Removes all issue assignments from current week only (other weeks preserved)
-  - Issues move back to backlog without deletion
-  - Proper cache invalidation and UI updates
-- **Enhanced JavaScript**: Fixed double modal issues and improved event handling
-  - Prevents duplicate event handlers using `.off()` before attachment
-  - Proper error handling and CSRF token management
-  - Consistent loading states and user feedback
+- **Week-based display**: Calendar shows assignments for specific weeks with historical context
+- **Sync integration**: All sync operations create proper AssignmentRecord entries
+- **Bulk operations**: Remove all assignments from specific weeks
+- **Transparency effects**: Visual indication of historical vs current assignments
+- **Real-time updates**: Proper cache invalidation and UI refresh
 
 ### User Experience Improvements
-- **Documentation Accessibility**: Comprehensive documentation available in Admin Tools
-- **Form Validation**: Enhanced validation for CSV imports with clear error messages
-- **Standard Form Processing**: Improved CSV import reliability using standard Drupal form submission
-- **Clean Tag Field Interface**: Removed placeholder text from all tag input fields for cleaner UX
-  - Removed helper text descriptions from recipe configurations
-  - Eliminated placeholder text from form display configurations
-  - Special handling for ai_issue entity (used string_textfield widget with specific placeholder)
-- **Improved Modal Handling**: Fixed JavaScript modal dialogs to appear only once and respond to single clicks
+- **Assignment visibility**: See complete assignment history on issue edit forms
+- **Enhanced navigation**: Clear routing for all assignment record operations
+- **Clean interfaces**: Removed placeholder text from tag fields for cleaner UX
+- **Improved documentation**: Updated documentation reflects new assignment system
+- **Better error handling**: Robust error handling in assignment operations
 
 ## Current Implementation
 
@@ -277,6 +307,205 @@ $processed = $tag_mapping_service->processTags($tags);
 - Mappings cached for 1 hour for performance
 - Cache automatically cleared when mappings are modified
 - Manual cache clearing available via service method
+
+## Drush Commands
+
+The AI Dashboard module provides comprehensive Drush command integration for all major operations. These commands support both automated deployments and manual administrative tasks.
+
+### Assignment Management Commands
+
+#### `ai-dashboard:sync-assignments` (alias: `aid-sync`)
+Sync all drupal.org assignments for current week with history preservation.
+
+```bash
+# Sync assignments for current week
+drush aid-sync
+
+# Sync assignments for next week
+drush aid-sync --week-offset=1
+
+# Sync assignments for previous week  
+drush aid-sync --week-offset=-1
+```
+
+**Features:**
+- Creates AssignmentRecord entries for current week
+- Preserves assignment history
+- Prevents duplicate assignments
+- Updates compatibility fields
+- Works with all contributors who have drupal.org usernames
+
+### Import Management Commands
+
+#### `ai-dashboard:import`
+Import issues from drupal.org for a specific configuration.
+
+```bash
+# Import from specific configuration
+drush ai-dashboard:import CONFIG_ID
+
+# Import with full sync from specific date
+drush ai-dashboard:import CONFIG_ID --full-from=2025-01-01
+```
+
+**Features:**
+- Processes issues in batches
+- Creates AssignmentRecord entries for assigned issues
+- Handles duplicate detection
+- Updates module associations
+- Safe to interrupt and resume
+
+#### `ai-dashboard:import-all`
+Import all active configurations.
+
+```bash
+# Import from all active configurations
+drush ai-dashboard:import-all
+```
+
+**Features:**
+- Processes all enabled import configurations
+- Runs sequentially to avoid conflicts
+- Complete progress reporting
+- Safe resumption with queue system
+
+### Content Management Commands
+
+#### `ai-dashboard:generate-dummy` (alias: `aid-gen`)
+Generate dummy content for testing and development.
+
+```bash
+# Generate complete dummy dataset
+drush aid-gen
+```
+
+**Creates:**
+- 10 AI companies with realistic data
+- 8 AI modules with project information
+- 12 AI contributors with company associations
+- 15 AI issues with assignments
+- Resource allocations for past 8 weeks
+
+#### `ai-dashboard:generate-tag-mappings` (alias: `aid-tags`)
+Generate sample tag mappings for issue categorization.
+
+```bash
+# Generate comprehensive tag mappings
+drush aid-tags
+```
+
+**Creates:**
+- Category mappings (AI Core, Provider Integration, etc.)
+- Month mappings (January-December 2024)
+- Priority mappings (Critical, Major, Normal, Minor, Trivial)
+- Status mappings (Active, Needs Review, RTBC, Fixed, etc.)
+- Module mappings (AI Module, OpenAI Provider, etc.)
+
+### Maintenance Commands
+
+#### `ai-dashboard:clean-status-filters` (alias: `aidash:clean-status`)
+Clean up unsupported status filters from configurations.
+
+```bash
+# Remove unsupported status values
+drush aidash:clean-status
+```
+
+**Removes:**
+- Need review (maintainer) - Status ID 7
+- Needs tests - Status ID 17  
+- Needs clarification - Status ID 5
+
+### Queue Management
+
+The import system uses Drupal's queue system for reliable processing:
+
+```bash
+# Process pending import queue items
+drush queue-run module_import_full_do
+
+# Check queue status
+drush queue-list
+
+# Clear import queue (if needed)
+drush queue-delete module_import_full_do
+```
+
+### Database Management
+
+Standard Drupal database update commands work with AI Dashboard:
+
+```bash
+# Run database updates (includes AssignmentRecord system migration)
+drush updb
+
+# Check for pending updates
+drush updb --entity-updates
+```
+
+### Cache Management
+
+Clear caches after major changes:
+
+```bash
+# Full cache clear
+drush cr
+
+# Clear specific cache tags
+drush cache-clear tag ai_dashboard:calendar
+drush cache-clear tag ai_dashboard:import
+```
+
+### Usage Examples
+
+**Complete Setup Workflow:**
+```bash
+# 1. Install/update the system
+drush updb -y
+
+# 2. Generate sample data
+drush aid-tags
+drush aid-gen
+
+# 3. Sync current assignments
+drush aid-sync
+
+# 4. Process any pending imports
+drush queue-run module_import_full_do
+
+# 5. Clear caches
+drush cr
+```
+
+**Production Deployment:**
+```bash
+# 1. Update database schema
+drush updb -y
+
+# 2. Sync current week assignments (preserves history)
+drush aid-sync
+
+# 3. Process any pending imports
+drush queue-run module_import_full_do
+
+# 4. Clean up any invalid configuration
+drush aidash:clean-status
+
+# 5. Final cache clear
+drush cr
+```
+
+**Development Workflow:**
+```bash
+# Reset with fresh dummy data
+drush sql-drop -y
+drush site-install -y
+drush en ai_dashboard -y
+drush updb -y
+drush aid-tags
+drush aid-gen
+drush aid-sync
+```
 
 ## Dashboard Views & Controllers
 

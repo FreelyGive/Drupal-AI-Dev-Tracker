@@ -119,8 +119,13 @@ class ModuleImportFormTest extends BrowserTestBase {
     $label_field = $this->getSession()->getPage()->findField('label');
     $this->assertTrue($label_field->hasAttribute('required'));
 
+    // project_name is not required at form level (custom validation handles requirement)
     $project_name_field = $this->getSession()->getPage()->findField('project_name');
-    $this->assertTrue($project_name_field->hasAttribute('required'));
+    $this->assertFalse($project_name_field->hasAttribute('required'));
+    
+    // But project_id should also be available as alternative
+    $project_id_field = $this->getSession()->getPage()->findField('project_id');
+    $this->assertNotNull($project_id_field);
   }
 
   /**
@@ -152,8 +157,8 @@ class ModuleImportFormTest extends BrowserTestBase {
 
     $this->submitForm($edit, 'Save');
 
-    // Verify success message.
-    $this->assertSession()->pageTextContains('Saved the AI Issues Import Module import.');
+    // Verify we're redirected to the collection page (indicates success).
+    $this->assertSession()->addressEquals('/admin/config/ai-dashboard/module-import');
 
     // Verify entity was created with correct values.
     $import = ModuleImport::load('ai_issues_import');
@@ -182,7 +187,7 @@ class ModuleImportFormTest extends BrowserTestBase {
 
     // Verify validation errors.
     $this->assertSession()->pageTextContains('Name field is required.');
-    $this->assertSession()->pageTextContains('Project Machine Name field is required.');
+    $this->assertSession()->pageTextContains('Either Project Machine Name or Project ID must be provided.');
   }
 
   /**

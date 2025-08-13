@@ -606,4 +606,64 @@ class AiDashboardCommands extends DrushCommands {
     $this->output()->writeln("Removed unsupported status filters: Need review (maintainer), Needs tests, Needs clarification");
   }
 
+  /**
+   * Sync all drupal.org assignments for current week with history preservation.
+   *
+   * @command ai-dashboard:sync-assignments
+   * @aliases aid-sync
+   * @option week-offset Week offset from current week (0 = current, 1 = next, -1 = previous)
+   * @usage ai-dashboard:sync-assignments
+   *   Sync all drupal.org assignments for the current week
+   * @usage ai-dashboard:sync-assignments --week-offset=1
+   *   Sync all drupal.org assignments for next week
+   */
+  public function syncAllAssignments(array $options = ['week-offset' => 0]) {
+    $week_offset = (int) $options['week-offset'];
+    $this->output()->writeln("Syncing drupal.org assignments with history preservation...");
+    
+    // Calculate the target week.
+    $target_date = new \DateTime();
+    if ($week_offset !== 0) {
+      $target_date->modify($week_offset > 0 ? "+{$week_offset} weeks" : $week_offset . " weeks");
+    }
+    $target_date->modify('Monday this week');
+    $week_string = $target_date->format('Y-m-d');
+    
+    if ($week_offset === 0) {
+      $this->output()->writeln("Target week: {$week_string} (current week)");
+    } elseif ($week_offset > 0) {
+      $this->output()->writeln("Target week: {$week_string} (+{$week_offset} weeks from current)");
+    } else {
+      $this->output()->writeln("Target week: {$week_string} ({$week_offset} weeks from current)");
+    }
+
+    try {
+      // Create a minimal request object to simulate the web request.
+      $request = new \Symfony\Component\HttpFoundation\Request();
+      $request->request->set('week_offset', $week_offset);
+
+      // Create calendar controller instance directly.
+      $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
+        \Drupal::entityTypeManager(),
+        \Drupal::service('http_client'),
+        \Drupal::service('cache.default'),
+        \Drupal::service('cache_tags.invalidator')
+      );
+
+      // Call the sync method.
+      $response = $calendar_controller->syncAllDrupalAssignments($request);
+      $data = json_decode($response->getContent(), TRUE);
+
+      if ($data['success']) {
+        $this->output()->writeln("✅ " . $data['message']);
+      } else {
+        $this->output()->writeln("❌ Error: " . $data['message']);
+      }
+    }
+    catch (\Exception $e) {
+      $this->output()->writeln("❌ Error during sync: " . $e->getMessage());
+      \Drupal::logger('ai_dashboard')->error('Drush sync error: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+
 }

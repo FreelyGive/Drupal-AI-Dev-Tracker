@@ -255,3 +255,44 @@ ai_dashboard.api.remove_all_week_issues:
     _permission: 'access ai dashboard'
     _csrf_request_header_token: 'TRUE'
   methods: [POST]
+
+# Assignment Record entity routes
+entity.assignment_record.collection:
+  path: '/admin/ai-dashboard/assignment-records'
+  defaults:
+    _entity_list: 'assignment_record'
+    _title: 'Assignment Records'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+entity.assignment_record.add_form:
+  path: '/admin/ai-dashboard/assignment-record/add'
+  defaults:
+    _entity_form: 'assignment_record.add'
+    _title: 'Add Assignment Record'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+entity.assignment_record.edit_form:
+  path: '/admin/ai-dashboard/assignment-record/{assignment_record}/edit'
+  defaults:
+    _entity_form: 'assignment_record.edit'
+    _title: 'Edit Assignment Record'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+entity.assignment_record.delete_form:
+  path: '/admin/ai-dashboard/assignment-record/{assignment_record}/delete'
+  defaults:
+    _entity_form: 'assignment_record.delete'
+    _title: 'Delete Assignment Record'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+entity.assignment_record.canonical:
+  path: '/admin/ai-dashboard/assignment-record/{assignment_record}'
+  defaults:
+    _entity_view: 'assignment_record.full'
+    _title: 'Assignment Record'
+  requirements:
+    _permission: 'administer ai dashboard content'

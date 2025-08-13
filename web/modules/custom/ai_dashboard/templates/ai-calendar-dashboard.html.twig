@@ -185,7 +185,7 @@
               <div class="issues-grid">
                 {% if developer.issues|length > 0 %}
                   {% for issue in developer.issues %}
-                    <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }}" data-issue-id="{{ issue.id }}">
+                    <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}" data-issue-id="{{ issue.id }}">
                       <div class="issue-header">
                         <span class="issue-category">{{ issue.category|replace({'_': ' '})|title }}</span>
                         <div class="issue-actions">

@@ -1743,3 +1743,170 @@ function ai_dashboard_update_9010() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
   return t('Updated labels to Organisational. @m', ['@m' => implode(' | ', $messages)]);
 }
+
+/**
+ * Add field_historical_assignees to preserve assignment history.
+ */
+function ai_dashboard_update_9011() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+
+  // Create historical_assignees field storage.
+  $historical_storage = $field_storage_manager->load('node.field_historical_assignees');
+  if (!$historical_storage) {
+    $historical_storage = $field_storage_manager->create([
+      'field_name' => 'field_historical_assignees',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'node',
+      ],
+      'module' => 'core',
+      'locked' => FALSE,
+      'cardinality' => -1,
+      'translatable' => FALSE,
+    ]);
+    $historical_storage->save();
+  }
+
+  // Create field instance for ai_issue bundle.
+  $historical_field = $field_manager->load('node.ai_issue.field_historical_assignees');
+  if (!$historical_field) {
+    $historical_field = $field_manager->create([
+      'field_name' => 'field_historical_assignees',
+      'entity_type' => 'node',
+      'bundle' => 'ai_issue',
+      'label' => 'Historical Assignees',
+      'description' => 'All contributors who have ever been assigned to this issue. Can be manually edited to remove historical assignments.',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default',
+        'handler_settings' => [
+          'target_bundles' => ['ai_contributor'],
+          'auto_create' => FALSE,
+        ],
+      ],
+    ]);
+    $historical_field->save();
+  }
+
+  // Migrate current assignees to historical assignees for all existing issues.
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', 'ai_issue')
+    ->accessCheck(FALSE);
+  $issue_ids = $query->execute();
+
+  if (!empty($issue_ids)) {
+    $issues = \Drupal\node\Entity\Node::loadMultiple($issue_ids);
+    foreach ($issues as $issue) {
+      if ($issue->hasField('field_issue_assignees') && !$issue->get('field_issue_assignees')->isEmpty()) {
+        // Copy current assignees to historical assignees.
+        $current_assignees = [];
+        foreach ($issue->get('field_issue_assignees') as $assignee) {
+          $current_assignees[] = ['target_id' => $assignee->target_id];
+        }
+        $issue->set('field_historical_assignees', $current_assignees);
+        $issue->save();
+      }
+    }
+  }
+
+  // Update entity form display to show the new field.
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+  
+  if ($form_display) {
+    $form_display->setComponent('field_historical_assignees', [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 12,
+      'settings' => [
+        'match_operator' => 'CONTAINS',
+        'size' => 60,
+        'placeholder' => '',
+      ],
+    ])->save();
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Added field_historical_assignees field and migrated existing assignments.');
+}
+
+/**
+ * Replace old assignment system with new AssignmentRecord entity system.
+ */
+function ai_dashboard_update_9012() {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  
+  // Step 1: Remove the flawed field_historical_assignees field we added in 9011
+  $field_storage_manager = $entity_type_manager->getStorage('field_storage_config');
+  $field_manager = $entity_type_manager->getStorage('field_config');
+  
+  // Delete field instance first
+  $historical_field = $field_manager->load('node.ai_issue.field_historical_assignees');
+  if ($historical_field) {
+    $historical_field->delete();
+  }
+  
+  // Delete field storage
+  $historical_storage = $field_storage_manager->load('node.field_historical_assignees');
+  if ($historical_storage) {
+    $historical_storage->delete();
+  }
+
+  // Step 2: Remove old assignment_date field (as requested - no data preservation)
+  $assignment_date_field = $field_manager->load('node.ai_issue.field_issue_assignment_date');
+  if ($assignment_date_field) {
+    $assignment_date_field->delete();
+  }
+  
+  $assignment_date_storage = $field_storage_manager->load('node.field_issue_assignment_date');
+  if ($assignment_date_storage) {
+    $assignment_date_storage->delete();
+  }
+
+  // Step 3: Install the new assignment_record entity type
+  // The entity type will be automatically discovered and installed
+  // because we defined it in src/Entity/AssignmentRecord.php
+  
+  // Force entity type discovery
+  \Drupal::service('entity_type.manager')->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  // Install the assignment_record entity type
+  $assignment_record_definition = $entity_type_manager->getDefinition('assignment_record', FALSE);
+  if ($assignment_record_definition && !$entity_definition_update_manager->getEntityType('assignment_record')) {
+    $entity_definition_update_manager->installEntityType($assignment_record_definition);
+  }
+
+  // Step 4: Update form displays to remove deleted fields
+  $form_display = $entity_type_manager
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+  
+  if ($form_display) {
+    $form_display->removeComponent('field_issue_assignment_date');
+    $form_display->removeComponent('field_historical_assignees');
+    $form_display->save();
+  }
+
+  // Update view displays
+  $view_display = $entity_type_manager
+    ->getStorage('entity_view_display')
+    ->load('node.ai_issue.default');
+  
+  if ($view_display) {
+    $view_display->removeComponent('field_issue_assignment_date');
+    $view_display->removeComponent('field_historical_assignees');
+    $view_display->save();
+  }
+
+  // Step 5: Clear all caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  drupal_flush_all_caches();
+
+  return t('Replaced old assignment system with new AssignmentRecord entity type. Old assignment data has been cleared as requested.');
+}

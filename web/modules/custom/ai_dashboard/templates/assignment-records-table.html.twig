@@ -1,0 +1,192 @@
+{#
+/**
+ * @file
+ * Template for displaying assignment records table.
+ *
+ * Available variables:
+ * - assignments: Array of assignment record data.
+ * - issue_id: The issue node ID.
+ */
+#}
+
+<div class="assignment-records-wrapper">
+  {% if assignments %}
+    <table class="assignment-records-table">
+      <thead>
+        <tr>
+          <th>{{ 'Week'|t }}</th>
+          <th>{{ 'Assignee'|t }}</th>
+          <th>{{ 'Status at Assignment'|t }}</th>
+          <th>{{ 'Source'|t }}</th>
+          <th>{{ 'Assigned Date'|t }}</th>
+          <th>{{ 'Actions'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in assignments %}
+          <tr class="assignment-record-row">
+            <td class="week-info">
+              <strong>{{ assignment.week_date }}</strong>
+              <br>
+              <small class="week-id">(Week ID: {{ assignment.week_id }})</small>
+            </td>
+            <td class="assignee-info">
+              <a href="/node/{{ assignment.assignee_id }}">{{ assignment.assignee_name }}</a>
+            </td>
+            <td class="status-info">
+              <span class="status-badge status-{{ assignment.issue_status|replace({'_': '-'}) }}">
+                {{ assignment.issue_status|title }}
+              </span>
+            </td>
+            <td class="source-info">
+              <span class="source-badge source-{{ assignment.source|replace({'_': '-'}) }}">
+                {% set source_labels = {
+                  'manual': 'Manual',
+                  'drupal_org_sync': 'Drupal.org Sync',
+                  'drag_drop': 'Drag & Drop',
+                  'copy_week': 'Copy Week',
+                  'batch_import': 'Batch Import'
+                } %}
+                {{ source_labels[assignment.source] ?: assignment.source|title }}
+              </span>
+            </td>
+            <td class="assigned-date">
+              {{ assignment.assigned_date }}
+            </td>
+            <td class="actions">
+              <a href="/admin/ai-dashboard/assignment-record/{{ assignment.id }}/edit" 
+                 class="button button--small">{{ 'Edit'|t }}</a>
+              <a href="/admin/ai-dashboard/assignment-record/{{ assignment.id }}/delete" 
+                 class="button button--small button--danger">{{ 'Delete'|t }}</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+    <div class="assignment-summary">
+      <p><strong>{{ 'Total Assignments:'|t }} {{ assignments|length }}</strong></p>
+      <p><em>{{ 'This shows all week-specific assignments for this issue. Historical assignments allow you to see who worked on this issue during which specific weeks.'|t }}</em></p>
+    </div>
+  {% else %}
+    <div class="no-assignments">
+      <p>{{ 'No assignment records found for this issue.'|t }}</p>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+.assignment-records-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.assignment-records-table th,
+.assignment-records-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+
+.assignment-records-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  border-bottom: 2px solid #ddd;
+}
+
+.assignment-record-row:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.week-id {
+  color: #666;
+  font-size: 0.85em;
+}
+
+.status-badge,
+.source-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.status-badge {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.status-active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-needs-review {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-needs-work {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-rtbc {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-fixed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.source-badge {
+  background-color: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.source-drupal-org-sync {
+  background-color: #cce5ff;
+  color: #004085;
+}
+
+.source-drag-drop {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+.source-copy-week {
+  background-color: #ffeaa7;
+  color: #6c5ce7;
+}
+
+.actions .button {
+  margin-right: 0.5rem;
+  text-decoration: none;
+  font-size: 0.85em;
+}
+
+.button--danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.assignment-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.no-assignments {
+  padding: 2rem;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+</style>
