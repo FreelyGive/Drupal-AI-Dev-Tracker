@@ -8,8 +8,8 @@ id: node.ai_company.field_company_ai_maker
 field_name: field_company_ai_maker
 entity_type: node
 bundle: ai_company
-label: 'AI Sponsor'
-description: 'Check this if the company is designated as an AI Sponsor'
+label: 'AI Maker'
+description: 'Check this if the company is designated as an AI Maker'
 required: false
 translatable: false
 default_value:

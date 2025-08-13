@@ -289,6 +289,68 @@
         $priorityFilter.val('');
         applyFilters();
       });
+
+      // Initialize calendar filters
+      self.initCalendarFilters();
+    },
+
+    /**
+     * Initialize calendar filtering functionality.
+     */
+    initCalendarFilters: function() {
+      var $calendarPriorityFilter = $('#calendar-priority-filter');
+      var $calendarStatusFilter = $('#calendar-status-filter');
+      var $clearCalendarFilters = $('#clear-calendar-filters');
+      
+      // Apply calendar filters when changed
+      function applyCalendarFilters() {
+        var priorityFilter = $calendarPriorityFilter.val();
+        var statusFilter = $calendarStatusFilter.val();
+        
+        $('.issue-card').each(function() {
+          var $issue = $(this);
+          var show = true;
+          
+          // Priority filter
+          if (priorityFilter && !$issue.hasClass('priority-' + priorityFilter)) {
+            show = false;
+          }
+          
+          // Status filter
+          if (statusFilter && !$issue.hasClass(statusFilter.replace('_', '-'))) {
+            show = false;
+          }
+          
+          $issue.toggleClass('calendar-filtered', !show);
+        });
+        
+        // Hide developers with no visible issues
+        $('.developer-row').each(function() {
+          var $row = $(this);
+          var hasVisibleIssues = $row.find('.issue-card:not(.calendar-filtered)').length > 0;
+          var hasAvailable = $row.find('.no-issues').length > 0;
+          
+          $row.toggleClass('developer-filtered', !hasVisibleIssues && !hasAvailable);
+        });
+        
+        // Hide companies with no visible developers
+        $('.company-group').each(function() {
+          var $group = $(this);
+          var hasVisibleDevelopers = $group.find('.developer-row:not(.developer-filtered)').length > 0;
+          
+          $group.toggleClass('company-filtered', !hasVisibleDevelopers);
+        });
+      }
+      
+      $calendarPriorityFilter.on('change', applyCalendarFilters);
+      $calendarStatusFilter.on('change', applyCalendarFilters);
+      
+      // Clear calendar filters
+      $clearCalendarFilters.on('click', function() {
+        $calendarPriorityFilter.val('');
+        $calendarStatusFilter.val('');
+        applyCalendarFilters();
+      });
     },
 
     /**

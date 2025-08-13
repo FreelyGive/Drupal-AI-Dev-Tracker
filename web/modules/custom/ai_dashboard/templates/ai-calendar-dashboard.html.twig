@@ -93,8 +93,35 @@
     </div>
   </div>
 
+  <!-- Calendar Filters -->
+  <div class="calendar-filters">
+    <div class="filter-group">
+      <label for="calendar-priority-filter">Filter by Priority:</label>
+      <select id="calendar-priority-filter" class="filter-select">
+        <option value="">All Priorities</option>
+        <option value="critical">Critical</option>
+        <option value="major">Major</option>
+        <option value="normal">Normal</option>
+        <option value="minor">Minor</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="calendar-status-filter">Filter by Status:</label>
+      <select id="calendar-status-filter" class="filter-select">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="needs-review">Needs Review</option>
+        <option value="needs-work">Needs Work</option>
+        <option value="fixed">Fixed</option>
+      </select>
+    </div>
+    
+    <button id="clear-calendar-filters" class="btn btn-secondary">Clear Filters</button>
+  </div>
+
   <!-- Company Groups -->
-  <div class="company-groups">
+  <div class="company-groups" id="company-groups">
     {% for company in calendar_data.companies %}
       <div class="company-group" data-company-id="{{ company.id }}">
         
@@ -113,9 +140,9 @@
                 {{ company.name }}
               {% endif %}
               {% if company.is_ai_maker %}
-                <span class="ai-maker-badge ai-maker" title="AI Sponsor">Sponsor</span>
+                <span class="ai-maker-badge ai-maker" title="AI Maker">Maker</span>
               {% else %}
-                <span class="ai-maker-badge not-ai-maker" title="Not an AI Sponsor"><span class="strikethrough">Sponsor</span></span>
+                <span class="ai-maker-badge not-ai-maker" title="Not an AI Maker"><span class="strikethrough">Maker</span></span>
               {% endif %}
             </h3>
             <span class="developer-count">{{ company.developers|length }}</span>
@@ -154,7 +181,7 @@
                   <div class="developer-details">
                     <h4 class="developer-name">{{ developer.name }}</h4>
                     <div class="developer-meta">
-                      <div class="weekly-commitment">
+                      <div class="weekly-commitment" title="{{ developer.weekly_commitment > 0 ? developer.weekly_commitment ~ ' days committed per week' : 'No time commitment - helps when available' }}">
                         {% for i in 1..5 %}
                           {% set commitment_level = 'empty' %}
                           {% if developer.weekly_commitment >= i %}
@@ -210,6 +237,7 @@
                       <div class="issue-footer">
                         <div class="issue-meta">
                           <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
+                          <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
                           {% if issue.issue_number %}
                             <span class="issue-number">#{{ issue.issue_number }}</span>
                           {% endif %}
@@ -304,7 +332,6 @@
           <option value="major">Major</option>
           <option value="normal">Normal</option>
           <option value="minor">Minor</option>
-          <option value="trivial">Trivial</option>
         </select>
       </div>
       

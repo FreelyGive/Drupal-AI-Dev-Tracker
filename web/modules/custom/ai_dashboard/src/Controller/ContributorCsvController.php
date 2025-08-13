@@ -70,7 +70,7 @@ class ContributorCsvController extends ControllerBase {
       'drupal_username',
       'organization',
       'ai_maker',
-      // Tracker Role (comma-separated): Developer, Organisational
+      // Tracker Role (comma-separated): Developer, Organizational
       'tracker_role',
       'skills',
       'weekly_commitment',
@@ -87,7 +87,7 @@ class ContributorCsvController extends ControllerBase {
         'john_doe',
         array_key_exists('Acquia', $companies) ? 'Acquia' : array_keys($companies)[0] ?? 'Example Company',
         'Yes',
-        'Developer, Organisational',
+        'Developer, Organizational',
         'PHP, JavaScript, Drupal',
         '5',
         'acquia',
@@ -99,7 +99,7 @@ class ContributorCsvController extends ControllerBase {
         'jane_smith',
         array_key_exists('Lullabot', $companies) ? 'Lullabot' : array_keys($companies)[1] ?? 'Another Company',
         'No',
-        'Organisational',
+        'Organizational',
         'AI/ML, Python, DevOps',
         '3',
         'lullabot',
@@ -299,10 +299,10 @@ class ContributorCsvController extends ControllerBase {
       throw new \Exception('Name and Drupal username are required');
     }
 
-    // Convert AI sponsor string to boolean.
+    // Convert AI maker string to boolean.
     $is_ai_maker = in_array($ai_maker, ['yes', 'y', '1', 'true']);
 
-    // Parse Developer / Organisational (comma-separated) from tracker_role.
+    // Parse Developer / Organizational (comma-separated) from tracker_role.
     $contrib_types = [];
     if (!empty($tracker_role)) {
       $parts = explode(',', $tracker_role);
@@ -412,7 +412,7 @@ class ContributorCsvController extends ControllerBase {
   }
 
   /**
-   * Find or create company by name and set AI sponsor status.
+   * Find or create company by name and set AI maker status.
    */
   protected function findOrCreateCompany($company_name, $is_ai_maker = FALSE) {
     if (empty($company_name)) {
@@ -431,7 +431,7 @@ class ContributorCsvController extends ControllerBase {
     $result = $query->execute();
 
     if (!empty($result)) {
-      // Update existing company with AI sponsor status.
+      // Update existing company with AI maker status.
       $company_id = reset($result);
       $company = $node_storage->load($company_id);
       if ($company && $company->hasField('field_company_ai_maker')) {
@@ -448,7 +448,7 @@ class ContributorCsvController extends ControllerBase {
       'status' => 1,
     ];
 
-    // Add AI sponsor field if it exists.
+    // Add AI maker field if it exists.
     if (\Drupal::entityTypeManager()->getStorage('field_storage_config')->load('node.field_company_ai_maker')) {
       $company_data['field_company_ai_maker'] = $is_ai_maker;
     }
@@ -460,7 +460,7 @@ class ContributorCsvController extends ControllerBase {
   }
 
   /**
-   * Find or create company by Drupal profile and set AI sponsor status.
+   * Find or create company by Drupal profile and set AI maker status.
    */
   protected function findOrCreateCompanyByProfile($company_name, $drupal_profile, $is_ai_maker = FALSE) {
     if (empty($company_name)) {
@@ -496,7 +496,7 @@ class ContributorCsvController extends ControllerBase {
                 $needs_save = TRUE;
               }
 
-              // Update AI sponsor status if field exists.
+              // Update AI maker status if field exists.
               if ($company->hasField('field_company_ai_maker')) {
                 $current_ai_maker = (bool) $company->get('field_company_ai_maker')->value;
                 if ($current_ai_maker !== $is_ai_maker) {
@@ -545,7 +545,7 @@ class ContributorCsvController extends ControllerBase {
           }
         }
 
-        // Update AI sponsor status if field exists.
+        // Update AI maker status if field exists.
         if ($company->hasField('field_company_ai_maker')) {
           $current_ai_maker = (bool) $company->get('field_company_ai_maker')->value;
           if ($current_ai_maker !== $is_ai_maker) {
@@ -617,7 +617,7 @@ class ContributorCsvController extends ControllerBase {
     fclose($output);
 
     return $csv_content;
-    // Parse audience (Developer / Organisational) column.
+    // Parse audience (Developer / Organizational) column.
     $contrib_types = [];
     if (!empty($audience_raw)) {
       $parts = explode(',', $audience_raw);

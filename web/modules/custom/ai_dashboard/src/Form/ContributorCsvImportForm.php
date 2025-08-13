@@ -104,14 +104,14 @@ class ContributorCsvImportForm extends FormBase {
             <li><strong>Name:</strong> The contributor\'s full name (required)</li>
             <li><strong>Username (d.o):</strong> Their drupal.org username (required, used for duplicate detection)</li>
             <li><strong>Organization:</strong> Company name (will be created if it doesn\'t exist)</li>
-            <li><strong>AI Sponsor?:</strong> Is this an AI Sponsor? (Yes/No, Y/N, 1/0, True/False)</li>
+            <li><strong>AI Maker?:</strong> Is this an AI Maker? (Yes/No, Y/N, 1/0, True/False)</li>
             <li><strong>Tracker Role:</strong> One or more roles separated by commas (Developer, Front-end, Management, Designer, QA/Testing, DevOps, Project Manager)</li>
             <li><strong>Skills:</strong> Comma-separated skills (e.g., "PHP, JavaScript, AI/ML")</li>
             <li><strong>Commitment (days/week):</strong> Number of days per week (e.g., 5, 2.5)</li>
             <li><strong>Company Drupal Profile:</strong> Company name as it appears in drupal.org URLs (used as company unique identifier)</li>
             <li><strong>GitLab Username or Email:</strong> GitLab username or email address</li>
           </ol>
-          <p><strong>Note:</strong> Existing contributors are identified by their Drupal username. Companies are identified by their Drupal profile name. Re-running the import will update existing records. AI Sponsor status can be set on both individuals and companies.</p>
+          <p><strong>Note:</strong> Existing contributors are identified by their Drupal username. Companies are identified by their Drupal profile name. Re-running the import will update existing records. AI Maker status can be set on both individuals and companies.</p>
         </div>',
     ];
 

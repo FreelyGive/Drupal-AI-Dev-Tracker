@@ -1188,10 +1188,6 @@ body.path-ai-dashboard {
   color: #6b7280;
 }
 
-.backlog-issue .issue-priority.priority-trivial {
-  background: #f9fafb;
-  color: #9ca3af;
-}
 
 .backlog-issue .issue-external-link {
   color: #6b7280;
@@ -1351,6 +1347,83 @@ body.path-ai-dashboard {
   display: none;
 }
 
+/* Calendar Filters */
+.calendar-filters {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.calendar-filters .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calendar-filters label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.calendar-filters .filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  min-width: 140px;
+}
+
+/* Calendar filtering states */
+.issue-card.calendar-filtered {
+  display: none !important;
+}
+
+.developer-row.developer-filtered {
+  display: none !important;
+}
+
+.company-group.company-filtered {
+  display: none !important;
+}
+
+/* Issue card priority display */
+.issue-card .issue-priority {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+.issue-card .issue-priority.priority-critical {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.issue-card .issue-priority.priority-major {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.issue-card .issue-priority.priority-normal {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.issue-card .issue-priority.priority-minor {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+
 /* Mobile responsiveness for backlog */
 @media (max-width: 640px) {
   .backlog-drawer {
@@ -1363,5 +1436,21 @@ body.path-ai-dashboard {
     right: 1rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
+  }
+  
+  .calendar-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .calendar-filters .filter-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .calendar-filters .filter-select {
+    min-width: auto;
+    flex: 1;
+    max-width: 60%;
   }
 }

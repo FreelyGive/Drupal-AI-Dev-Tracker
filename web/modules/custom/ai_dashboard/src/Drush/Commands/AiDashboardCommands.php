@@ -104,7 +104,6 @@ class AiDashboardCommands extends DrushCommands {
       ['Major', 'priority', 'major'],
       ['Normal', 'priority', 'normal'],
       ['Minor', 'priority', 'minor'],
-      ['Trivial', 'priority', 'trivial'],
 
       // Status mappings.
       ['Active', 'status', 'active'],

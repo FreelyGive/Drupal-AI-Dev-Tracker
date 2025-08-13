@@ -33,7 +33,7 @@ class CalendarController extends ControllerBase {
   }
 
   /**
-   * Display the Organisational calendar view.
+   * Display the Organizational calendar view.
    */
   public function calendarViewNonDev(Request $request) {
     try {
@@ -49,7 +49,7 @@ class CalendarController extends ControllerBase {
       $week_start = clone $current_week;
       $week_end = (clone $current_week)->modify('+6 days');
 
-      // Get consolidated data for organisational audience only.
+      // Get consolidated data for organizational audience only.
       $calendar_data = $this->getCalendarData($week_start, $week_end, TRUE);
 
       $build = [
@@ -72,12 +72,12 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organisational" class="nav-link active">Organisational View</a>
+          <a href="/ai-dashboard/calendar/organizational" class="nav-link active">Organizational View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
 
-      // Get backlog data filtered to organisational issues.
+      // Get backlog data filtered to organizational issues.
       $backlog_data = $this->getBacklogData(TRUE);
 
       $build['calendar'] = [
@@ -107,7 +107,7 @@ class CalendarController extends ControllerBase {
     }
     catch (\Exception $e) {
       // Log the error for debugging.
-      \Drupal::logger('ai_dashboard')->error('Calendar view (organisational) error: @message @trace', [
+      \Drupal::logger('ai_dashboard')->error('Calendar view (organizational) error: @message @trace', [
         '@message' => $e->getMessage(),
         '@trace' => $e->getTraceAsString(),
       ]);
@@ -115,7 +115,7 @@ class CalendarController extends ControllerBase {
       return [
         '#markup' => '<div style="padding: 20px; background: #fee; border: 1px solid #f00; color: #900;">
           <h2>Calendar Error</h2>
-          <p>Unable to load organisational calendar view. Please try again or contact an administrator if the problem persists.</p>
+          <p>Unable to load organizational calendar view. Please try again or contact an administrator if the problem persists.</p>
           <a href="/ai-dashboard">← Back to Dashboard</a>
         </div>',
       ];
@@ -171,7 +171,7 @@ class CalendarController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link active">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organisational" class="nav-link">Organisational View</a>
+          <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
           <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
         </div>',
       ];
@@ -469,12 +469,12 @@ class CalendarController extends ControllerBase {
   }
 
   /**
-   * Sort calendar data by AI Sponsor status, company name, and developer name.
+   * Sort calendar data by AI Maker status, company name, and developer name.
    */
   private function sortCalendarData(&$calendar_data) {
-    // Sort companies: AI Sponsors first, then alphabetical by name.
+    // Sort companies: AI Makers first, then alphabetical by name.
     usort($calendar_data['companies'], function ($a, $b) {
-      // First sort by AI Sponsor status (true first, false second)
+      // First sort by AI Maker status (true first, false second)
       if ($a['is_ai_maker'] !== $b['is_ai_maker']) {
         // True (1) comes before false (0)
         return $b['is_ai_maker'] <=> $a['is_ai_maker'];

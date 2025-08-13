@@ -1662,7 +1662,7 @@ function ai_dashboard_update_9009() {
 }
 
 /**
- * Rename labels from Non-Developer/Management to Organisational.
+ * Rename labels from Non-Developer/Management to Organisational (now superseded by update 9013).
  */
 function ai_dashboard_update_9010() {
   $messages = [];
@@ -1909,4 +1909,114 @@ function ai_dashboard_update_9012() {
   drupal_flush_all_caches();
 
   return t('Replaced old assignment system with new AssignmentRecord entity type. Old assignment data has been cleared as requested.');
+}
+
+/**
+ * Update labels from Organisational to Organizational (US spelling).
+ */
+function ai_dashboard_update_9013() {
+  $messages = [];
+  
+  // Update AI Issue Dashboard Category field.
+  $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', 'field_dashboard_category');
+  if ($storage) {
+    $allowed = $storage->getSetting('allowed_values');
+    $changed = FALSE;
+    
+    foreach ($allowed as $k => $v) {
+      if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+        if (($v['label'] ?? '') === 'Organisational') {
+          $allowed[$k]['label'] = 'Organizational';
+          $changed = TRUE;
+        }
+      }
+      elseif (!is_array($v) && $k === 'non_dev' && $v === 'Organisational') {
+        $allowed[$k] = 'Organizational';
+        $changed = TRUE;
+      }
+    }
+    
+    if ($changed) {
+      $storage->setSetting('allowed_values', $allowed)->save();
+      $messages[] = 'Updated issue dashboard category label to Organizational.';
+    }
+  }
+  
+  // Update AI Contributor Type field.
+  $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', 'field_contributor_type');
+  if ($storage) {
+    $allowed = $storage->getSetting('allowed_values');
+    $changed = FALSE;
+    
+    foreach ($allowed as $k => $v) {
+      if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+        if (($v['label'] ?? '') === 'Organisational') {
+          $allowed[$k]['label'] = 'Organizational';
+          $changed = TRUE;
+        }
+      }
+      elseif (!is_array($v) && $k === 'non_dev' && $v === 'Organisational') {
+        $allowed[$k] = 'Organizational';
+        $changed = TRUE;
+      }
+    }
+    
+    if ($changed) {
+      $storage->setSetting('allowed_values', $allowed)->save();
+      $messages[] = 'Updated contributor type label to Organizational.';
+    }
+  }
+  
+  // Update AI Company Audience field.
+  $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', 'field_company_audience');
+  if ($storage) {
+    $allowed = $storage->getSetting('allowed_values');
+    $changed = FALSE;
+    
+    foreach ($allowed as $k => $v) {
+      if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+        if (($v['label'] ?? '') === 'Organisational') {
+          $allowed[$k]['label'] = 'Organizational';
+          $changed = TRUE;
+        }
+      }
+      elseif (!is_array($v) && $k === 'non_dev' && $v === 'Organisational') {
+        $allowed[$k] = 'Organizational';
+        $changed = TRUE;
+      }
+    }
+    
+    if ($changed) {
+      $storage->setSetting('allowed_values', $allowed)->save();
+      $messages[] = 'Updated company audience label to Organizational.';
+    }
+  }
+  
+  // Update import audience field.
+  $storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', 'field_import_audiences');
+  if ($storage) {
+    $allowed = $storage->getSetting('allowed_values');
+    $changed = FALSE;
+    
+    foreach ($allowed as $k => $v) {
+      if (is_array($v) && isset($v['value']) && $v['value'] === 'non_dev') {
+        if (($v['label'] ?? '') === 'Organisational') {
+          $allowed[$k]['label'] = 'Organizational';
+          $changed = TRUE;
+        }
+      }
+      elseif (!is_array($v) && $k === 'non_dev' && $v === 'Organisational') {
+        $allowed[$k] = 'Organizational';
+        $changed = TRUE;
+      }
+    }
+    
+    if ($changed) {
+      $storage->setSetting('allowed_values', $allowed)->save();
+      $messages[] = 'Updated import audience label to Organizational.';
+    }
+  }
+  
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated labels from Organisational to Organizational (US spelling). @m', ['@m' => implode(' | ', $messages)]);
 }
