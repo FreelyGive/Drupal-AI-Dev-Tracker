@@ -2111,7 +2111,7 @@ function ai_dashboard_update_9014() {
     }
 
     // Update form display.
-    $form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_contributor.default');
+    $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.ai_contributor.default');
     if ($form_display && !$form_display->getComponent($field_name)) {
       $widget_config = [
         'type' => $config['widget'],
@@ -2141,7 +2141,7 @@ function ai_dashboard_update_9014() {
     }
 
     // Update view display.
-    $view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_contributor.default');
+    $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.ai_contributor.default');
     if ($view_display && !$view_display->getComponent($field_name)) {
       $formatter_weight = $config['weight'] + 3; // Offset for view display.
       $view_display->setComponent($field_name, [
@@ -2157,7 +2157,7 @@ function ai_dashboard_update_9014() {
   }
 
   // Ensure GitLab Username field is visible (not hidden).
-  $form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_contributor.default');
+  $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.ai_contributor.default');
   if ($form_display) {
     $hidden = $form_display->get('hidden') ?: [];
     if (isset($hidden['field_gitlab_username'])) {
@@ -2183,7 +2183,7 @@ function ai_dashboard_update_9014() {
     }
   }
 
-  $view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_contributor.default');
+  $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.ai_contributor.default');
   if ($view_display) {
     $hidden = $view_display->get('hidden') ?: [];
     if (isset($hidden['field_gitlab_username'])) {
