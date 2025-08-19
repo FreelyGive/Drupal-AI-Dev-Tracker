@@ -354,33 +354,38 @@ drush aid-sync --week-offset=-1
 Import issues from drupal.org for a specific configuration.
 
 ```bash
-# Import from specific configuration
+# Import from specific configuration (incremental - since last run)
 drush ai-dashboard:import CONFIG_ID
 
-# Import with full sync from specific date
+# Force full sync from specific date (ignores last run timestamp)
 drush ai-dashboard:import CONFIG_ID --full-from=2025-01-01
 ```
 
 **Features:**
-- Processes issues in batches
+- Uses drupal.org 'changed' date filtering for accurate update detection
+- Processes issues in batches with queue system
 - Creates AssignmentRecord entries for assigned issues
-- Handles duplicate detection
-- Updates module associations
-- Safe to interrupt and resume
+- Handles duplicate detection and module associations
+- Safe to interrupt and resume via `drush queue-run module_import_full_do`
+- Updates last run timestamps for incremental imports
 
 #### `ai-dashboard:import-all`
-Import all active configurations.
+Import from all active configurations simultaneously.
 
 ```bash
-# Import from all active configurations
+# Import from all active configurations (incremental - since last run)
 drush ai-dashboard:import-all
+
+# Force full sync from specific date for all configurations
+drush ai-dashboard:import-all --full-from=2025-01-01
 ```
 
 **Features:**
-- Processes all enabled import configurations
-- Runs sequentially to avoid conflicts
-- Complete progress reporting
+- Processes all enabled import configurations sequentially
+- Uses 'changed' date filtering to capture assignment updates and issue modifications
+- Complete progress reporting with per-configuration status
 - Safe resumption with queue system
+- Essential `--full-from` option for initial deployments and catch-up imports
 
 ### Content Management Commands
 
@@ -495,17 +500,32 @@ drush cr
 # 1. Update database schema
 drush updb -y
 
-# 2. Sync current week assignments (preserves history)
+# 2. Initial catch-up import (after deploying 'changed' date filtering fix)
+drush ai-dashboard:import-all --full-from=2024-01-01
+
+# 3. Sync current week assignments (preserves history)
 drush aid-sync
 
-# 3. Process any pending imports
+# 4. Process any pending imports
 drush queue-run module_import_full_do
 
-# 4. Clean up any invalid configuration
+# 5. Clean up any invalid configuration
 drush aidash:clean-status
 
-# 5. Final cache clear
+# 6. Final cache clear
 drush cr
+```
+
+**Regular Import Operations:**
+```bash
+# Daily/automated incremental imports (captures all recent updates)
+drush ai-dashboard:import-all
+
+# Manual import for specific configuration
+drush ai-dashboard:import CONFIG_ID
+
+# Force full sync when needed (e.g., after data issues)
+drush ai-dashboard:import-all --full-from=2025-01-01
 ```
 
 **Development Workflow:**
