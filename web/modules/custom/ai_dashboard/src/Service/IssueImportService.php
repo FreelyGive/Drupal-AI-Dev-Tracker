@@ -119,7 +119,7 @@ class IssueImportService {
     $params = [
       'type' => 'project_issue',
       'field_project' => $config->getProjectId(),
-      'sort' => 'created',
+      'sort' => 'changed',
       'direction' => 'DESC',
     ];
 
@@ -140,7 +140,7 @@ class IssueImportService {
     if ($config->getDateFilter()) {
       $timestamp = strtotime($config->getDateFilter());
       if ($timestamp) {
-        $params['created'] = '>=' . $timestamp;
+        $params['changed'] = '>=' . $timestamp;
       }
     }
 
@@ -461,7 +461,7 @@ class IssueImportService {
       'type' => 'project_issue',
       'field_project' => $project_id,
       'limit' => $max_issues,
-      'sort' => 'created',
+      'sort' => 'changed',
       'direction' => 'DESC',
     ];
 
@@ -484,7 +484,7 @@ class IssueImportService {
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
       if ($timestamp) {
-        $params['created'] = '>=' . $timestamp;
+        $params['changed'] = '>=' . $timestamp;
       }
     }
 
@@ -689,7 +689,7 @@ class IssueImportService {
       'field_project' => $project_id,
       'limit' => min($api_page_size, $limit),
       'page' => $page_number,
-      'sort' => 'created',
+      'sort' => 'changed',
       'direction' => 'DESC',
     ];
 
@@ -708,7 +708,7 @@ class IssueImportService {
     if ($date_filter) {
       $timestamp = strtotime($date_filter);
       if ($timestamp) {
-        $params['created'] = '>=' . $timestamp;
+        $params['changed'] = '>=' . $timestamp;
       }
     }
 

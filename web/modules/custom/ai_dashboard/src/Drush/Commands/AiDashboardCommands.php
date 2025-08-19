@@ -506,7 +506,8 @@ class AiDashboardCommands extends DrushCommands {
    * Import all active configurations.
    */
   #[Command(name: 'ai-dashboard:import-all')]
-  public function importAllConfigurations() {
+  #[CLI\Option(name: 'full-from', description: 'Force full sync from specified date (YYYY-mm-dd). Ignores last run timestamp.')]
+  public function importAllConfigurations($options = ['full-from' => NULL]) {
     $storage = $this->entityTypeManager->getStorage('module_import');
     $activeConfigurations = $storage->loadByProperties(['active' => TRUE]);
     if (!$activeConfigurations) {
@@ -514,7 +515,7 @@ class AiDashboardCommands extends DrushCommands {
       return;
     }
     foreach ($activeConfigurations as $configuration) {
-      $this->importSingleConfiguration($configuration->id());
+      $this->importSingleConfiguration($configuration->id(), $options);
     }
   }
 
