@@ -109,7 +109,12 @@ class ContributorCsvImportForm extends FormBase {
             <li><strong>Skills:</strong> Comma-separated skills (e.g., "PHP, JavaScript, AI/ML")</li>
             <li><strong>Commitment (days/week):</strong> Number of days per week (e.g., 5, 2.5)</li>
             <li><strong>Company Drupal Profile:</strong> Company name as it appears in drupal.org URLs (used as company unique identifier)</li>
-            <li><strong>GitLab Username or Email:</strong> GitLab username or email address</li>
+            <li><strong>Current Focus:</strong> Brief description of current focus and priorities (optional)</li>
+            <li><strong>Org Role:</strong> Organizational role/title (e.g., Senior Developer, Technical Lead)</li>
+            <li><strong>Drupal Slack U-name:</strong> Drupal Slack username (optional)</li>
+            <li><strong>Time Zone:</strong> Time zone (e.g., UTC, EST, PST)</li>
+            <li><strong>Supporting Modules:</strong> Comma-separated module machine names (e.g., ai, ai_provider_openai, search_api)</li>
+            <li><strong>(GitLab) Username or Email:</strong> GitLab username or email address</li>
           </ol>
           <p><strong>Note:</strong> Existing contributors are identified by their Drupal username. Companies are identified by their Drupal profile name. Re-running the import will update existing records. AI Maker status can be set on both individuals and companies.</p>
         </div>',

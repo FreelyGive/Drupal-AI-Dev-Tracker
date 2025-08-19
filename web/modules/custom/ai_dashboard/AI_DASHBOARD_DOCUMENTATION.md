@@ -134,11 +134,14 @@ The AI Dashboard now uses a sophisticated **AssignmentRecord** entity system tha
 - Administrative interface for managing mappings
 
 #### ✅ Import Systems
-- **CSV Import** (`/ai-dashboard/admin/contributor-import`) - Bulk contributor import with template download
-  - Required fields: full_name, drupal_username (email removed)
-  - Auto-creates companies if they don't exist
-  - Duplicate detection via drupal_username
-  - Validation and error reporting
+- **CSV Import** (`/ai-dashboard/admin/contributor-import`) - Enhanced bulk contributor import with comprehensive field support
+  - **14 supported fields**: Name, Drupal Username, Organization, AI Maker status, Tracker Role, Skills, Weekly Commitment, Company Drupal Profile, Current Focus, Org Role, Drupal Slack Username, Time Zone, Supporting Modules, GitLab Username
+  - **Multi-value field processing**: Automatically splits comma-separated values for Supporting Modules into individual filterable entries
+  - **UTF-8 encoding support**: Robust handling of international characters and accented names
+  - **Auto-creates companies** with AI Maker status and Drupal profile linkage
+  - **Duplicate detection** via drupal_username with update-in-place capability
+  - **Template download** with sample data matching exact field structure
+  - **Validation and error reporting** with detailed feedback
 - **API Import** - Automated issue import from external APIs with status filtering and audience tagging
   - Drupal.org integration with comprehensive status filtering
   - Auto-creates module options during import
@@ -217,11 +220,21 @@ ai_dashboard/
 **Fields:**
 - Title (Full Name)
 - `field_drupal_username`: Drupal.org username (required, used for duplicate detection)
+- `field_drupal_userid`: Drupal.org user ID (auto-populated for API optimization)
 - `field_contributor_company`: Reference to AI Company
-- `field_contributor_role`: Job title/role
+- `field_contributor_role`: Job title/role (organizational role)
+- `field_current_focus`: Text area for brief description of current focus and priorities
 - `field_contributor_skills`: Multiple skills (unlimited values)
 - `field_weekly_commitment`: Days per week commitment
+- `field_drupal_slack_username`: Drupal Slack username
+- `field_time_zone`: Time zone information (free text)
+- `field_supporting_modules`: Module machine names (multiple values, filterable)
+- `field_gitlab_username`: GitLab username or email address
+- `field_contributor_type`: Multi-value list (dev, non_dev) for audience categorization
+- `field_tracker_role`: Multi-value tracker roles (developer, management, etc.)
 - `field_contributor_avatar`: Profile image
+
+**Enhanced CSV Import**: The contributor CSV import system supports all fields with automatic field mapping, multi-value field processing, and robust UTF-8 encoding support for international characters. Supporting modules are automatically split from comma-separated values into individual field entries for optimal filtering capabilities.
 
 **Note**: Email field was removed from contributors to simplify data collection and focus on essential information.
 
@@ -938,5 +951,253 @@ administer ai dashboard content:
   - Developer calendar includes only contributors tagged `dev` and excludes any issue tagged `non_dev`.
   - Non‑Developer calendar includes only contributors tagged `non_dev` and only issues tagged `non_dev`.
   - Developer backlog excludes `non_dev` issues; Non‑Developer backlog shows only `non_dev` issues.
+
+## Processes for handling integration of metadata with drupal.org issues
+
+### Overview
+
+This section outlines the planned enhancement to integrate traditional project management capabilities with Drupal.org issue tracking. The goal is to extract metadata from issue bodies and organize issues into a hierarchical project management structure while maintaining synchronization with drupal.org.
+
+### Project Structure Hierarchy
+
+#### 1. Tracks (Top Level)
+- **Definition**: High-level strategic areas that push specific domains forward
+- **Examples**: 
+  - Media Track: Issues focused on advancing media capabilities
+  - Content Track: Issues focused on content management improvements
+  - Performance Track: Issues focused on performance optimization
+- **Assignment Logic**: Based on complex tag combinations:
+  - Media Track: All issues tagged "AI Initiative" from Media module OR issues tagged "media" from AI module
+  - Issues can belong to multiple tracks
+  - Default: "No Track" for unassigned issues
+
+#### 2. Workstreams (Mid Level)
+- **Definition**: Mini-milestones representing deliverable content packages
+- **Function**: Time-bound collections of issues that deliver cohesive functionality
+- **Relationship**: Nested within Tracks, can span multiple modules/components
+
+#### 3. Meta Issues/Epics (Issue Level)
+- **Definition**: Large feature issues that encompass multiple sub-issues within a track
+- **Function**: Serve as umbrella issues for complex features
+- **Creation**: Automatically created based on issue tagging and classification
+
+### Metadata Extraction System
+
+#### Issue Body Template Block
+A standardized text block that contributors can include in issue descriptions:
+
+```
+--- AI TRACKER METADATA ---
+Update Summary: [One-line status update for stakeholders]
+Due Date: MM/DD/YYYY (US format)
+Additional Collaborators: @username1, @username2
+Track: [Media|Content|Performance|Custom]
+Workstream: [Workstream Name]
+Epic: [Epic Issue Number or Title]
+--- END METADATA ---
+```
+
+#### Regex Processing Engine
+- **Parser**: Extract structured data from the metadata block using regex patterns
+- **Validation**: Ensure date formats, user references, and track names are valid
+- **Fallback**: Graceful handling when metadata block is incomplete or missing
+- **Updates**: Re-process on issue updates to capture metadata changes
+
+#### Field Mapping
+| Extracted Data | AI Dashboard Field | Type | Notes |
+|---|---|---|---|
+| Update Summary | `field_update_summary` | Text (single line) | Regularly updated status |
+| Due Date | `field_due_date` | Date | US format MM/DD/YYYY |
+| Additional Collaborators | `field_additional_collaborators` | Entity Reference (Users) | Beyond d.o assignee |
+| Track | `field_project_track` | List (Multiple) | Can have multiple tracks |
+| Workstream | `field_workstream` | Entity Reference | Links to Workstream entity |
+| Epic | `field_epic_issue` | Entity Reference | Links to Epic/Meta issue |
+
+### Data Architecture
+
+#### New Entity Types
+1. **Track Entity** (`ai_track`)
+   - Title, Description, Color, Status
+   - Assignment rules configuration
+   - Priority weighting
+
+2. **Workstream Entity** (`ai_workstream`)
+   - Title, Description, Due Date, Status
+   - Track reference (parent)
+   - Progress tracking fields
+
+3. **Epic Entity** (`ai_epic`) 
+   - Extends AI Issue entity
+   - Parent track/workstream references
+   - Child issue references
+   - Progress aggregation fields
+
+#### Enhanced AI Issue Fields
+- `field_update_summary`: Text (255 chars) - Stakeholder communication
+- `field_due_date`: Date - Project planning dates
+- `field_additional_collaborators`: Entity Reference (Multiple) - Extended team
+- `field_project_track`: List (Multiple) - Strategic area assignment
+- `field_workstream`: Entity Reference - Deliverable milestone
+- `field_epic_issue`: Entity Reference - Parent epic/meta issue
+- `field_metadata_source`: Text - Raw metadata block for re-processing
+
+### Import Processing Workflow
+
+#### 1. Issue Import Enhancement
+```
+Standard Issue Import
+    ↓
+Extract Metadata Block (Regex)
+    ↓
+Parse & Validate Extracted Data
+    ↓
+Apply Track Assignment Rules
+    ↓
+Create/Update Associated Entities
+    ↓
+Populate AI Issue Fields
+    ↓
+Store Raw Metadata for Re-processing
+```
+
+#### 2. Track Assignment Logic
+- **Tag-based Rules**: Configurable rules engine
+- **Module-specific Logic**: Different rules per Drupal module
+- **Multi-track Support**: Issues can belong to multiple tracks
+- **Priority Resolution**: Handle conflicting assignments
+
+#### 3. Entity Creation Rules
+- **Workstreams**: Auto-create from metadata if doesn't exist
+- **Epics**: Create meta issues when referenced but missing
+- **Tracks**: Pre-configured, not auto-created from metadata
+
+### Planning Report System
+
+#### Weekly Priority Report Structure
+```
+📊 Weekly Planning Report - [Week Date Range]
+
+🎯 NO TRACK
+├── 📦 [Module Name]
+│   ├── 🔧 [Component Name]
+│   │   ├── #123: Issue Title | @assignee | "Update summary" | Due: MM/DD | Priority: High
+│   │   └── #456: Another Issue | @assignee2 | "Status update" | Due: MM/DD | Priority: Normal
+
+🎯 MEDIA TRACK  
+├── 📦 AI Module
+│   ├── 🔧 Media Integration
+│   │   ├── #789: Media API Enhancement | @dev1 | "90% complete, testing phase" | Due: 01/25 | Priority: High
+│   │   └── #790: Video Processing | @dev2 | "Blocked on external API" | Due: 01/30 | Priority: Critical
+├── 📦 Media Module  
+│   ├── 🔧 Core
+│   │   └── #791: Performance Optimization | @dev3 | "Initial analysis done" | Due: 02/01 | Priority: Normal
+```
+
+#### Report Features
+- **Filtering**: By track, priority, due date range, assignee
+- **Sorting**: Configurable sorting within each grouping level
+- **Export**: PDF/CSV export capabilities for stakeholder sharing
+- **Real-time**: Updates as issues are imported/modified
+- **Dashboard Integration**: Widget for quick overview on main dashboard
+
+### Implementation Phases
+
+#### Phase 1: Core Infrastructure
+1. Create new entity types (Track, Workstream, Epic)
+2. Add enhanced fields to AI Issue entity
+3. Update database schema with migration hooks
+4. Create basic CRUD forms for new entities
+
+#### Phase 2: Metadata Extraction
+1. Implement regex parser for metadata blocks
+2. Create import processor enhancements
+3. Add validation and error handling
+4. Create re-processing system for existing issues
+
+#### Phase 3: Track Assignment System
+1. Build configurable rules engine
+2. Implement multi-track assignment logic
+3. Create administrative interface for rule management
+4. Add conflict resolution algorithms
+
+#### Phase 4: Planning Reports
+1. Create weekly priority report view
+2. Build hierarchical grouping system
+3. Add filtering and sorting capabilities
+4. Implement export functionality
+
+#### Phase 5: UI/UX Enhancements
+1. Update calendar view to show track/workstream data
+2. Add track/epic filtering to existing filters
+3. Create dedicated planning dashboard
+4. Add bulk operations for track/workstream management
+
+### Issue Template Documentation
+
+#### Contributor Guidelines
+```markdown
+# AI Initiative Issue Template
+
+## Description
+[Standard issue description]
+
+## AI Tracker Metadata
+Please include the following metadata block in your issue description to enable project tracking:
+
+--- AI TRACKER METADATA ---
+Update Summary: Brief one-line status (e.g., "Initial development complete, testing in progress")
+Due Date: MM/DD/YYYY (US format, e.g., 01/25/2025)
+Additional Collaborators: @username1, @username2 (optional)
+Track: Media (or Content, Performance, etc. - optional)
+Workstream: Q1 Media Enhancement (optional)
+Epic: #1234 or "Media API Overhaul" (optional)
+--- END METADATA ---
+
+### Guidelines:
+- **Update Summary**: Keep to one line, update regularly to communicate status to stakeholders
+- **Due Date**: Use US date format MM/DD/YYYY
+- **Collaborators**: Use @username format for additional team members beyond assignee
+- **Track**: Leave blank if unsure, will be auto-assigned based on tags
+- **Workstream**: Reference existing workstreams or create new ones as needed
+- **Epic**: Reference parent epic issue number or title
+```
+
+### Technical Considerations
+
+#### Performance
+- **Caching**: Cache track assignments and metadata parsing results
+- **Batch Processing**: Handle large-scale re-processing efficiently
+- **Incremental Updates**: Only re-process changed issues
+
+#### Data Integrity
+- **Validation**: Strict validation of extracted metadata
+- **Audit Trail**: Track all metadata changes and assignments
+- **Rollback**: Ability to revert metadata extraction errors
+
+#### Integration
+- **API Compatibility**: Maintain compatibility with existing AI Dashboard APIs
+- **Backward Compatibility**: Ensure existing functionality remains intact
+- **Export/Import**: Bulk operations for track/workstream data
+
+### Success Metrics
+
+#### Adoption Metrics
+- Percentage of issues using metadata template
+- Number of active tracks/workstreams
+- User engagement with planning reports
+
+#### Efficiency Metrics  
+- Time saved in project planning activities
+- Improved issue categorization accuracy
+- Stakeholder satisfaction with status communication
+
+#### Technical Metrics
+- Metadata extraction accuracy rate
+- System performance impact
+- Error rates and resolution times
+
+---
+
+*This plan represents the roadmap for enhanced project management integration. Implementation will be iterative with regular stakeholder feedback and system refinements.*
 
 For questions or contributions, see the project repository or contact the development team.

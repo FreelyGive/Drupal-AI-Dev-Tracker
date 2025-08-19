@@ -2020,3 +2020,199 @@ function ai_dashboard_update_9013() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
   return t('Updated labels from Organisational to Organizational (US spelling). @m', ['@m' => implode(' | ', $messages)]);
 }
+
+/**
+ * Add enhanced contributor fields for current focus, Slack username, time zone, and supporting modules.
+ */
+function ai_dashboard_update_9014() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  $messages = [];
+
+  // Define the new fields to create.
+  $fields_to_create = [
+    'field_current_focus' => [
+      'type' => 'text_long',
+      'label' => 'Current Focus',
+      'description' => 'Brief description of current focus and priorities',
+      'widget' => 'text_textarea',
+      'formatter' => 'text_default',
+      'weight' => 4,
+      'cardinality' => 1,
+    ],
+    'field_drupal_slack_username' => [
+      'type' => 'string',
+      'label' => 'Drupal Slack Username',
+      'description' => 'Username on Drupal Slack',
+      'widget' => 'string_textfield',
+      'formatter' => 'string',
+      'weight' => 7,
+      'cardinality' => 1,
+      'settings' => ['max_length' => 255],
+    ],
+    'field_time_zone' => [
+      'type' => 'string',
+      'label' => 'Time Zone',
+      'description' => 'Time zone (e.g., UTC, EST, PST)',
+      'widget' => 'string_textfield',
+      'formatter' => 'string',
+      'weight' => 10,
+      'cardinality' => 1,
+      'settings' => ['max_length' => 255],
+    ],
+    'field_supporting_modules' => [
+      'type' => 'string',
+      'label' => 'Supporting Modules',
+      'description' => 'Module machine names this contributor supports',
+      'widget' => 'string_textfield',
+      'formatter' => 'string',
+      'weight' => 9,
+      'cardinality' => -1,
+      'settings' => ['max_length' => 255],
+    ],
+  ];
+
+  foreach ($fields_to_create as $field_name => $config) {
+    // Create field storage if it doesn't exist.
+    $storage = $field_storage_manager->load("node.{$field_name}");
+    if (!$storage) {
+      $storage_config = [
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $config['type'],
+        'cardinality' => $config['cardinality'],
+        'translatable' => TRUE,
+      ];
+      
+      if (isset($config['settings'])) {
+        $storage_config['settings'] = $config['settings'];
+      }
+      
+      $storage = $field_storage_manager->create($storage_config);
+      $storage->save();
+      $messages[] = "Created field storage for {$field_name}.";
+    }
+
+    // Create field instance on ai_contributor bundle.
+    $field = $field_manager->load("node.ai_contributor.{$field_name}");
+    if (!$field) {
+      $field_config = [
+        'field_storage' => $storage,
+        'bundle' => 'ai_contributor',
+        'label' => $config['label'],
+        'description' => $config['description'],
+        'required' => FALSE,
+        'settings' => [],
+      ];
+      
+      $field = $field_manager->create($field_config);
+      $field->save();
+      $messages[] = "Created field instance {$field_name} on ai_contributor.";
+    }
+
+    // Update form display.
+    $form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_contributor.default');
+    if ($form_display && !$form_display->getComponent($field_name)) {
+      $widget_config = [
+        'type' => $config['widget'],
+        'weight' => $config['weight'],
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      
+      // Add widget-specific settings.
+      if ($field_name === 'field_current_focus') {
+        $widget_config['settings'] = [
+          'rows' => 3,
+          'placeholder' => 'Brief description of current focus and priorities',
+        ];
+      }
+      elseif (in_array($field_name, ['field_drupal_slack_username', 'field_time_zone', 'field_supporting_modules'])) {
+        $widget_config['settings'] = [
+          'size' => 60,
+          'placeholder' => $field_name === 'field_drupal_slack_username' ? 'e.g. john_doe' :
+            ($field_name === 'field_time_zone' ? 'e.g. UTC, EST, PST' : 'e.g. ai, ai_provider_openai, search_api'),
+        ];
+      }
+      
+      $form_display->setComponent($field_name, $widget_config)->save();
+      $messages[] = "Added {$field_name} to contributor form display.";
+    }
+
+    // Update view display.
+    $view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_contributor.default');
+    if ($view_display && !$view_display->getComponent($field_name)) {
+      $formatter_weight = $config['weight'] + 3; // Offset for view display.
+      $view_display->setComponent($field_name, [
+        'type' => $config['formatter'],
+        'weight' => $formatter_weight,
+        'region' => 'content',
+        'label' => 'above',
+        'settings' => [],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = "Added {$field_name} to contributor view display.";
+    }
+  }
+
+  // Ensure GitLab Username field is visible (not hidden).
+  $form_display = \Drupal\Core\Entity\Display\EntityFormDisplay::load('node.ai_contributor.default');
+  if ($form_display) {
+    $hidden = $form_display->get('hidden') ?: [];
+    if (isset($hidden['field_gitlab_username'])) {
+      unset($hidden['field_gitlab_username']);
+      $form_display->set('hidden', $hidden);
+      
+      // Add it to content if not already there.
+      if (!$form_display->getComponent('field_gitlab_username')) {
+        $form_display->setComponent('field_gitlab_username', [
+          'type' => 'string_textfield',
+          'weight' => 8,
+          'region' => 'content',
+          'settings' => [
+            'size' => 60,
+            'placeholder' => 'e.g. john.doe or john.doe@company.com',
+          ],
+          'third_party_settings' => [],
+        ]);
+      }
+      
+      $form_display->save();
+      $messages[] = 'Made GitLab Username field visible on contributor forms.';
+    }
+  }
+
+  $view_display = \Drupal\Core\Entity\Display\EntityViewDisplay::load('node.ai_contributor.default');
+  if ($view_display) {
+    $hidden = $view_display->get('hidden') ?: [];
+    if (isset($hidden['field_gitlab_username'])) {
+      unset($hidden['field_gitlab_username']);
+      $view_display->set('hidden', $hidden);
+      
+      // Add it to content if not already there.
+      if (!$view_display->getComponent('field_gitlab_username')) {
+        $view_display->setComponent('field_gitlab_username', [
+          'type' => 'string',
+          'weight' => 11,
+          'region' => 'content',
+          'label' => 'above',
+          'settings' => ['link_to_entity' => FALSE],
+          'third_party_settings' => [],
+        ]);
+      }
+      
+      $view_display->save();
+      $messages[] = 'Made GitLab Username field visible on contributor displays.';
+    }
+  }
+
+  // Clear field caches.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+  return t('Added enhanced contributor fields: Current Focus, Drupal Slack Username, Time Zone, Supporting Modules. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}

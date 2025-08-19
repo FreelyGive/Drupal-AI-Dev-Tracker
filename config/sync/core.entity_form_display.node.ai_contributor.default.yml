@@ -9,9 +9,13 @@ dependencies:
     - field.field.node.ai_contributor.field_contributor_role
     - field.field.node.ai_contributor.field_contributor_skills
     - field.field.node.ai_contributor.field_contributor_type
+    - field.field.node.ai_contributor.field_current_focus
+    - field.field.node.ai_contributor.field_drupal_slack_username
     - field.field.node.ai_contributor.field_drupal_userid
     - field.field.node.ai_contributor.field_drupal_username
     - field.field.node.ai_contributor.field_gitlab_username
+    - field.field.node.ai_contributor.field_supporting_modules
+    - field.field.node.ai_contributor.field_time_zone
     - field.field.node.ai_contributor.field_tracker_role
     - field.field.node.ai_contributor.field_weekly_commitment
     - image.style.thumbnail
@@ -49,11 +53,19 @@ content:
     third_party_settings: {  }
   field_contributor_skills:
     type: string_textfield
-    weight: 4
+    weight: 5
     region: content
     settings:
       size: 60
       placeholder: 'e.g. PHP, JavaScript, AI/ML'
+    third_party_settings: {  }
+  field_current_focus:
+    type: text_textarea
+    weight: 4
+    region: content
+    settings:
+      rows: 3
+      placeholder: 'Brief description of current focus and priorities'
     third_party_settings: {  }
   field_contributor_type:
     type: options_buttons
@@ -77,9 +89,41 @@ content:
       size: 60
       placeholder: 'e.g. john_doe'
     third_party_settings: {  }
+  field_drupal_slack_username:
+    type: string_textfield
+    weight: 7
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. john_doe'
+    third_party_settings: {  }
+  field_gitlab_username:
+    type: string_textfield
+    weight: 8
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. john.doe or john.doe@company.com'
+    third_party_settings: {  }
+  field_supporting_modules:
+    type: string_textfield
+    weight: 9
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. ai, ai_provider_openai, search_api'
+    third_party_settings: {  }
+  field_time_zone:
+    type: string_textfield
+    weight: 10
+    region: content
+    settings:
+      size: 60
+      placeholder: 'e.g. UTC, EST, PST'
+    third_party_settings: {  }
   field_weekly_commitment:
     type: number
-    weight: 5
+    weight: 6
     region: content
     settings:
       placeholder: 'Days per week (e.g. 2.5)'
@@ -112,7 +156,6 @@ content:
 hidden:
   created: true
   field_contributor_email: true
-  field_gitlab_username: true
   field_tracker_role: true
   promote: true
   publish_on: true

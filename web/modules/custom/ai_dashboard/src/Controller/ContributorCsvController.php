@@ -67,17 +67,19 @@ class ContributorCsvController extends ControllerBase {
 
     $headers = [
       'name',
-      'drupal_username',
+      'drupal_username', 
       'organization',
       'ai_maker',
-      // Tracker Role (comma-separated): Developer, Organizational
       'tracker_role',
       'skills',
       'weekly_commitment',
       'company_drupal_profile',
+      'current_focus',
+      'org_role',
+      'drupal_slack_username',
+      'time_zone',
+      'supporting_modules',
       'gitlab_username',
-      // Role/Title should be the last column
-      'role_title',
     ];
 
     // Create sample rows.
@@ -91,8 +93,12 @@ class ContributorCsvController extends ControllerBase {
         'PHP, JavaScript, Drupal',
         '5',
         'acquia',
-        'john.doe@example.com',
+        'Working on AI provider integrations and core infrastructure',
         'Senior Developer',
+        'john_doe',
+        'UTC',
+        'ai, ai_provider_openai, search_api',
+        'john.doe@example.com',
       ],
       [
         'Jane Smith',
@@ -103,10 +109,13 @@ class ContributorCsvController extends ControllerBase {
         'AI/ML, Python, DevOps',
         '3',
         'lullabot',
-        'jsmith_gitlab',
+        'Managing project timelines and stakeholder communications',
         'Programme Manager',
+        'jsmith_slack',
+        'EST',
+        'ai, project_management',
+        'jsmith_gitlab',
       ],
-      // Keep a second sample distinct.
       [
         'Alex Taylor',
         'alex_taylor',
@@ -116,7 +125,12 @@ class ContributorCsvController extends ControllerBase {
         'AI/ML, Python, DevOps',
         '3',
         'example_profile',
-        'jsmith_gitlab',
+        'Frontend development and UX improvements',
+        'Frontend Developer',
+        'alex_t',
+        'PST',
+        'ai, frontend',
+        'ataylor@example.com',
       ],
     ];
 
@@ -266,8 +280,12 @@ class ContributorCsvController extends ControllerBase {
       'skills',
       'weekly_commitment',
       'company_drupal_profile',
+      'current_focus',
+      'org_role',
+      'drupal_slack_username',
+      'time_zone',
+      'supporting_modules',
       'gitlab_username',
-      'role_title',
     ];
 
     foreach ($required_headers as $required) {
@@ -292,8 +310,12 @@ class ContributorCsvController extends ControllerBase {
     $skills = trim($data['skills']);
     $weekly_commitment = floatval($data['weekly_commitment']);
     $company_drupal_profile = trim($data['company_drupal_profile']);
+    $current_focus = isset($data['current_focus']) ? trim($data['current_focus']) : '';
+    $org_role = isset($data['org_role']) ? trim($data['org_role']) : '';
+    $drupal_slack_username = isset($data['drupal_slack_username']) ? trim($data['drupal_slack_username']) : '';
+    $time_zone = isset($data['time_zone']) ? trim($data['time_zone']) : '';
+    $supporting_modules = isset($data['supporting_modules']) ? trim($data['supporting_modules']) : '';
     $gitlab_username = trim($data['gitlab_username']);
-    $role_title = isset($data['role_title']) ? trim($data['role_title']) : '';
 
     if (empty($name) || empty($drupal_username)) {
       throw new \Exception('Name and Drupal username are required');
@@ -330,11 +352,25 @@ class ContributorCsvController extends ControllerBase {
       $existing->set('field_drupal_username', $drupal_username);
       $existing->set('field_contributor_company', $company_id);
       // Set Role/Title field.
-      $existing->set('field_contributor_role', $role_title);
+      $existing->set('field_contributor_role', $org_role);
       $existing->set('field_contributor_skills', $skills);
       $existing->set('field_weekly_commitment', $weekly_commitment);
 
       // Set new fields if they exist.
+      if ($existing->hasField('field_current_focus')) {
+        $existing->set('field_current_focus', $current_focus);
+      }
+      if ($existing->hasField('field_drupal_slack_username')) {
+        $existing->set('field_drupal_slack_username', $drupal_slack_username);
+      }
+      if ($existing->hasField('field_time_zone')) {
+        $existing->set('field_time_zone', $time_zone);
+      }
+      if ($existing->hasField('field_supporting_modules') && !empty($supporting_modules)) {
+        // Split supporting modules by comma and create separate values.
+        $modules = array_map('trim', explode(',', $supporting_modules));
+        $existing->set('field_supporting_modules', array_filter($modules));
+      }
       if ($existing->hasField('field_tracker_role')) {
         // Map to existing tracker_role values.
         $mapped = [];
@@ -361,7 +397,7 @@ class ContributorCsvController extends ControllerBase {
         'title' => $name,
         'field_drupal_username' => $drupal_username,
         'field_contributor_company' => $company_id,
-        'field_contributor_role' => $role_title,
+        'field_contributor_role' => $org_role,
         'field_contributor_skills' => $skills,
         'field_weekly_commitment' => $weekly_commitment,
         'status' => 1,
@@ -369,6 +405,20 @@ class ContributorCsvController extends ControllerBase {
 
       // Add new fields if they exist in the system.
       $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+      if ($field_storage_manager->load('node.field_current_focus')) {
+        $contributor_data['field_current_focus'] = $current_focus;
+      }
+      if ($field_storage_manager->load('node.field_drupal_slack_username')) {
+        $contributor_data['field_drupal_slack_username'] = $drupal_slack_username;
+      }
+      if ($field_storage_manager->load('node.field_time_zone')) {
+        $contributor_data['field_time_zone'] = $time_zone;
+      }
+      if ($field_storage_manager->load('node.field_supporting_modules') && !empty($supporting_modules)) {
+        // Split supporting modules by comma and create separate values.
+        $modules = array_map('trim', explode(',', $supporting_modules));
+        $contributor_data['field_supporting_modules'] = array_filter($modules);
+      }
       if ($field_storage_manager->load('node.field_tracker_role')) {
         $mapped = [];
         if (in_array('dev', $contrib_types, TRUE)) { $mapped[] = 'developer'; }
@@ -617,25 +667,6 @@ class ContributorCsvController extends ControllerBase {
     fclose($output);
 
     return $csv_content;
-    // Parse audience (Developer / Organizational) column.
-    $contrib_types = [];
-    if (!empty($audience_raw)) {
-      $parts = explode(',', $audience_raw);
-      foreach ($parts as $part) {
-        $val = strtolower(trim($part));
-        if (in_array($val, ['developer', 'dev'])) {
-          $contrib_types[] = 'dev';
-        }
-        elseif (in_array($val, ['organisational', 'organizational', 'non-developer', 'nondeveloper', 'management', 'manager'])) {
-          $contrib_types[] = 'non_dev';
-        }
-      }
-      $contrib_types = array_values(array_unique($contrib_types));
-    }
-
-      if ($existing->hasField('field_contributor_type') && !empty($contrib_types)) {
-        $existing->set('field_contributor_type', array_map(function ($v) { return ['value' => $v]; }, $contrib_types));
-      }
   }
 
 }

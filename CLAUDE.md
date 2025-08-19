@@ -248,6 +248,11 @@ For best results when exporting CSV from Google Sheets:
 - **View**: Public access to dashboard views
 - **Admin**: `administer ai dashboard content` permission for imports, edits, and configuration
 
+### Technical Documentation
+- **Comprehensive Documentation**: Located at `/ai-dashboard/admin/documentation`
+- **Project Management Integration Plan**: See documentation section "Processes for handling integration of metadata with drupal.org issues"
+- **Implementation Roadmap**: Multi-phase plan for Track/Workstream/Epic system with metadata extraction from issue bodies
+
 ## Field Customizations
 
 ### Tag Fields
