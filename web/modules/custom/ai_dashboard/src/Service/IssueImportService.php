@@ -1604,6 +1604,39 @@ class IssueImportService {
    *   Array if issue data chunks, up to 50 items in a chunk.
    */
   public function getModuleIssuesSince(ModuleImport $config, int $timestamp) : array {
+    $status_filter = $config->getStatusFilter();
+    if (empty($status_filter) || !is_array($status_filter)) {
+      return [];
+    }
+
+    // If multiple statuses, process each one separately like the UI import does
+    if (count($status_filter) > 1) {
+      return $this->getModuleIssuesForMultipleStatuses($config, $timestamp, $status_filter);
+    }
+
+    // Single status - use original logic
+    return $this->getModuleIssuesForSingleStatus($config, $timestamp, $status_filter[0]);
+  }
+
+  /**
+   * Get module issues for multiple statuses (like UI import does).
+   */
+  protected function getModuleIssuesForMultipleStatuses(ModuleImport $config, int $timestamp, array $status_filter): array {
+    $all_chunks = [];
+    
+    // Process each status separately to match UI behavior
+    foreach ($status_filter as $single_status) {
+      $status_chunks = $this->getModuleIssuesForSingleStatus($config, $timestamp, $single_status);
+      $all_chunks = array_merge($all_chunks, $status_chunks);
+    }
+    
+    return $all_chunks;
+  }
+
+  /**
+   * Get module issues for a single status.
+   */
+  protected function getModuleIssuesForSingleStatus(ModuleImport $config, int $timestamp, string $status): array {
     // Build the API URL for single status import.
     $url = 'https://www.drupal.org/api-d7/node.json';
     $params = [
@@ -1612,18 +1645,13 @@ class IssueImportService {
       'sort' => 'changed',
       'direction' => 'DESC',
       'limit' => self::BATCH_SIZE,
+      'field_issue_status' => $status,
     ];
 
     // Apply component filter if set.
     $component = $config->getFilterComponent();
     if (!empty($component)) {
       $params['field_issue_component'] = $component;
-    }
-
-    // Apply status filter - use first status if multiple selected.
-    $status_filter = $config->getStatusFilter();
-    if (!empty($status_filter) && is_array($status_filter)) {
-      $params['field_issue_status'] = $status_filter[0];
     }
 
     $page = 0;
