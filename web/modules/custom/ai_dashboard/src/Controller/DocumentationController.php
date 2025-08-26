@@ -117,8 +117,22 @@ class DocumentationController extends ControllerBase {
     $content = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $content);
     $content = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $content);
 
-    // Convert code blocks - handle multiline more carefully.
-    $content = preg_replace('/```[\w]*\n(.*?)\n```/s', '<pre><code>$1</code></pre>', $content);
+    // Convert code blocks - handle multiline more carefully and preserve HTML in specific blocks.
+    $content = preg_replace_callback('/```[\w]*\n(.*?)\n```/s', function($matches) {
+      $code_content = $matches[1];
+      
+      // For AI Tracker metadata blocks, keep HTML tags as displayable text but render line breaks
+      if (strpos($code_content, '--- AI TRACKER METADATA ---') !== false) {
+        // Convert newlines to <br> tags for proper display while keeping HTML tags as text
+        $code_content = nl2br($code_content);
+        return '<div class="ai-tracker-metadata-template" style="background: #f8f8f8; padding: 15px; border-radius: 5px; border-left: 4px solid #0073aa; font-family: Monaco, Consolas, monospace; cursor: text; user-select: all; border: 1px solid #ddd;">' . 
+               '<div style="margin-bottom: 10px; font-weight: bold; color: #0073aa;">📋 Copy this HTML template for Drupal.org issues:</div>' .
+               '<div style="background: white; padding: 10px; border: 1px dashed #ccc; border-radius: 3px;">' . $code_content . '</div>' .
+               '</div>';
+      }
+      
+      return '<pre><code>' . $code_content . '</code></pre>';
+    }, $content);
 
     // Convert inline code.
     $content = preg_replace('/`([^`\n]+)`/', '<code>$1</code>', $content);

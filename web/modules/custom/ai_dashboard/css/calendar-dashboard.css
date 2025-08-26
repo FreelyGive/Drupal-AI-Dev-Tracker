@@ -434,6 +434,7 @@ body.path-ai-dashboard {
   padding: 0.5rem 0.75rem;
   background: linear-gradient(90deg, #f9fafb 0%, rgba(249, 250, 251, 0.5) 100%);
   border-bottom: 1px solid #e5e7eb;
+  position: relative;
 }
 
 .developer-profile {
@@ -507,7 +508,7 @@ body.path-ai-dashboard {
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease;
-  z-index: 1000;
+  z-index: 9999;
   margin-bottom: 0.5rem;
   max-width: 250px;
   text-align: center;
@@ -529,7 +530,7 @@ body.path-ai-dashboard {
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .weekly-commitment:hover::after,
@@ -592,11 +593,12 @@ body.path-ai-dashboard {
 .issue-card {
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.5rem;
   border-left: 4px solid;
   cursor: pointer;
   transition: all 0.15s ease;
   touch-action: manipulation;
+  min-height: auto;
 }
 
 .issue-card:hover {
@@ -685,19 +687,42 @@ body.path-ai-dashboard {
   margin-bottom: 0.375rem;
 }
 
+.issue-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .issue-actions {
   display: flex;
   align-items: center;
   gap: 0.375rem;
 }
 
-.issue-category {
+.issue-number {
+  font-size: 0.625rem;
+  background: #f8fafc;
+  color: #64748b;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Consolas', monospace;
+  border: 1px solid #e2e8f0;
+}
+
+.issue-module {
+  font-size: 0.625rem;
   background: #0073bb;
   color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
 }
 
 .issue-link {
@@ -800,9 +825,36 @@ body.path-ai-dashboard {
   gap: 0.5rem;
 }
 
+/* Developer Focus and Priorities */
+.developer-focus {
+  background: rgba(248, 250, 252, 0.9);
+  color: #475569;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  cursor: help;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  height: 5.35rem;
+}
+
+/* Developer focus tooltips handled by PopperJS - see focus-tooltips.js */
+
 .issue-title-container {
   position: relative;
   overflow: visible;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
 }
 
 .issue-title {
@@ -819,7 +871,7 @@ body.path-ai-dashboard {
 }
 
 .issue-title::after {
-  content: attr(title);
+  content: attr(data-tooltip);
   position: absolute;
   bottom: 100%;
   left: 50%;
@@ -830,14 +882,16 @@ body.path-ai-dashboard {
   border-radius: 0.375rem;
   font-size: 0.75rem;
   font-weight: 500;
-  white-space: normal;
+  white-space: pre-wrap;
+  word-wrap: break-word;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease;
-  z-index: 1000;
+  z-index: 10000;
   margin-bottom: 0.5rem;
-  max-width: 250px;
+  min-width: 120px;
+  max-width: 280px;
   text-align: center;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   line-height: 1.4;
@@ -858,7 +912,7 @@ body.path-ai-dashboard {
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .issue-title:hover::after,
@@ -909,10 +963,6 @@ body.path-ai-dashboard {
   color: white;
 }
 
-.issue-number {
-  color: #6b7280;
-  font-size: 0.75rem;
-}
 
 .issue-deadline {
   display: flex;
@@ -1106,7 +1156,7 @@ body.path-ai-dashboard {
   border-left: 2px solid #e5e7eb;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   transition: right 0.3s ease;
-  z-index: 1000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
 }
@@ -1558,5 +1608,257 @@ body.path-ai-dashboard {
     min-width: auto;
     flex: 1;
     max-width: 60%;
+  }
+}
+
+/* Planning Fields Container */
+.issue-planning-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem;
+  margin-top: 0.125rem;
+  align-items: center;
+}
+
+/* Planning Fields Styling - More subtle and compact */
+.issue-due-date,
+.issue-checkin-date,
+.issue-update-summary,
+.issue-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: 0.5rem;
+  padding: 0.0625rem 0.125rem;
+  border-radius: 0.1875rem;
+  line-height: 1.1;
+  opacity: 0.85;
+  max-width: 120px;
+}
+
+.issue-due-date {
+  background: rgba(239, 246, 255, 0.5);
+  color: #64748b;
+  border: 1px solid rgba(191, 219, 254, 0.3);
+}
+
+.issue-due-date.overdue {
+  background: rgba(254, 242, 242, 0.6);
+  color: #dc2626;
+  border: 1px solid rgba(254, 202, 202, 0.5);
+}
+
+.issue-due-date.due-soon {
+  background: rgba(255, 247, 237, 0.6);
+  color: #ea580c;
+  border: 1px solid rgba(254, 215, 170, 0.5);
+}
+
+.issue-checkin-date {
+  background: rgba(240, 253, 244, 0.5);
+  color: #64748b;
+  border: 1px solid rgba(187, 247, 208, 0.3);
+}
+
+.issue-checkin-date.checkin-today {
+  background: rgba(254, 243, 199, 0.7);
+  color: #d97706;
+  border: 1px solid rgba(253, 230, 138, 0.5);
+  font-weight: 500;
+}
+
+.issue-checkin-date.checkin-soon {
+  background: rgba(255, 244, 230, 0.6);
+  color: #c2410c;
+  border: 1px solid rgba(254, 215, 170, 0.5);
+}
+
+.issue-update-summary {
+  background: rgba(248, 250, 252, 0.9);
+  color: #64748b;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  cursor: help;
+  display: block;
+  width: calc(100% - 0.75rem);
+  max-width: none;
+  box-sizing: border-box;
+  position: relative;
+  overflow: visible;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  height: auto;
+  min-height: 1.5em;
+  flex-shrink: 0;
+}
+
+/* Update summary tooltip - exact copy of pip tooltip system */
+.issue-update-summary::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 10000;
+  margin-bottom: 0.5rem;
+  min-width: 120px;
+  max-width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  line-height: 1.4;
+}
+
+.issue-update-summary::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 0.125rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 9999;
+}
+
+.issue-update-summary:hover::after,
+.issue-update-summary:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Date container for side-by-side display */
+.issue-dates {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Add hover cursor for date badges with tooltips */
+.issue-due-date,
+.issue-checkin-date {
+  cursor: help;
+  position: relative;
+}
+
+/* Date badge tooltips - exact copy of pip tooltip system */
+.issue-due-date::after,
+.issue-checkin-date::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 9999;
+  margin-bottom: 0.5rem;
+  max-width: 250px;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.issue-due-date::before,
+.issue-checkin-date::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 0.125rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 9999;
+}
+
+.issue-due-date:hover::after,
+.issue-due-date:hover::before,
+.issue-checkin-date:hover::after,
+.issue-checkin-date:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+.issue-meta-badge {
+  background: rgba(253, 244, 255, 0.6);
+  color: #9333ea;
+  border: 1px solid rgba(243, 232, 255, 0.4);
+  font-weight: 500;
+}
+
+.due-icon,
+.checkin-icon,
+.update-icon,
+.meta-icon {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Responsive adjustments for planning fields */
+@media (max-width: 768px) {
+  .issue-planning-badges {
+    gap: 0.0625rem;
+  }
+  
+  .issue-dates {
+    gap: 0.125rem;
+  }
+  
+  .issue-due-date,
+  .issue-checkin-date,
+  .issue-meta-badge {
+    font-size: 0.4375rem;
+    padding: 0.0625rem 0.125rem;
+    gap: 0.0625rem;
+    max-width: 60px;
+  }
+  
+  .due-icon,
+  .checkin-icon,
+  .meta-icon {
+    font-size: 0.5rem;
+  }
+  
+  .issue-update-summary {
+    font-size: 0.625rem;
+    padding: 0.1875rem 0.25rem;
   }
 }

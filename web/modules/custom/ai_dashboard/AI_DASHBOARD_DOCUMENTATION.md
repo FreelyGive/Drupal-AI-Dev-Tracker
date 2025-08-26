@@ -1004,18 +1004,7 @@ This section outlines the planned enhancement to integrate traditional project m
 ### Metadata Extraction System
 
 #### Issue Body Template Block
-A standardized text block that contributors can include in issue descriptions:
-
-```
---- AI TRACKER METADATA ---
-Update Summary: [One-line status update for stakeholders]
-Due Date: MM/DD/YYYY (US format)
-Additional Collaborators: @username1, @username2
-Track: [Media|Content|Performance|Custom]
-Workstream: [Workstream Name]
-Epic: [Epic Issue Number or Title]
---- END METADATA ---
-```
+See the "AI Tracker Metadata" section in the Issue Template Documentation below for the complete metadata template.
 
 #### Regex Processing Engine
 - **Parser**: Extract structured data from the metadata block using regex patterns
@@ -1027,11 +1016,17 @@ Epic: [Epic Issue Number or Title]
 | Extracted Data | AI Dashboard Field | Type | Notes |
 |---|---|---|---|
 | Update Summary | `field_update_summary` | Text (single line) | Regularly updated status |
-| Due Date | `field_due_date` | Date | US format MM/DD/YYYY |
+| Check-in Date | `field_checkin_date` | Date | US format MM/DD/YYYY | When to check progress |
+| Due Date | `field_due_date` | Date | US format MM/DD/YYYY | When issue should be completed |
 | Additional Collaborators | `field_additional_collaborators` | Entity Reference (Users) | Beyond d.o assignee |
-| Track | `field_project_track` | List (Multiple) | Can have multiple tracks |
-| Workstream | `field_workstream` | Entity Reference | Links to Workstream entity |
-| Epic | `field_epic_issue` | Entity Reference | Links to Epic/Meta issue |
+
+#### Tag-Based Classification
+| Issue Property | Detection Method | AI Dashboard Field | Notes |
+|---|---|---|---|
+| Track Assignment | Tag mapping rules | `field_project_track` | Tags mapped to track categories |
+| Workstream Assignment | Tag mapping rules | `field_workstream_tags` | Specific tags identified as workstreams |
+| Meta/Epic Issues | Title contains [meta] or [META] | `field_is_meta_issue` | Boolean flag for epic issues |
+| Related Issues | **Research needed**: Drupal.org API | `field_child_issues` | Child issues for epic functionality |
 
 ### Data Architecture
 
@@ -1054,11 +1049,13 @@ Epic: [Epic Issue Number or Title]
 
 #### Enhanced AI Issue Fields
 - `field_update_summary`: Text (255 chars) - Stakeholder communication
-- `field_due_date`: Date - Project planning dates
+- `field_checkin_date`: Date - When to check progress/get update
+- `field_due_date`: Date - When issue should be fully completed
 - `field_additional_collaborators`: Entity Reference (Multiple) - Extended team
-- `field_project_track`: List (Multiple) - Strategic area assignment
-- `field_workstream`: Entity Reference - Deliverable milestone
-- `field_epic_issue`: Entity Reference - Parent epic/meta issue
+- `field_project_track`: List (Multiple) - Strategic area assignment (via tag mapping)
+- `field_workstream_tags`: Text (Multiple) - Workstream tags from drupal.org
+- `field_is_meta_issue`: Boolean - True if title contains [meta] or [META]
+- `field_child_issues`: Entity Reference (Multiple) - Related child issues (if API supports)
 - `field_metadata_source`: Text - Raw metadata block for re-processing
 
 ### Import Processing Workflow
@@ -1067,29 +1064,116 @@ Epic: [Epic Issue Number or Title]
 ```
 Standard Issue Import
     ↓
-Extract Metadata Block (Regex)
+Extract Metadata Block (Regex) - Update Summary, Dates, Collaborators
     ↓
-Parse & Validate Extracted Data
+Parse & Validate Extracted Metadata
     ↓
-Apply Track Assignment Rules
+Process Drupal.org Issue Tags
     ↓
-Create/Update Associated Entities
+Apply Tag Mapping Rules (Track/Workstream Classification)
+    ↓
+Check for [meta]/[META] in Issue Title
+    ↓
+Research Child Issues (if Meta Issue & API supports)
     ↓
 Populate AI Issue Fields
     ↓
-Store Raw Metadata for Re-processing
+Store Raw Metadata and Tags for Re-processing
 ```
 
-#### 2. Track Assignment Logic
-- **Tag-based Rules**: Configurable rules engine
-- **Module-specific Logic**: Different rules per Drupal module
-- **Multi-track Support**: Issues can belong to multiple tracks
-- **Priority Resolution**: Handle conflicting assignments
+#### 2. Tag-Based Classification Logic
+- **Tag Mapping Engine**: Uses existing AI Dashboard tag mapping system
+- **Track Identification**: Specific tags mapped to track categories via admin interface
+- **Workstream Detection**: Certain tags identified as workstream markers
+- **Module-specific Logic**: Different tag mapping rules per Drupal module
+- **Multi-classification Support**: Issues can belong to multiple tracks/workstreams
+- **Priority Resolution**: Handle conflicting tag-based assignments
 
-#### 3. Entity Creation Rules
-- **Workstreams**: Auto-create from metadata if doesn't exist
-- **Epics**: Create meta issues when referenced but missing
-- **Tracks**: Pre-configured, not auto-created from metadata
+#### 3. Meta Issue & Epic Detection
+- **Title Analysis**: Regex detection of [meta] or [META] in issue titles
+- **Meta Issue Flag**: Set boolean field for meta/epic issues
+- **Child Issue Research**: **Requires API investigation** - determine if drupal.org API provides issue relationships
+- **Epic Hierarchy**: Build parent-child relationships between meta issues and regular issues
+
+### Meta Issue & Epic System
+
+#### Meta Issue Detection
+The AI Tracker automatically identifies epic/meta issues using the following criteria:
+
+1. **Title Pattern Matching**: Issues with titles containing `[meta]` or `[META]` (case insensitive) are flagged as meta issues
+2. **Boolean Field**: `field_is_meta_issue` is set to TRUE for these issues
+3. **Special Handling**: Meta issues appear differently in planning reports and calendar views
+
+#### Epic Functionality (Future Implementation)
+Meta issues serve as epics when they have related child issues:
+
+1. **Child Issue Discovery**: **API Research Completed** - drupal.org API investigation shows:
+   - ✅ `field_issue_related` field exists but often empty in practice
+   - ❌ No direct parent/child relationship fields available
+   - ❌ No dedicated dependencies or hierarchy fields
+   - 💡 Potential workaround: Parse issue body content for manually entered references
+
+2. **Relationship Building Options**:
+   **Option A - API-based (Limited)**:
+   - Monitor `field_issue_related` field for populated data
+   - Parse when available to build `field_child_issues` references
+   
+   **Option B - Content Parsing (Recommended)**:
+   - Parse issue body content for "Related issues:", "Child issues:", or similar sections
+   - Regex extraction of issue numbers from free text
+   - Manual curator review and validation
+   
+   **Option C - Manual Admin Interface**:
+   - Admin interface for manually linking child issues to meta issues
+   - Text field for child issue numbers that gets parsed and linked
+
+3. **Implementation Strategy**: Start with Option B (content parsing) as primary method, with Option C as fallback for complex cases
+
+#### Implementation Approach
+```php
+// During issue import processing
+if (preg_match('/\[meta\]/i', $issue_title)) {
+    $issue->field_is_meta_issue = TRUE;
+    
+    // Option A: Check API field_issue_related (if populated)
+    if (!empty($issue_data['field_issue_related'])) {
+        $related_issues = $this->parseRelatedIssueField($issue_data['field_issue_related']);
+        $issue->field_child_issues = $related_issues;
+    }
+    
+    // Option B: Parse issue body for child issue references
+    $body_text = $issue_data['body']['und'][0]['value'] ?? '';
+    $child_issues = $this->parseChildIssuesFromBody($body_text);
+    if (!empty($child_issues)) {
+        $issue->field_child_issues = array_merge(
+            $issue->field_child_issues ?? [], 
+            $child_issues
+        );
+    }
+}
+
+/**
+ * Parse issue body for child issue references
+ * Looks for patterns like "Related issues: #1234, #5678" or "Child issues: 1234, 5678"
+ */
+private function parseChildIssuesFromBody($body_text) {
+    $patterns = [
+        '/(?:Child issues?|Related issues?|Sub-?issues?):\s*([#\d\s,]+)/i',
+        '/(?:Depends on|Blocks):\s*([#\d\s,]+)/i',
+    ];
+    
+    $issue_numbers = [];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $body_text, $matches)) {
+            // Extract numbers from matched text
+            preg_match_all('/\d+/', $matches[1], $numbers);
+            $issue_numbers = array_merge($issue_numbers, $numbers[0]);
+        }
+    }
+    
+    return array_unique($issue_numbers);
+}
+```
 
 ### Planning Report System
 
@@ -1162,24 +1246,27 @@ Store Raw Metadata for Re-processing
 [Standard issue description]
 
 ## AI Tracker Metadata
-Please include the following metadata block in your issue description to enable project tracking:
+Please include the following metadata block in your issue description to enable project tracking in the AI Tracker:
 
+```
 --- AI TRACKER METADATA ---
-Update Summary: Brief one-line status (e.g., "Initial development complete, testing in progress")
-Due Date: MM/DD/YYYY (US format, e.g., 01/25/2025)
-Additional Collaborators: @username1, @username2 (optional)
-Track: Media (or Content, Performance, etc. - optional)
-Workstream: Q1 Media Enhancement (optional)
-Epic: #1234 or "Media API Overhaul" (optional)
+<strong>Update Summary: </strong>[One-line status update for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY (US format) [When we should see progress/get an update]
+<strong>Due Date:</strong> MM/DD/YYYY (US format) [When the issue should be fully completed]
+<strong>Additional Collaborators:</strong> @username1, @username2
+AI Tracker found here: <a href="https://www.drupalstarforge.ai/" title="AI Tracker">https://www.drupalstarforge.ai/</a>
 --- END METADATA ---
+```
 
-### Guidelines:
-- **Update Summary**: Keep to one line, update regularly to communicate status to stakeholders
-- **Due Date**: Use US date format MM/DD/YYYY
-- **Collaborators**: Use @username format for additional team members beyond assignee
-- **Track**: Leave blank if unsure, will be auto-assigned based on tags
-- **Workstream**: Reference existing workstreams or create new ones as needed
-- **Epic**: Reference parent epic issue number or title
+**Note**: Tracks, Workstreams, and Epics are now handled through Drupal.org issue tags rather than metadata fields. The AI Tracker uses tag mapping to identify which tags represent tracks vs workstreams. Epic issues are identified by titles containing [meta] or [META] and their relationship to child issues.
+
+### Tag-Based Project Organization
+Instead of including track, workstream, and epic information in the metadata block, use Drupal.org issue tags:
+
+- **Tracks**: Use appropriate tags that will be mapped to track categories (e.g., "Media Integration", "Content Enhancement", "Performance")
+- **Workstreams**: Use specific workstream tags that represent deliverable milestones
+- **Meta/Epic Issues**: Include [meta] or [META] in the issue title for issues that serve as parent epics
+- **Tag Mapping**: The AI Tracker will use its tag mapping system to automatically categorize these tags into the appropriate project structure
 ```
 
 ### Technical Considerations

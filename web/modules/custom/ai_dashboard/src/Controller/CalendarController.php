@@ -319,6 +319,8 @@ class CalendarController extends ControllerBase {
             'username' => $contributor->hasField('field_drupal_username') ? $contributor->get('field_drupal_username')->value : '',
             'role' => $contributor->hasField('field_contributor_role') ? $contributor->get('field_contributor_role')->value : '',
             'weekly_commitment' => $contributor->hasField('field_weekly_commitment') ? (float) $contributor->get('field_weekly_commitment')->value : 0,
+            'current_focus' => $contributor->hasField('field_current_focus') && !$contributor->get('field_current_focus')->isEmpty() ? 
+                               $this->sanitizeText($contributor->get('field_current_focus')->value) : '',
             'avatar_url' => NULL,
             'issues' => [],
           ];
@@ -375,6 +377,15 @@ class CalendarController extends ControllerBase {
               continue;
             }
 
+            // Get module info.
+            $module_name = 'N/A';
+            if ($issue->hasField('field_issue_module') && !$issue->get('field_issue_module')->isEmpty()) {
+              $module = $issue->get('field_issue_module')->entity;
+              if ($module) {
+                $module_name = $this->sanitizeText($module->getTitle());
+              }
+            }
+
             $issue_data = [
               'id' => $issue->id(),
               'nid' => $issue->id(),
@@ -382,6 +393,7 @@ class CalendarController extends ControllerBase {
               'status' => $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active',
               'priority' => $issue->hasField('field_issue_priority') ? $issue->get('field_issue_priority')->value : 'normal',
               'category' => $issue->hasField('field_issue_category') ? $issue->get('field_issue_category')->value : 'ai_integration',
+              'module' => $module_name,
               'deadline' => NULL,
               'url' => '#',
               'issue_number' => $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : '',
@@ -389,11 +401,26 @@ class CalendarController extends ControllerBase {
               'do_assignee' => $issue->hasField('field_issue_do_assignee') ? $issue->get('field_issue_do_assignee')->value : '',
               'assignment_status' => $assignment_status, // 'current', 'historical', or 'none'
               'has_conflict' => FALSE,
+              // New planning fields - truncate update summary for display
+              'update_summary' => $issue->hasField('field_update_summary') && !$issue->get('field_update_summary')->isEmpty() ? 
+                                  $this->sanitizeText($issue->get('field_update_summary')->value) : '',
+              'update_summary_full' => $issue->hasField('field_update_summary') && !$issue->get('field_update_summary')->isEmpty() ? 
+                                       $this->sanitizeText($issue->get('field_update_summary')->value) : '',
+              'checkin_date' => NULL,
+              'is_meta_issue' => $issue->hasField('field_is_meta_issue') ? (bool) $issue->get('field_is_meta_issue')->value : FALSE,
             ];
 
             // Get deadline.
             if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
               $issue_data['deadline'] = $issue->get('field_issue_deadline')->value;
+            }
+
+            // Get planning dates.
+            if ($issue->hasField('field_checkin_date') && !$issue->get('field_checkin_date')->isEmpty()) {
+              $issue_data['checkin_date'] = $issue->get('field_checkin_date')->value;
+            }
+            if ($issue->hasField('field_due_date') && !$issue->get('field_due_date')->isEmpty()) {
+              $issue_data['due_date'] = $issue->get('field_due_date')->value;
             }
 
             // Get issue URL.
@@ -455,12 +482,14 @@ class CalendarController extends ControllerBase {
   }
 
   /**
-   * Clean display text by removing literal newline artifacts.
+   * Clean display text by removing HTML tags and literal newline artifacts.
    */
   private function sanitizeText($text) {
     if (!is_string($text)) {
       return $text;
     }
+    // Strip HTML tags first.
+    $text = strip_tags($text);
     // Replace literal sequences and actual line breaks with a single space.
     $text = str_replace(["\\n", "\\r", "/n", "\r\n", "\n", "\r"], ' ', $text);
     // Collapse excessive whitespace.

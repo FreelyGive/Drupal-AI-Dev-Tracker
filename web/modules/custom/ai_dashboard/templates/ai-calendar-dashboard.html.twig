@@ -204,6 +204,11 @@
                         {% endif %}
                       </div>
                     </div>
+                    {% if developer.current_focus %}
+                      <div class="developer-focus" title="{{ developer.current_focus }}">
+                        {{ developer.current_focus|length > 120 ? developer.current_focus|slice(0, 117) ~ '...' : developer.current_focus }}
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -214,7 +219,12 @@
                   {% for issue in developer.issues %}
                     <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}" data-issue-id="{{ issue.id }}">
                       <div class="issue-header">
-                        <span class="issue-category">{{ issue.category|replace({'_': ' '})|title }}</span>
+                        <div class="issue-header-left">
+                          {% if issue.issue_number %}
+                            <span class="issue-number">#{{ issue.issue_number }}</span>
+                          {% endif %}
+                          <span class="issue-module">{{ issue.module }}</span>
+                        </div>
                         <div class="issue-actions">
                           {% if issue.url != '#' %}
                             <a href="{{ issue.url }}" target="_blank" class="issue-link">
@@ -233,30 +243,56 @@
                       </div>
                       
                       <div class="issue-title-container">
-                        <h5 class="issue-title" title="{{ issue.title }}">{{ issue.title }}</h5>
+                        <h5 class="issue-title" data-tooltip="{{ issue.title }}">{{ issue.title }}</h5>
+                        {% if issue.update_summary %}
+                          <div class="issue-update-summary" data-tooltip="{{ issue.update_summary_full }}">
+                            {{ issue.update_summary|length > 60 ? issue.update_summary|slice(0, 57) ~ '...' : issue.update_summary }}
+                          </div>
+                        {% endif %}
                       </div>
                       
                       <div class="issue-footer">
                         <div class="issue-meta">
                           <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
                           <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
-                          {% if issue.issue_number %}
-                            <span class="issue-number">#{{ issue.issue_number }}</span>
-                          {% endif %}
                         </div>
                         
-                        {% if issue.deadline %}
-                          {% set deadline_date = issue.deadline|date('Y-m-d') %}
-                          {% set today = 'now'|date('Y-m-d') %}
-                          {% set is_overdue = deadline_date < today %}
-                          {% set days_diff = (deadline_date|date('U') - today|date('U')) / 86400 %}
-                          {% set is_due_soon = days_diff <= 3 and days_diff >= 0 %}
-                          
-                          <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}">
-                            <span class="clock-icon">⏰</span>
-                            <span class="deadline-text">{{ issue.deadline|date('M j') }}</span>
+                        <div class="issue-planning-badges">
+                          <div class="issue-dates">
+                            {% if issue.deadline %}
+                              {% set deadline_date = issue.deadline|date('Y-m-d') %}
+                              {% set today = 'now'|date('Y-m-d') %}
+                              {% set is_overdue = deadline_date < today %}
+                              {% set days_diff = (deadline_date|date('U') - today|date('U')) / 86400 %}
+                              {% set is_due_soon = days_diff <= 3 and days_diff >= 0 %}
+                              
+                              <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}" data-tooltip="Due Date: {{ issue.deadline|date('M j, Y') }}">
+                                <span class="clock-icon">⏰</span>
+                                <span class="deadline-text">{{ issue.deadline|date('M j') }}</span>
+                              </div>
+                            {% endif %}
+
+                            {% if issue.checkin_date %}
+                              {% set checkin_date = issue.checkin_date|date('Y-m-d') %}
+                              {% set today = 'now'|date('Y-m-d') %}
+                              {% set is_checkin_today = checkin_date == today %}
+                              {% set days_diff = (checkin_date|date('U') - today|date('U')) / 86400 %}
+                              {% set is_checkin_soon = days_diff <= 1 and days_diff >= 0 %}
+                              
+                              <div class="issue-checkin-date {{ is_checkin_today ? 'checkin-today' : (is_checkin_soon ? 'checkin-soon' : '') }}" data-tooltip="Check-in Date: {{ issue.checkin_date|date('M j, Y') }}">
+                                <span class="checkin-icon">🔔</span>
+                                <span class="checkin-text">{{ issue.checkin_date|date('M j') }}</span>
+                              </div>
+                            {% endif %}
                           </div>
-                        {% endif %}
+
+                          {% if issue.is_meta_issue %}
+                            <div class="issue-meta-badge">
+                              <span class="meta-icon">🏷️</span>
+                              <span class="meta-text">Epic</span>
+                            </div>
+                          {% endif %}
+                        </div>
                         
                         {% if issue.has_conflict %}
                           <div class="assignment-conflict">
@@ -400,4 +436,5 @@
       <div class="drop-text">Drop here to assign</div>
     </div>
   </div>
+  
 </div>

@@ -14,8 +14,11 @@ calendar_dashboard:
   css:
     theme:
       css/calendar-dashboard.css: {}
+      css/focus-tooltips.css: {}
   js:
     js/calendar-backlog.js: {}
+    js/focus-tooltips.js: {}
+    https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js: { type: external, minified: true, weight: -10 }
   dependencies:
     - core/drupal
     - core/jquery

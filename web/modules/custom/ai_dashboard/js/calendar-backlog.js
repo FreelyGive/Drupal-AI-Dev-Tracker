@@ -32,6 +32,7 @@
       
       // Initialize remove all issues button
       self.initRemoveAllButton();
+      
     },
 
     /**
@@ -738,6 +739,7 @@
         return (b.created || 0) - (a.created || 0);
       });
     },
+
 
   };
 

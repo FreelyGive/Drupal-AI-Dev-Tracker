@@ -2022,6 +2022,159 @@ function ai_dashboard_update_9013() {
 }
 
 /**
+ * Add planning fields to AI Issues for enhanced project management.
+ */
+function ai_dashboard_update_9022() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  $messages = [];
+
+  // Define the new planning fields to create.
+  $fields_to_create = [
+    'field_update_summary' => [
+      'type' => 'text_long',
+      'label' => 'Update Summary',
+      'description' => 'Status update for stakeholders',
+      'widget' => 'text_textarea',
+      'formatter' => 'text_default',
+      'weight' => 8,
+      'cardinality' => 1,
+      'settings' => [],
+    ],
+    'field_checkin_date' => [
+      'type' => 'datetime',
+      'label' => 'Check-in Date',
+      'description' => 'When team leads should follow up for progress updates',
+      'widget' => 'datetime_default',
+      'formatter' => 'datetime_default',
+      'weight' => 9,
+      'cardinality' => 1,
+      'settings' => ['datetime_type' => 'date'],
+    ],
+    'field_is_meta_issue' => [
+      'type' => 'boolean',
+      'label' => 'Meta Issue',
+      'description' => 'Check if this is a meta/epic issue containing child issues',
+      'widget' => 'boolean_checkbox',
+      'formatter' => 'boolean',
+      'weight' => 11,
+      'cardinality' => 1,
+      'settings' => ['on_label' => 'Yes', 'off_label' => 'No'],
+    ],
+  ];
+
+  foreach ($fields_to_create as $field_name => $config) {
+    // Create field storage if it doesn't exist.
+    $storage = $field_storage_manager->load("node.{$field_name}");
+    if (!$storage) {
+      $storage_config = [
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $config['type'],
+        'cardinality' => $config['cardinality'],
+        'translatable' => TRUE,
+      ];
+      
+      if (isset($config['settings'])) {
+        $storage_config['settings'] = $config['settings'];
+      }
+      
+      $storage = $field_storage_manager->create($storage_config);
+      $storage->save();
+      $messages[] = "Created field storage for {$field_name}.";
+    }
+
+    // Create field instance on ai_issue bundle.
+    $field = $field_manager->load("node.ai_issue.{$field_name}");
+    if (!$field) {
+      $field_config = [
+        'field_storage' => $storage,
+        'bundle' => 'ai_issue',
+        'label' => $config['label'],
+        'description' => $config['description'],
+        'required' => FALSE,
+        'settings' => [],
+      ];
+      
+      // Set default value for boolean field
+      if ($field_name === 'field_is_meta_issue') {
+        $field_config['default_value'] = [['value' => 0]];
+      }
+      
+      $field = $field_manager->create($field_config);
+      $field->save();
+      $messages[] = "Created field instance {$field_name} on ai_issue.";
+    }
+
+    // Update form display.
+    $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.ai_issue.default');
+    if ($form_display && !$form_display->getComponent($field_name)) {
+      $widget_config = [
+        'type' => $config['widget'],
+        'weight' => $config['weight'],
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      
+      // Add widget-specific settings.
+      if ($field_name === 'field_update_summary') {
+        $widget_config['settings'] = [
+          'rows' => 3,
+          'placeholder' => 'Status update for stakeholders',
+        ];
+      }
+      elseif ($field_name === 'field_checkin_date') {
+        $widget_config['settings'] = [
+          'date_order' => 'YMD',
+          'time_type' => '24',
+        ];
+      }
+      elseif ($field_name === 'field_is_meta_issue') {
+        $widget_config['settings'] = [
+          'display_label' => TRUE,
+        ];
+      }
+      
+      $form_display->setComponent($field_name, $widget_config)->save();
+      $messages[] = "Added {$field_name} to AI Issue form display.";
+    }
+
+    // Update view display.
+    $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.ai_issue.default');
+    if ($view_display && !$view_display->getComponent($field_name)) {
+      $formatter_config = [
+        'type' => $config['formatter'],
+        'weight' => $config['weight'] + 5, // Offset for view display
+        'region' => 'content',
+        'label' => 'above',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      
+      // Add formatter-specific settings.
+      if ($field_name === 'field_checkin_date') {
+        $formatter_config['settings'] = [
+          'date_format' => 'medium',
+        ];
+      }
+      
+      $view_display->setComponent($field_name, $formatter_config)->save();
+      $messages[] = "Added {$field_name} to AI Issue view display.";
+    }
+  }
+
+  // Clear field caches.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+  return t('Added planning fields to AI Issues: Update Summary, Check-in Date, Meta Issue flag. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+
+/**
  * Add enhanced contributor fields for current focus, Slack username, time zone, and supporting modules.
  */
 function ai_dashboard_update_9014() {
@@ -2215,4 +2368,22 @@ function ai_dashboard_update_9014() {
   return t('Added enhanced contributor fields: Current Focus, Drupal Slack Username, Time Zone, Supporting Modules. @m', [
     '@m' => implode(' | ', $messages),
   ]);
+}
+
+/**
+ * Enable PopperJS tooltip functionality for developer focus display.
+ */
+function ai_dashboard_update_9015() {
+  // Ensure the current focus field is properly configured for calendar display.
+  $field_manager = \Drupal::service('entity_field.manager');
+  
+  // Clear all field caches to ensure field definitions are current.
+  $field_manager->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  
+  // Clear Drupal caches to reload JavaScript libraries.
+  drupal_flush_all_caches();
+  
+  return t('Enabled PopperJS tooltip functionality for developer focus and priorities display in calendar dashboard.');
 }

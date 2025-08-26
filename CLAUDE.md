@@ -189,6 +189,7 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
   - Company links to drupal.org profiles
   - Edit buttons for admins (⚙️ cog icon)
   - Sync buttons to pull drupal.org assignments
+  - Developer focus and priorities display with PopperJS tooltips
 
 #### CSV Import System
 - **URL**: `/ai-dashboard/admin/contributor-import`
@@ -201,7 +202,8 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
   6. Skills - Comma-separated skills
   7. Commitment (days/week) - Weekly time commitment
   8. Company Drupal Profile - Company unique identifier for drupal.org URLs
-  9. GitLab Username or Email - GitLab contact info
+  9. Current Focus - Brief description of current focus and priorities
+  10. GitLab Username or Email - GitLab contact info
 
 - **Re-import Capability**: Updates existing contributors/companies based on unique identifiers
 - **Company Linking**: Uses `Company Drupal Profile` as primary unique identifier
