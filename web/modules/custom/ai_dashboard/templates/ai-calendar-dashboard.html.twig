@@ -206,7 +206,8 @@
                     </div>
                     {% if developer.current_focus %}
                       <div class="developer-focus" title="{{ developer.current_focus }}">
-                        {{ developer.current_focus|length > 120 ? developer.current_focus|slice(0, 117) ~ '...' : developer.current_focus }}
+                        {% set clean_focus = developer.current_focus|replace({'Currently ': '', 'currently ': ''}) %}
+                        {{ clean_focus }}
                       </div>
                     {% endif %}
                   </div>
