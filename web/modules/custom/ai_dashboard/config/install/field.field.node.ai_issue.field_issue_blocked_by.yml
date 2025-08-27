@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_blocked_by
+    - node.type.ai_issue
+id: node.ai_issue.field_issue_blocked_by
+field_name: field_issue_blocked_by
+entity_type: node
+bundle: ai_issue
+label: 'Blocked By Issues'
+description: 'Issue numbers that are blocking this issue (format: #123456)'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

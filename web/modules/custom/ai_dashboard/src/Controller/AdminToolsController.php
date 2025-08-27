@@ -97,7 +97,7 @@ class AdminToolsController extends ControllerBase {
         'title' => 'Tag Mappings',
         'url' => '/ai-dashboard/admin/tag-mappings',
         'icon' => '🏷️',
-        'description' => 'Configure tag mappings',
+        'description' => 'Configure tag mappings and analyze tags',
       ],
       'documentation' => [
         'title' => 'Documentation',

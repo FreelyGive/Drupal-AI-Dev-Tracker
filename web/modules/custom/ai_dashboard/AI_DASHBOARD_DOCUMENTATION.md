@@ -1253,6 +1253,7 @@ Please include the following metadata block in your issue description to enable 
 <strong>Update Summary: </strong>[One-line status update for stakeholders]
 <strong>Check-in Date: </strong>MM/DD/YYYY (US format) [When we should see progress/get an update]
 <strong>Due Date:</strong> MM/DD/YYYY (US format) [When the issue should be fully completed]
+<strong>Blocked by:</strong> [#XXXXXX] (New issues on new lines)
 <strong>Additional Collaborators:</strong> @username1, @username2
 AI Tracker found here: <a href="https://www.drupalstarforge.ai/" title="AI Tracker">https://www.drupalstarforge.ai/</a>
 --- END METADATA ---

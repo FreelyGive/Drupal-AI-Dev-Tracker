@@ -645,9 +645,7 @@ class AiDashboardCommands extends DrushCommands {
       // Create calendar controller instance directly.
       $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
         \Drupal::entityTypeManager(),
-        \Drupal::service('http_client'),
-        \Drupal::service('cache.default'),
-        \Drupal::service('cache_tags.invalidator')
+        \Drupal::service('ai_dashboard.tag_mapping')
       );
 
       // Call the sync method.
@@ -663,6 +661,62 @@ class AiDashboardCommands extends DrushCommands {
     catch (\Exception $e) {
       $this->output()->writeln("❌ Error during sync: " . $e->getMessage());
       \Drupal::logger('ai_dashboard')->error('Drush sync error: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Apply current tag mappings to all existing AI issues.
+   *
+   * @command ai-dashboard:update-tag-mappings
+   * @aliases aid-map
+   * @usage ai-dashboard:update-tag-mappings
+   *   Apply current tag mappings to all existing AI issues
+   */
+  public function updateTagMappings() {
+    $this->output()->writeln("Applying current tag mappings to all existing AI issues...");
+    
+    try {
+      // Create calendar controller instance to use its tag mapping update functionality.
+      $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
+        \Drupal::entityTypeManager(),
+        \Drupal::service('ai_dashboard.tag_mapping')
+      );
+
+      // Get all AI issues.
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      $query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('status', 1)
+        ->accessCheck(FALSE);
+      
+      $issue_ids = $query->execute();
+      
+      if (empty($issue_ids)) {
+        $this->output()->writeln("No AI issues found to update.");
+        return;
+      }
+      
+      $issues = $node_storage->loadMultiple($issue_ids);
+      $total_count = count($issues);
+      $this->output()->writeln("Found {$total_count} AI issues to update.");
+      
+      // Use the calendar controller's updateIssueMappings method.
+      $reflection = new \ReflectionClass($calendar_controller);
+      $method = $reflection->getMethod('updateIssueMappings');
+      $method->setAccessible(true);
+      
+      $updated_count = $method->invoke($calendar_controller, $issues);
+      
+      $this->output()->writeln("✅ Successfully updated {$updated_count} AI issues with current tag mappings.");
+      
+      if ($updated_count < $total_count) {
+        $skipped = $total_count - $updated_count;
+        $this->output()->writeln("   {$skipped} issues had no changes and were skipped.");
+      }
+    }
+    catch (\Exception $e) {
+      $this->output()->writeln("❌ Error applying tag mappings: " . $e->getMessage());
+      \Drupal::logger('ai_dashboard')->error('Tag mapping update error: @message', ['@message' => $e->getMessage()]);
     }
   }
 

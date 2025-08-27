@@ -1,0 +1,547 @@
+/* Tag Mapping Interface Styles */
+.tag-mapping-interface {
+  margin: 20px 0;
+}
+
+.interface-header {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border-left: 4px solid #007cba;
+}
+
+.interface-header h2 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.interface-header p {
+  margin: 0;
+  color: #666;
+  line-height: 1.3;
+  font-size: 0.9em;
+}
+
+.mapping-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.mapping-stats .stat {
+  background: #007cba;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.mapping-stats .stat.track {
+  background: #28a745;
+}
+
+.mapping-stats .stat.workstream {
+  background: #fd7e14;
+}
+
+.mapping-stats .stat.ignored {
+  background: #6c757d;
+}
+
+.mapping-stats .stat.unmapped {
+  background: #dc3545;
+}
+
+.mapping-stats .stat.filter-btn {
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.mapping-stats .stat.filter-btn:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mapping-stats .stat.filter-btn.active {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor;
+  transform: scale(1.05);
+}
+
+.filter-status {
+  background: #e9ecef;
+  color: #495057;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+  margin-bottom: 15px;
+  border-left: 4px solid #007cba;
+}
+
+.tag-mapping-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tag-mapping-row {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.tag-mapping-row:hover {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  border-color: #007cba;
+}
+
+.tag-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+.tag-name {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #333;
+  background: #f0f8ff;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.usage-count {
+  color: #007cba;
+  font-weight: 500;
+  font-size: 0.75em;
+  white-space: nowrap;
+}
+
+.tag-mappings {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.tag-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.mapping-display,
+.mapping-form {
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8em;
+}
+
+.mapping-display label,
+.mapping-form label {
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mapping-display.track label {
+  color: #28a745;
+}
+
+.mapping-display.workstream label {
+  color: #fd7e14;
+}
+
+.mapped-value {
+  font-weight: 500;
+  color: #333;
+  padding: 4px 8px;
+  background: white;
+  border-radius: 3px;
+  border: 1px solid #dee2e6;
+  font-size: 0.8em;
+}
+
+.mapping-input {
+  padding: 3px 6px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  font-size: 0.75em !important;
+  background: white !important;
+  width: 100px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+.form-element.mapping-input {
+  margin: 0 !important;
+}
+
+.mapping-input:focus {
+  border-color: #007cba;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
+}
+
+.edit-mapping-btn,
+.save-mapping-btn {
+  background: #007cba;
+  color: white;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  min-height: 0;
+  line-height: 1;
+}
+
+.edit-mapping-btn:hover,
+.save-mapping-btn:hover {
+  background: #005a87;
+}
+
+.save-mapping-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.mapping-form.track .save-mapping-btn {
+  background: #28a745;
+}
+
+.mapping-form.track .save-mapping-btn:hover {
+  background: #218838;
+}
+
+.mapping-form.workstream .save-mapping-btn {
+  background: #fd7e14;
+}
+
+.mapping-form.workstream .save-mapping-btn:hover {
+  background: #e8650e;
+}
+
+.ignore-tag-btn {
+  background: #6c757d;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.ignore-tag-btn:hover {
+  background: #5a6268;
+}
+
+.cancel-edit-btn {
+  background: #6c757d;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.cancel-edit-btn:hover {
+  background: #5a6268;
+}
+
+.quick-map-btn {
+  background: #007cba;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  min-height: 0;
+  line-height: 1.2;
+}
+
+.quick-map-btn:hover {
+  background: #005a87;
+}
+
+.quick-map-btn.track-btn {
+  background: #28a745;
+}
+
+.quick-map-btn.track-btn:hover {
+  background: #218838;
+}
+
+.quick-map-btn.workstream-btn {
+  background: #fd7e14;
+}
+
+.quick-map-btn.workstream-btn:hover {
+  background: #e8650e;
+}
+
+.mapping-success {
+  background: #d4edda;
+  color: #155724;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 1px solid #c3e6cb;
+  margin-top: 10px;
+}
+
+.mapping-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 1px solid #f5c6cb;
+  margin-top: 10px;
+}
+
+/* Loading states */
+.mapping-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.save-mapping-btn.loading {
+  background: #6c757d;
+  cursor: wait;
+}
+
+.save-mapping-btn.loading::after {
+  content: "...";
+  animation: dots 1s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%, 25% { content: ""; }
+  50% { content: "."; }
+  75% { content: ".."; }
+  100% { content: "..."; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .tag-mappings {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .tag-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .mapping-stats {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .mapping-stats .stat {
+    text-align: center;
+  }
+  
+  .mapping-input {
+    width: 160px;
+  }
+}
+
+/* Empty state */
+.no-tags-message {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.no-tags-message h3 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Ignored Tags Management */
+.ignored-tags-management {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #6c757d;
+}
+
+.toggle-ignored-btn {
+  background: #6c757d;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-ignored-btn:hover {
+  background: #5a6268;
+}
+
+.ignored-tags-list {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
+
+.ignored-tags-list h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.ignored-tag-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.ignored-tag-name {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #333;
+  background: #f0f8ff;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.restore-tag-btn {
+  background: #28a745;
+  color: white;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.restore-tag-btn:hover {
+  background: #218838;
+}
+
+.mapping-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.remove-mapping-btn {
+  background: #dc3545;
+  color: white;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  min-height: 0;
+  line-height: 1;
+}
+
+.remove-mapping-btn:hover {
+  background: #c82333;
+}
+
+.remove-mapping-btn.loading {
+  background: #6c757d;
+  cursor: wait;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #28a745;
+}
+
+.bulk-action-desc {
+  color: #666;
+  font-size: 0.9em;
+  margin: 10px 0 0 0;
+  line-height: 1.4;
+}
+
+.update-all-mappings-btn {
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.update-all-mappings-btn:hover {
+  background: #218838;
+}
+
+.update-all-mappings-btn.loading {
+  background: #6c757d;
+  cursor: wait;
+}

@@ -954,6 +954,18 @@ body.path-ai-dashboard {
   color: white;
 }
 
+/* Blocked Status Label */
+.issue-blocked {
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  background: #fecaca;
+  color: #dc2626;
+  cursor: help;
+  margin-left: 0.25rem;
+}
+
 
 .issue-deadline {
   display: flex;
@@ -1568,6 +1580,28 @@ body.path-ai-dashboard {
 .issue-card .issue-priority.priority-minor {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+/* Track and Workstream Labels */
+.issue-card .issue-track,
+.issue-card .issue-workstream {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-right: 0.5rem;
+}
+
+/* Track Label Colors */
+.issue-card .issue-track {
+  background: #ddd6fe;
+  color: #7c3aed;
+}
+
+/* Workstream Label Colors */
+.issue-card .issue-workstream {
+  background: #fef3c7;
+  color: #d97706;
 }
 
 

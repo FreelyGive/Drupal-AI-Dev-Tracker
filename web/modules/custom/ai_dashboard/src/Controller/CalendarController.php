@@ -5,6 +5,7 @@ namespace Drupal\ai_dashboard\Controller;
 use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\ai_dashboard\Service\TagMappingService;
 use Drupal\file\Entity\File;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,14 +24,25 @@ class CalendarController extends ControllerBase {
   protected $entityTypeManager;
 
   /**
+   * The tag mapping service.
+   *
+   * @var \Drupal\ai_dashboard\Service\TagMappingService
+   */
+  protected $tagMappingService;
+
+  /**
    * Constructs a CalendarController object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Drupal\ai_dashboard\Service\TagMappingService $tag_mapping_service
+   *   The tag mapping service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, TagMappingService $tag_mapping_service) {
     $this->entityTypeManager = $entity_type_manager;
+    $this->tagMappingService = $tag_mapping_service;
   }
+
 
   /**
    * Display the Organizational calendar view.
@@ -79,6 +91,9 @@ class CalendarController extends ControllerBase {
 
       // Get backlog data filtered to organizational issues.
       $backlog_data = $this->getBacklogData(TRUE);
+      
+      // Get dynamic filter options
+      $filter_options = $this->getFilterOptions();
 
       $build['calendar'] = [
         '#theme' => 'ai_calendar_dashboard',
@@ -87,6 +102,7 @@ class CalendarController extends ControllerBase {
         '#week_start' => $week_start,
         '#week_end' => $week_end,
         '#week_offset' => $week_offset,
+        '#filter_options' => $filter_options,
         '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
         '#attached' => [
           'library' => [
@@ -106,7 +122,7 @@ class CalendarController extends ControllerBase {
       return $build;
     }
     catch (\Exception $e) {
-      // Log the error for debugging.
+      // Log the error.
       \Drupal::logger('ai_dashboard')->error('Calendar view (organizational) error: @message @trace', [
         '@message' => $e->getMessage(),
         '@trace' => $e->getTraceAsString(),
@@ -127,7 +143,8 @@ class CalendarController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_type.manager')
+      $container->get('entity_type.manager'),
+      $container->get('ai_dashboard.tag_mapping')
     );
   }
 
@@ -178,6 +195,9 @@ class CalendarController extends ControllerBase {
 
       // Get backlog data.
       $backlog_data = $this->getBacklogData(FALSE);
+      
+      // Get dynamic filter options
+      $filter_options = $this->getFilterOptions();
 
       $build['calendar'] = [
         '#theme' => 'ai_calendar_dashboard',
@@ -186,6 +206,7 @@ class CalendarController extends ControllerBase {
         '#week_start' => $week_start,
         '#week_end' => $week_end,
         '#week_offset' => $week_offset,
+        '#filter_options' => $filter_options,
         '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
         '#attached' => [
           'library' => [
@@ -205,7 +226,7 @@ class CalendarController extends ControllerBase {
       return $build;
     }
     catch (\Exception $e) {
-      // Log the error for debugging.
+      // Log the error.
       \Drupal::logger('ai_dashboard')->error('Calendar view error: @message @trace', [
         '@message' => $e->getMessage(),
         '@trace' => $e->getTraceAsString(),
@@ -394,6 +415,10 @@ class CalendarController extends ControllerBase {
               'priority' => $issue->hasField('field_issue_priority') ? $issue->get('field_issue_priority')->value : 'normal',
               'category' => $issue->hasField('field_issue_category') ? $issue->get('field_issue_category')->value : 'ai_integration',
               'module' => $module_name,
+              'track' => $issue->hasField('field_track') ? $issue->get('field_track')->value : '',
+              'track_label' => '',
+              'workstream' => $issue->hasField('field_workstream') ? $issue->get('field_workstream')->value : '',
+              'workstream_label' => '',
               'deadline' => NULL,
               'url' => '#',
               'issue_number' => $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : '',
@@ -408,7 +433,19 @@ class CalendarController extends ControllerBase {
                                        $this->sanitizeText($issue->get('field_update_summary')->value) : '',
               'checkin_date' => NULL,
               'is_meta_issue' => $issue->hasField('field_is_meta_issue') ? (bool) $issue->get('field_is_meta_issue')->value : FALSE,
+              'blocked_by' => [],
+              'blocked_by_raw' => '',
             ];
+
+            // Set track label (use stored value as both filter value and label)
+            if (!empty($issue_data['track'])) {
+              $issue_data['track_label'] = $issue_data['track'];
+            }
+
+            // Set workstream label (use stored value as both filter value and label)
+            if (!empty($issue_data['workstream'])) {
+              $issue_data['workstream_label'] = $issue_data['workstream'];
+            }
 
             // Get deadline.
             if ($issue->hasField('field_issue_deadline') && !$issue->get('field_issue_deadline')->isEmpty()) {
@@ -426,6 +463,33 @@ class CalendarController extends ControllerBase {
             // Get issue URL.
             if ($issue->hasField('field_issue_url') && !$issue->get('field_issue_url')->isEmpty()) {
               $issue_data['url'] = $issue->get('field_issue_url')->uri;
+            }
+
+            // Process blocked by field (simple check for now).
+            if ($issue->hasField('field_issue_blocked_by') && !$issue->get('field_issue_blocked_by')->isEmpty()) {
+              $blocked_by_values = $issue->get('field_issue_blocked_by')->getValue();
+              $issue_data['blocked_by_raw'] = implode(', ', array_column($blocked_by_values, 'value'));
+              $issue_data['is_blocked'] = TRUE;
+              
+              // Parse blocked by entries for tooltip display
+              $blocked_issues = [];
+              foreach ($blocked_by_values as $blocked_value) {
+                $text = $blocked_value['value'];
+                // Extract issue numbers from text (simple extraction for manual entry)
+                if (preg_match_all('/#?(\d+)/', $text, $matches)) {
+                  foreach ($matches[1] as $issue_number) {
+                    $blocked_issues[] = [
+                      'issue_number' => $issue_number,
+                      'title' => 'Issue title not available', // Placeholder for now
+                      'assignee' => 'Assignee not available', // Placeholder for now
+                    ];
+                  }
+                }
+              }
+              $issue_data['blocked_issues'] = $blocked_issues;
+            } else {
+              $issue_data['is_blocked'] = FALSE;
+              $issue_data['blocked_issues'] = [];
             }
 
             // Check for d.o assignment conflict.
@@ -555,6 +619,109 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Get dynamic filter options for tracks and workstreams.
+   *
+   * @return array
+   *   An array containing unique track and workstream values.
+   */
+  private function getFilterOptions() {
+    $filter_options = [
+      'tracks' => [],
+      'workstreams' => [],
+    ];
+
+    // Get track field definition for allowed values
+    $track_field_storage = $this->entityTypeManager->getStorage('field_storage_config')->load('node.field_track');
+    $track_allowed_values = [];
+    if ($track_field_storage) {
+      $track_allowed_values = $track_field_storage->getSetting('allowed_values') ?: [];
+    }
+
+    // Query for unique track values
+    $track_query = $this->entityTypeManager->getStorage('node')->getQuery()
+      ->condition('type', 'ai_issue')
+      ->condition('status', 1)
+      ->exists('field_track')
+      ->accessCheck(FALSE);
+    
+    $track_nids = $track_query->execute();
+    
+    if (!empty($track_nids)) {
+      $track_issues = $this->entityTypeManager->getStorage('node')->loadMultiple($track_nids);
+      $track_values = [];
+      
+      foreach ($track_issues as $issue) {
+        if ($issue->hasField('field_track') && !$issue->get('field_track')->isEmpty()) {
+          $track_value = $issue->get('field_track')->value;
+          if (!empty($track_value) && !in_array($track_value, $track_values)) {
+            $track_values[] = $track_value;
+          }
+        }
+      }
+      
+      // Convert values to labels and sort  
+      $track_options = [];
+      foreach ($track_values as $value) {
+        // Since the database stores the actual display values, use them directly
+        $track_options[] = ['value' => $value, 'label' => $value];
+      }
+      
+      // Sort by label
+      usort($track_options, function($a, $b) {
+        return strcasecmp($a['label'], $b['label']);
+      });
+      
+      $filter_options['tracks'] = $track_options;
+    }
+
+    // Get workstream field definition for allowed values
+    $workstream_field_storage = $this->entityTypeManager->getStorage('field_storage_config')->load('node.field_workstream');
+    $workstream_allowed_values = [];
+    if ($workstream_field_storage) {
+      $workstream_allowed_values = $workstream_field_storage->getSetting('allowed_values') ?: [];
+    }
+
+    // Query for unique workstream values
+    $workstream_query = $this->entityTypeManager->getStorage('node')->getQuery()
+      ->condition('type', 'ai_issue')
+      ->condition('status', 1)
+      ->exists('field_workstream')
+      ->accessCheck(FALSE);
+    
+    $workstream_nids = $workstream_query->execute();
+    
+    if (!empty($workstream_nids)) {
+      $workstream_issues = $this->entityTypeManager->getStorage('node')->loadMultiple($workstream_nids);
+      $workstream_values = [];
+      
+      foreach ($workstream_issues as $issue) {
+        if ($issue->hasField('field_workstream') && !$issue->get('field_workstream')->isEmpty()) {
+          $workstream_value = $issue->get('field_workstream')->value;
+          if (!empty($workstream_value) && !in_array($workstream_value, $workstream_values)) {
+            $workstream_values[] = $workstream_value;
+          }
+        }
+      }
+      
+      // Convert values to labels and sort
+      $workstream_options = [];
+      foreach ($workstream_values as $value) {
+        // Since the database stores the actual display values, use them directly
+        $workstream_options[] = ['value' => $value, 'label' => $value];
+      }
+      
+      // Sort by label
+      usort($workstream_options, function($a, $b) {
+        return strcasecmp($a['label'], $b['label']);
+      });
+      
+      $filter_options['workstreams'] = $workstream_options;
+    }
+
+    return $filter_options;
+  }
+
+  /**
    * Get the assignment status for an issue and contributor.
    *
    * @param $issue
@@ -625,9 +792,8 @@ class CalendarController extends ControllerBase {
   private function getBacklogData(bool $non_developer_only = FALSE) {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
-    // Use direct database query to get all AI issues (entity query seems
-    // to have caching issues).
-    // @todo handle cacheability metadata.
+    // Use direct database query to get all AI issues for performance.
+    // Cacheability is handled at the render array level with appropriate cache tags.
     $all_issue_ids = \Drupal::database()
       ->select('node_field_data', 'nfd')
       ->fields('nfd', ['nid'])
@@ -1102,16 +1268,27 @@ class CalendarController extends ControllerBase {
             }
           }
         }
+        
+        // Update tag mappings for all synced issues.
+        $mappings_updated = $this->updateIssueMappings($issues);
+      } else {
+        $mappings_updated = 0;
       }
 
       // Invalidate relevant caches.
       $this->invalidateCalendarCaches();
 
       // Create response with no-cache headers for CloudFlare.
+      $message = "Synced {$synced_count} issue" . ($synced_count != 1 ? 's' : '') . " from drupal.org for {$username}";
+      if ($mappings_updated > 0) {
+        $message .= ". Updated {$mappings_updated} issue" . ($mappings_updated != 1 ? 's' : '') . " with tag mappings";
+      }
+      
       $response = new JsonResponse([
         'success' => TRUE,
-        'message' => "Synced {$synced_count} issue" . ($synced_count != 1 ? 's' : '') . " from drupal.org for {$username}",
+        'message' => $message,
         'synced_count' => $synced_count,
+        'mappings_updated' => $mappings_updated,
         'developer_id' => $developer_id,
         'username' => $username,
       ]);
@@ -1164,6 +1341,7 @@ class CalendarController extends ControllerBase {
       $contributors = $node_storage->loadMultiple($contributor_ids);
       $total_synced = 0;
       $developers_synced = 0;
+      $all_synced_issues = [];
 
       // For each contributor, find their assigned issues on drupal.org.
       foreach ($contributors as $contributor) {
@@ -1188,6 +1366,9 @@ class CalendarController extends ControllerBase {
 
         $issues = $node_storage->loadMultiple($issue_ids);
         $contributor_synced = 0;
+
+        // Add all issues to our collection for later tag mapping updates.
+        $all_synced_issues = array_merge($all_synced_issues, $issues);
 
         foreach ($issues as $issue) {
           // Calculate week_id for the assignment date.
@@ -1229,14 +1410,27 @@ class CalendarController extends ControllerBase {
         }
       }
 
+      // Update tag mappings for all synced issues (remove duplicates).
+      $unique_issues = [];
+      foreach ($all_synced_issues as $issue) {
+        $unique_issues[$issue->id()] = $issue;
+      }
+      $mappings_updated = $this->updateIssueMappings($unique_issues);
+
       // Invalidate relevant caches.
       $this->invalidateCalendarCaches();
 
       // Create response with no-cache headers.
+      $message = "Synced {$total_synced} issue" . ($total_synced != 1 ? 's' : '') . " from drupal.org for {$developers_synced} developer" . ($developers_synced != 1 ? 's' : '');
+      if ($mappings_updated > 0) {
+        $message .= ". Updated {$mappings_updated} issue" . ($mappings_updated != 1 ? 's' : '') . " with tag mappings";
+      }
+      
       $response = new JsonResponse([
         'success' => TRUE,
-        'message' => "Synced {$total_synced} issue" . ($total_synced != 1 ? 's' : '') . " from drupal.org for {$developers_synced} developer" . ($developers_synced != 1 ? 's' : ''),
+        'message' => $message,
         'total_synced' => $total_synced,
+        'mappings_updated' => $mappings_updated,
         'developers_synced' => $developers_synced,
       ]);
 
@@ -1328,6 +1522,120 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Update all existing issues with current tag mappings.
+   */
+  public function updateAllTagMappings(Request $request) {
+    try {
+      $node_storage = $this->entityTypeManager->getStorage('node');
+
+      // Get all AI issues.
+      $query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('status', 1)
+        ->accessCheck(FALSE);
+
+      $issue_ids = $query->execute();
+
+      if (empty($issue_ids)) {
+        return new JsonResponse([
+          'success' => TRUE,
+          'message' => 'No AI issues found to update',
+          'updated_count' => 0,
+        ]);
+      }
+
+      $issues = $node_storage->loadMultiple($issue_ids);
+      $updated_count = $this->updateIssueMappings($issues);
+
+      // Invalidate relevant caches.
+      $this->invalidateCalendarCaches();
+
+      return new JsonResponse([
+        'success' => TRUE,
+        'message' => "Updated {$updated_count} issue" . ($updated_count != 1 ? 's' : '') . " with current tag mappings",
+        'updated_count' => $updated_count,
+        'total_issues' => count($issues),
+      ]);
+
+    } catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->error('Error updating all tag mappings: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Failed to update tag mappings: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Update tag mappings for given issues.
+   * 
+   * @param array $issues
+   *   Array of AI Issue nodes to update.
+   * 
+   * @return int
+   *   Number of issues updated.
+   */
+  private function updateIssueMappings(array $issues) {
+    $updated_count = 0;
+    
+    foreach ($issues as $issue) {
+      // Get current issue tags - handle multi-value field properly.
+      $tags = [];
+      if ($issue->hasField('field_issue_tags') && !$issue->get('field_issue_tags')->isEmpty()) {
+        // Handle multi-value field - get all field values
+        $tag_field_values = $issue->get('field_issue_tags')->getValue();
+        foreach ($tag_field_values as $tag_value) {
+          if (!empty($tag_value['value'])) {
+            $tag = trim($tag_value['value']);
+            // Also handle comma-separated values within individual field values (legacy support)
+            if (strpos($tag, ',') !== false) {
+              $split_tags = array_map('trim', explode(',', $tag));
+              $tags = array_merge($tags, $split_tags);
+            } else {
+              $tags[] = $tag;
+            }
+          }
+        }
+      }
+      
+      if (empty($tags)) {
+        continue;
+      }
+      
+      // Process tags through mapping service.
+      $processed_tags = $this->tagMappingService->processTags($tags);
+      
+      $needs_save = FALSE;
+      
+      // Update track mapping - set if available, clear if not.
+      $current_track = $issue->hasField('field_track') ? $issue->get('field_track')->value : '';
+      $new_track = !empty($processed_tags['track']) ? $processed_tags['track'] : '';
+      if ($current_track !== $new_track) {
+        $issue->set('field_track', $new_track);
+        $needs_save = TRUE;
+      }
+      
+      // Update workstream mapping - set if available, clear if not.
+      $current_workstream = $issue->hasField('field_workstream') ? $issue->get('field_workstream')->value : '';
+      $new_workstream = !empty($processed_tags['workstream']) ? $processed_tags['workstream'] : '';
+      if ($current_workstream !== $new_workstream) {
+        $issue->set('field_workstream', $new_workstream);
+        $needs_save = TRUE;
+      }
+      
+      if ($needs_save) {
+        $issue->save();
+        $updated_count++;
+      }
+    }
+    
+    return $updated_count;
+  }
+
+  /**
    * Invalidate caches related to calendar and dashboard.
    */
   private function invalidateCalendarCaches() {
@@ -1343,6 +1651,7 @@ class CalendarController extends ControllerBase {
       'ai_dashboard:calendar',
       'node_list:ai_issue',
       'node_list:ai_contributor',
+      'ai_dashboard:tag_mappings',
     ];
     \Drupal::service('cache_tags.invalidator')->invalidateTags($cache_tags);
 

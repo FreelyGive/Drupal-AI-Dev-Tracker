@@ -95,6 +95,7 @@ ai_dashboard.admin.documentation:
   requirements:
     _permission: 'access ai dashboard'
 
+
 ai_dashboard.admin.import:
   path: '/ai-dashboard/admin/import'
   defaults:
@@ -251,6 +252,51 @@ ai_dashboard.api.remove_all_week_issues:
   path: '/ai-dashboard/api/remove-all-week-issues'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::removeAllWeekIssues'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.save_tag_mapping:
+  path: '/ai-dashboard/api/save-tag-mapping'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::saveTagMapping'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.ignore_tag:
+  path: '/ai-dashboard/api/ignore-tag'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::ignoreTag'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.restore_tag:
+  path: '/ai-dashboard/api/restore-tag'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::restoreTag'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.remove_tag_mapping:
+  path: '/ai-dashboard/api/remove-mapping'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\AdminViewsController::removeTagMapping'
+  requirements:
+    _permission: 'access ai dashboard'
+    _csrf_request_header_token: 'TRUE'
+  methods: [POST]
+
+ai_dashboard.api.update_all_mappings:
+  path: '/ai-dashboard/api/update-all-mappings'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\CalendarController::updateAllTagMappings'
   requirements:
     _permission: 'access ai dashboard'
     _csrf_request_header_token: 'TRUE'

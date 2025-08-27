@@ -3,6 +3,7 @@ status: true
 dependencies:
   config:
     - field.field.node.ai_issue.field_issue_assignees
+    - field.field.node.ai_issue.field_issue_blocked_by
     - field.field.node.ai_issue.field_issue_category
     - field.field.node.ai_issue.field_issue_deadline
     - field.field.node.ai_issue.field_issue_module
@@ -11,6 +12,8 @@ dependencies:
     - field.field.node.ai_issue.field_issue_status
     - field.field.node.ai_issue.field_issue_tags
     - field.field.node.ai_issue.field_issue_url
+    - field.field.node.ai_issue.field_track
+    - field.field.node.ai_issue.field_workstream
     - node.type.ai_issue
   module:
     - datetime
@@ -96,6 +99,28 @@ content:
       link_to_entity: false
     third_party_settings: {  }
     weight: 8
+    region: content
+  field_issue_blocked_by:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 9
+    region: content
+  field_track:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  field_workstream:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 11
     region: content
 hidden:
   langcode: true

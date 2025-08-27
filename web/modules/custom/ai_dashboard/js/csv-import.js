@@ -1,29 +1,19 @@
 (function ($, Drupal, drupalSettings) {
   'use strict';
 
-  console.log('CSV Import JavaScript loaded');
 
   Drupal.behaviors.csvImport = {
     attach: function (context, settings) {
-      console.log('CSV Import behavior attaching');
-      console.log('Context:', context);
-      console.log('Settings:', settings);
-      console.log('drupalSettings:', drupalSettings);
       
       $('.contributor-csv-import-form', context).once('csv-import').each(function () {
-        console.log('Found CSV import form:', this);
         var $form = $(this);
         var $submitBtn = $form.find('.import-btn');
         var $fileInput = $form.find('input[type="file"]');
         var $resultsContainer = $('#import-results');
         
-        console.log('Submit button found:', $submitBtn.length);
-        console.log('File input found:', $fileInput.length);
-        console.log('Results container found:', $resultsContainer.length);
         
         // Handle form submission
         $submitBtn.on('click', function (e) {
-          console.log('Import button clicked!');
           e.preventDefault();
           
           var file = $fileInput[0].files[0];
@@ -53,9 +43,6 @@
           // Add CSRF token to FormData
           formData.append('_token', csrfToken);
           
-          console.log('Uploading to:', drupalSettings.aiDashboard.csvImport.uploadUrl);
-          console.log('File:', file);
-          console.log('CSRF Token:', csrfToken);
           
           // Upload file
           $.ajax({
@@ -68,11 +55,9 @@
               'X-CSRF-Token': csrfToken
             },
             success: function (response) {
-              console.log('Success response:', response);
               displayResults(response);
             },
             error: function (xhr, status, error) {
-              console.log('Error response:', xhr, status, error);
               var errorMsg = 'Upload failed. Please try again.';
               if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;

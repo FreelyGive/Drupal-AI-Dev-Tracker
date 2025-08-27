@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_workstream
+field_name: field_workstream
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - label: 'Development'
+      value: development
+    - label: 'Testing'
+      value: testing
+    - label: 'Documentation'
+      value: documentation
+    - label: 'Research'
+      value: research
+    - label: 'Bug Fixes'
+      value: bug_fixes
+    - label: 'Other'
+      value: other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -113,6 +113,8 @@ class TagMappingService {
       'priority' => NULL,
       'status' => NULL,
       'module' => NULL,
+      'track' => NULL,
+      'workstream' => NULL,
       'custom' => [],
     ];
 
@@ -161,7 +163,7 @@ class TagMappingService {
    *   Array of mapping types.
    */
   public function getAvailableTypes() {
-    return ['category', 'month', 'priority', 'status', 'module', 'custom'];
+    return ['category', 'month', 'priority', 'status', 'module', 'track', 'workstream', 'custom'];
   }
 
   /**
@@ -196,6 +198,8 @@ class TagMappingService {
       'priority' => [],
       'status' => [],
       'module' => [],
+      'track' => [],
+      'workstream' => [],
       'custom' => [],
     ];
 

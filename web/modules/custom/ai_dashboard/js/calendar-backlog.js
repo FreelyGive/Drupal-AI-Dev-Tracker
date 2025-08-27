@@ -301,12 +301,16 @@
     initCalendarFilters: function() {
       var $calendarPriorityFilter = $('#calendar-priority-filter');
       var $calendarStatusFilter = $('#calendar-status-filter');
+      var $calendarTrackFilter = $('#calendar-track-filter');
+      var $calendarWorkstreamFilter = $('#calendar-workstream-filter');
       var $clearCalendarFilters = $('#clear-calendar-filters');
       
       // Apply calendar filters when changed
       function applyCalendarFilters() {
         var priorityFilter = $calendarPriorityFilter.val();
         var statusFilter = $calendarStatusFilter.val();
+        var trackFilter = $calendarTrackFilter.val();
+        var workstreamFilter = $calendarWorkstreamFilter.val();
         
         $('.issue-card').each(function() {
           var $issue = $(this);
@@ -320,6 +324,22 @@
           // Status filter
           if (statusFilter && !$issue.hasClass(statusFilter.replace('_', '-'))) {
             show = false;
+          }
+          
+          // Track filter
+          if (trackFilter) {
+            var issueTrack = $issue.find('.issue-track').attr('data-track');
+            if (!issueTrack || issueTrack !== trackFilter) {
+              show = false;
+            }
+          }
+          
+          // Workstream filter  
+          if (workstreamFilter) {
+            var issueWorkstream = $issue.find('.issue-workstream').attr('data-workstream');
+            if (!issueWorkstream || issueWorkstream !== workstreamFilter) {
+              show = false;
+            }
           }
           
           $issue.toggleClass('calendar-filtered', !show);
@@ -345,11 +365,15 @@
       
       $calendarPriorityFilter.on('change', applyCalendarFilters);
       $calendarStatusFilter.on('change', applyCalendarFilters);
+      $calendarTrackFilter.on('change', applyCalendarFilters);
+      $calendarWorkstreamFilter.on('change', applyCalendarFilters);
       
       // Clear calendar filters
       $clearCalendarFilters.on('click', function() {
         $calendarPriorityFilter.val('');
         $calendarStatusFilter.val('');
+        $calendarTrackFilter.val('');
+        $calendarWorkstreamFilter.val('');
         applyCalendarFilters();
       });
     },

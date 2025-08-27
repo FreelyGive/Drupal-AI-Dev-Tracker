@@ -117,6 +117,26 @@
       </select>
     </div>
     
+    <div class="filter-group">
+      <label for="calendar-track-filter">Filter by Track:</label>
+      <select id="calendar-track-filter" class="filter-select">
+        <option value="">All Tracks</option>
+        {% for track in filter_options.tracks %}
+          <option value="{{ track.value }}">{{ track.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="calendar-workstream-filter">Filter by Workstream:</label>
+      <select id="calendar-workstream-filter" class="filter-select">
+        <option value="">All Workstreams</option>
+        {% for workstream in filter_options.workstreams %}
+          <option value="{{ workstream.value }}">{{ workstream.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
     <button id="clear-calendar-filters" class="btn btn-secondary">Clear Filters</button>
   </div>
 
@@ -256,6 +276,20 @@
                         <div class="issue-meta">
                           <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
                           <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
+                          {% if issue.track %}
+                            <span class="issue-track" data-track="{{ issue.track }}" title="Track: {{ issue.track_label|default(issue.track) }}">{{ issue.track_label|default(issue.track) }}</span>
+                          {% endif %}
+                          {% if issue.workstream %}
+                            <span class="issue-workstream" data-workstream="{{ issue.workstream }}" title="Workstream: {{ issue.workstream_label|default(issue.workstream) }}">{{ issue.workstream_label|default(issue.workstream) }}</span>
+                          {% endif %}
+                          {% if issue.is_blocked %}
+                            {% set blocked_tooltip %}Blocked By:
+                              {%- for blocked_issue in issue.blocked_issues %}
+                                <br>#{{ blocked_issue.issue_number }} - {{ blocked_issue.title }} - {{ blocked_issue.assignee }}
+                              {%- endfor -%}
+                            {% endset %}
+                            <span class="issue-blocked" title="{{ blocked_tooltip }}">Blocked</span>
+                          {% endif %}
                         </div>
                         
                         <div class="issue-planning-badges">

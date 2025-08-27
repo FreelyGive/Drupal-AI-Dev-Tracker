@@ -1,0 +1,63 @@
+/**
+ * @file
+ * Styles for AI Dashboard admin import interface.
+ */
+
+/* Import configuration action links */
+.ai-dashboard-import-actions .edit-link {
+  color: #0073aa;
+  text-decoration: none;
+  margin-right: 10px;
+}
+
+.ai-dashboard-import-actions .edit-link:hover {
+  text-decoration: underline;
+}
+
+.ai-dashboard-import-actions .run-import-link {
+  color: #28a745;
+  text-decoration: none;
+  margin-right: 10px;
+}
+
+.ai-dashboard-import-actions .run-import-link:hover {
+  text-decoration: underline;
+}
+
+.ai-dashboard-import-actions .delete-link {
+  color: #dc3545;
+  text-decoration: none;
+}
+
+.ai-dashboard-import-actions .delete-link:hover {
+  text-decoration: underline;
+}
+
+/* Status labels */
+.import-status-active {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.import-status-inactive {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Status info box */
+.import-status-info {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 5px;
+}
+
+.import-status-info h4 {
+  margin-top: 0;
+}
+
+/* Table wrapper */
+.ai-dashboard-import-actions {
+  /* Container for action links to provide spacing */
+}

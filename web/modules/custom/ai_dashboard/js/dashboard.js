@@ -10,7 +10,6 @@
       // Initialize filters
       $('.status-filter, .module-filter', context).once('ai-dashboard-filters').on('change', function() {
         // In a real implementation, this would filter the table via AJAX
-        console.log('Filter changed:', $(this).val());
       });
 
       // Initialize charts if data is available
@@ -38,7 +37,6 @@
     initWeeklyChart: function(weeklyData) {
       // This would use a charting library like Chart.js or D3.js
       // For now, just log the data structure
-      console.log('Weekly allocation data:', weeklyData);
       
       // Example of what this might look like with Chart.js:
       /*
@@ -125,7 +123,6 @@
     startRealTimeUpdates: function() {
       // This would implement WebSocket connections or periodic AJAX calls
       // to update dashboard data in real-time
-      console.log('Real-time updates would be initialized here');
       
       // Example periodic update:
       /*

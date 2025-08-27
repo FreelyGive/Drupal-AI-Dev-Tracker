@@ -40,6 +40,7 @@ function ai_dashboard_theme() {
         'week_start' => NULL,
         'week_end' => NULL,
         'week_offset' => 0,
+        'filter_options' => [],
         'user_has_admin_permission' => FALSE,
       ],
     ],
@@ -59,6 +60,34 @@ function ai_dashboard_theme() {
       ],
     ],
   ];
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function ai_dashboard_entity_presave(Drupal\Core\Entity\EntityInterface $entity) {
+  // Clear tag mapping cache when AI issues are saved with new tags
+  if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'ai_issue') {
+    // Check if this is an update and tags have changed
+    if (!$entity->isNew() && $entity->hasField('field_issue_tags')) {
+      $original = $entity->original ?? NULL;
+      if ($original && $original->hasField('field_issue_tags')) {
+        $old_tags = $original->get('field_issue_tags')->value ?? '';
+        $new_tags = $entity->get('field_issue_tags')->value ?? '';
+        if ($old_tags !== $new_tags) {
+          // Tags changed, invalidate cache
+          \Drupal::service('cache_tags.invalidator')->invalidateTags(['ai_dashboard:tag_mappings']);
+        }
+      }
+    }
+    // For new nodes with tags, also clear cache
+    elseif ($entity->isNew() && $entity->hasField('field_issue_tags')) {
+      $tags = $entity->get('field_issue_tags')->value ?? '';
+      if (!empty($tags)) {
+        \Drupal::service('cache_tags.invalidator')->invalidateTags(['ai_dashboard:tag_mappings']);
+      }
+    }
+  }
 }
 
 /**

@@ -2387,3 +2387,445 @@ function ai_dashboard_update_9015() {
   
   return t('Enabled PopperJS tooltip functionality for developer focus and priorities display in calendar dashboard.');
 }
+
+/**
+ * Add blocked by field to AI Issue content type for dependency tracking.
+ */
+function ai_dashboard_update_9023() {
+
+  // Check if field storage already exists, if not create it.
+  $field_storage = FieldStorageConfig::loadByName('node', 'field_issue_blocked_by');
+  
+  if (!$field_storage) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_issue_blocked_by',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'cardinality' => -1, // Unlimited cardinality
+      'settings' => [
+        'max_length' => 255,
+        'case_sensitive' => FALSE,
+      ],
+    ]);
+    $field_storage->save();
+  }
+
+  // Check if field config already exists, if not create it.
+  $field_config = FieldConfig::loadByName('node', 'ai_issue', 'field_issue_blocked_by');
+  
+  if (!$field_config) {
+    $field_config = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Blocked By Issues',
+      'description' => 'Issue numbers that are blocking this issue (format: #123456)',
+      'required' => FALSE,
+      'settings' => [],
+    ]);
+    $field_config->save();
+  }
+
+  // Update form display.
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+
+  if ($form_display) {
+    $form_display->setComponent('field_issue_blocked_by', [
+      'type' => 'string_textfield',
+      'weight' => 11,
+      'region' => 'content',
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'e.g. #3412340, #3412341 (comma separated)',
+      ],
+    ])->save();
+  }
+
+  // Update view display.
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.ai_issue.default');
+
+  if ($view_display) {
+    $view_display->setComponent('field_issue_blocked_by', [
+      'type' => 'string',
+      'label' => 'above',
+      'weight' => 9,
+      'region' => 'content',
+      'settings' => [
+        'link_to_entity' => FALSE,
+      ],
+    ])->save();
+  }
+
+  // Clear field caches to ensure new field is recognized.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  // Clear all caches to load new template and CSS changes.
+  drupal_flush_all_caches();
+
+  return t('Added blocked by field to AI Issue content type for dependency tracking with calendar display.');
+}
+
+/**
+ * Add Track and Workstream categorization fields to AI Issues.
+ */
+function ai_dashboard_update_9024() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  $messages = [];
+
+  // Define the Track and Workstream fields.
+  $fields_to_create = [
+    'field_track' => [
+      'type' => 'list_string',
+      'label' => 'Track',
+      'description' => 'The AI module track this issue belongs to (mapped from tags)',
+      'allowed_values' => [
+        'core' => 'Core Track',
+        'providers' => 'Providers Track',
+        'engines' => 'Engines Track',
+        'automators' => 'Automators Track',
+        'content' => 'Content Track',
+        'search' => 'Search Track',
+        'other' => 'Other Track',
+      ],
+    ],
+    'field_workstream' => [
+      'type' => 'list_string',
+      'label' => 'Workstream',
+      'description' => 'The workstream this issue belongs to (mapped from tags)',
+      'allowed_values' => [
+        'development' => 'Development',
+        'testing' => 'Testing',
+        'documentation' => 'Documentation',
+        'research' => 'Research',
+        'bug_fixes' => 'Bug Fixes',
+        'other' => 'Other',
+      ],
+    ],
+  ];
+
+  foreach ($fields_to_create as $field_name => $config) {
+    // Create field storage if it doesn't exist.
+    $storage = $field_storage_manager->load("node.{$field_name}");
+    if (!$storage) {
+      $storage = $field_storage_manager->create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $config['type'],
+        'settings' => [
+          'allowed_values' => $config['allowed_values'],
+        ],
+        'cardinality' => 1,
+        'translatable' => FALSE,
+      ]);
+      $storage->save();
+      $messages[] = "Created field storage for {$field_name}.";
+    }
+
+    // Create field instance on ai_issue bundle.
+    $field = $field_manager->load("node.ai_issue.{$field_name}");
+    if (!$field) {
+      $field = $field_manager->create([
+        'field_storage' => $storage,
+        'bundle' => 'ai_issue',
+        'label' => $config['label'],
+        'description' => $config['description'],
+        'required' => FALSE,
+        'settings' => [],
+      ]);
+      $field->save();
+      $messages[] = "Created field instance {$field_name} on ai_issue.";
+    }
+  }
+
+  // Update form display.
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+
+  if ($form_display) {
+    if (!$form_display->getComponent('field_track')) {
+      $form_display->setComponent('field_track', [
+        'type' => 'options_select',
+        'weight' => 12,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = 'Added Track field to AI Issue form display.';
+    }
+
+    if (!$form_display->getComponent('field_workstream')) {
+      $form_display->setComponent('field_workstream', [
+        'type' => 'options_select',
+        'weight' => 13,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = 'Added Workstream field to AI Issue form display.';
+    }
+  }
+
+  // Update view display.
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.ai_issue.default');
+
+  if ($view_display) {
+    if (!$view_display->getComponent('field_track')) {
+      $view_display->setComponent('field_track', [
+        'type' => 'list_default',
+        'label' => 'above',
+        'weight' => 10,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = 'Added Track field to AI Issue view display.';
+    }
+
+    if (!$view_display->getComponent('field_workstream')) {
+      $view_display->setComponent('field_workstream', [
+        'type' => 'list_default',
+        'label' => 'above',
+        'weight' => 11,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = 'Added Workstream field to AI Issue view display.';
+    }
+  }
+
+  // Clear field caches.
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+  return t('Added Track and Workstream categorization fields to AI Issues. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+
+/**
+ * Fix AI Tag Mappings admin view filter after adding track/workstream types.
+ */
+function ai_dashboard_update_9025() {
+  $config_factory = \Drupal::configFactory();
+  $view_config = $config_factory->getEditable('views.view.ai_tag_mappings_admin');
+  
+  if (!$view_config->isNew()) {
+    // Update the filter to use list_field plugin instead of string plugin
+    // and enable multiple selection for the new mapping types.
+    $display_options = $view_config->get('display.default.display_options');
+    
+    if (isset($display_options['filters']['field_mapping_type_value'])) {
+      $display_options['filters']['field_mapping_type_value']['plugin_id'] = 'list_field';
+      $display_options['filters']['field_mapping_type_value']['operator'] = 'or';
+      $display_options['filters']['field_mapping_type_value']['value'] = [];
+      $display_options['filters']['field_mapping_type_value']['expose']['multiple'] = TRUE;
+      $display_options['filters']['field_mapping_type_value']['expose']['reduce'] = FALSE;
+      
+      $view_config->set('display.default.display_options', $display_options);
+      $view_config->save();
+      
+      return t('Fixed AI Tag Mappings admin view filter to support track and workstream types.');
+    }
+  }
+  
+  return t('AI Tag Mappings admin view was not found or already updated.');
+}
+
+/**
+ * Convert Track and Workstream fields from list_string to string for custom values.
+ */
+function ai_dashboard_update_9026() {
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  $messages = [];
+
+  // Fields to convert
+  $fields_to_convert = ['field_track', 'field_workstream'];
+
+  foreach ($fields_to_convert as $field_name) {
+    try {
+      // First, delete the existing field instance
+      $field_instance = $field_manager->load("node.ai_issue.{$field_name}");
+      if ($field_instance) {
+        $field_instance->delete();
+        $messages[] = "Deleted existing {$field_name} field instance.";
+      }
+
+      // Delete the existing field storage
+      $field_storage = $field_storage_manager->load("node.{$field_name}");
+      if ($field_storage) {
+        $field_storage->delete();
+        $messages[] = "Deleted existing {$field_name} field storage.";
+      }
+
+      // Create new string field storage
+      $new_storage = $field_storage_manager->create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => 'string',
+        'settings' => [
+          'max_length' => 255,
+          'case_sensitive' => FALSE,
+        ],
+        'cardinality' => 1,
+        'translatable' => FALSE,
+      ]);
+      $new_storage->save();
+      $messages[] = "Created new string field storage for {$field_name}.";
+
+      // Create new field instance
+      $label = $field_name === 'field_track' ? 'Track' : 'Workstream';
+      $description = $field_name === 'field_track' 
+        ? 'The AI module track this issue belongs to (from tags)'
+        : 'The workstream this issue belongs to (from tags)';
+        
+      $new_field = $field_manager->create([
+        'field_storage' => $new_storage,
+        'bundle' => 'ai_issue',
+        'label' => $label,
+        'description' => $description,
+        'required' => FALSE,
+        'settings' => [],
+      ]);
+      $new_field->save();
+      $messages[] = "Created new {$field_name} field instance.";
+
+    } catch (\Exception $e) {
+      $messages[] = "Error converting {$field_name}: " . $e->getMessage();
+    }
+  }
+
+  // Update form displays to use string_textfield widget
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+
+  if ($form_display) {
+    foreach ($fields_to_convert as $field_name) {
+      $form_display->setComponent($field_name, [
+        'type' => 'string_textfield',
+        'weight' => $field_name === 'field_track' ? 12 : 13,
+        'region' => 'content',
+        'settings' => [
+          'size' => 60,
+          'placeholder' => $field_name === 'field_track' 
+            ? 'e.g. AI Views, AI Core, AI Integration'
+            : 'e.g. Workstream 4a, Testing Phase, Documentation',
+        ],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = "Updated form display for {$field_name}.";
+    }
+  }
+
+  // Update view displays to use string formatter
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.ai_issue.default');
+
+  if ($view_display) {
+    foreach ($fields_to_convert as $field_name) {
+      $view_display->setComponent($field_name, [
+        'type' => 'string',
+        'label' => 'above',
+        'weight' => $field_name === 'field_track' ? 10 : 11,
+        'region' => 'content',
+        'settings' => [
+          'link_to_entity' => FALSE,
+        ],
+        'third_party_settings' => [],
+      ])->save();
+      $messages[] = "Updated view display for {$field_name}.";
+    }
+  }
+
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+
+  return t('Converted Track and Workstream fields to accept custom values from tags. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+
+/**
+ * Add Issue Summary (Body) field to AI Issue content type.
+ */
+function ai_dashboard_update_9027() {
+  $messages = [];
+  
+  // Create field storage if it doesn't exist
+  $field_storage = \Drupal\field\Entity\FieldStorageConfig::load('node.field_issue_summary');
+  if (!$field_storage) {
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name' => 'field_issue_summary',
+      'entity_type' => 'node',
+      'type' => 'text_long',
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field storage for field_issue_summary.';
+  }
+  
+  // Create field instance if it doesn't exist
+  $field = \Drupal\field\Entity\FieldConfig::load('node.ai_issue.field_issue_summary');
+  if (!$field) {
+    $field = \Drupal\field\Entity\FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Issue Summary (Body)',
+      'description' => 'The full issue summary/body text from drupal.org containing metadata for parsing',
+      'required' => FALSE,
+    ]);
+    $field->save();
+    $messages[] = 'Created field instance for field_issue_summary.';
+  }
+  
+  // Add to form display
+  $form_display = \Drupal\Core\Entity\Entity\EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && !$form_display->getComponent('field_issue_summary')) {
+    $form_display->setComponent('field_issue_summary', [
+      'type' => 'text_textarea',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [
+        'rows' => 5,
+        'placeholder' => 'Full issue summary/body from drupal.org (for metadata parsing)',
+      ],
+      'third_party_settings' => [],
+    ])->save();
+    $messages[] = 'Added field_issue_summary to form display.';
+  }
+  
+  // Add to view display
+  $view_display = \Drupal\Core\Entity\Entity\EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && !$view_display->getComponent('field_issue_summary')) {
+    $view_display->setComponent('field_issue_summary', [
+      'type' => 'text_default',
+      'weight' => 10,
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ])->save();
+    $messages[] = 'Added field_issue_summary to view display.';
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  
+  return t('Added Issue Summary (Body) field to AI Issue content type. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}

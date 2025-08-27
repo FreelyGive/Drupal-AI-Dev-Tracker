@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_workstream
+    - node.type.ai_issue
+id: node.ai_issue.field_workstream
+field_name: field_workstream
+entity_type: node
+bundle: ai_issue
+label: 'Workstream'
+description: 'The workstream this issue belongs to (mapped from tags)'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

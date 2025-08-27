@@ -945,7 +945,7 @@ class IssueImportService {
       }
     }
 
-    // Log assignee resolution issues for debugging.
+    // Log assignee resolution issues.
     if (isset($issue_data['nid']) && isset($issue_data['field_issue_assigned']) && empty($do_assignee)) {
       \Drupal::logger('ai_dashboard')->warning('Failed to resolve assignee for issue @nid, assigned field: @assigned', [
         '@nid' => $issue_data['nid'],
@@ -974,6 +974,8 @@ class IssueImportService {
       'status' => $this->mapDrupalOrgStatus($issue_data['field_issue_status'] ?? '1'),
       'priority' => $this->mapDrupalOrgPriority($issue_data['field_issue_priority'] ?? '300'),
       'category' => $processed_tags['category'] ?? 'general',
+      'track' => $processed_tags['track'] ?? '',
+      'workstream' => $processed_tags['workstream'] ?? '',
       'tags' => $tags,
       'module' => $module_node_id,
       'do_assignee' => $do_assignee,
@@ -1141,7 +1143,9 @@ class IssueImportService {
       'field_issue_status' => $mapped_data['status'],
       'field_issue_priority' => $mapped_data['priority'],
       'field_issue_category' => $mapped_data['category'],
-      'field_issue_tags' => $mapped_data['tags'],
+      'field_track' => $mapped_data['track'],
+      'field_workstream' => $mapped_data['workstream'],
+      'field_issue_tags' => !empty($mapped_data['tags']) ? array_map(function($tag) { return ['value' => $tag]; }, $mapped_data['tags']) : [],
       'field_issue_module' => $mapped_data['module'] ?? '',
       'field_issue_do_assignee' => $mapped_data['do_assignee'] ?? '',
       'created' => $mapped_data['created'],
@@ -1205,7 +1209,7 @@ class IssueImportService {
   protected function updateIssue(Node $issue, array $mapped_data): Node {
     static $nodeStorage;
     static $contributors = [];
-    // Log the update for debugging.
+    // Log the update.
     $logger = $this->loggerFactory->get('ai_dashboard');
     $logger->info('Updating issue #@number: @title', [
       '@number' => $mapped_data['issue_number'],
@@ -1220,7 +1224,9 @@ class IssueImportService {
     $issue->set('field_issue_status', $mapped_data['status']);
     $issue->set('field_issue_priority', $mapped_data['priority']);
     $issue->set('field_issue_category', $mapped_data['category']);
-    $issue->set('field_issue_tags', $mapped_data['tags']);
+    $issue->set('field_track', $mapped_data['track']);
+    $issue->set('field_workstream', $mapped_data['workstream']);
+    $issue->set('field_issue_tags', !empty($mapped_data['tags']) ? array_map(function($tag) { return ['value' => $tag]; }, $mapped_data['tags']) : []);
     $issue->set('field_issue_module', $mapped_data['module'] ?? '');
     $issue->set('field_issue_do_assignee', $mapped_data['do_assignee'] ?? '');
     // Update non-developer flag if provided.

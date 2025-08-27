@@ -34,6 +34,29 @@ csv_import:
     - core/drupal
     - core/jquery
 
+tag-analysis:
+  version: 1.x
+  css:
+    theme:
+      css/tag-analysis.css: {}
+  js:
+    js/tag-analysis.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+tag-mapping:
+  version: 1.x
+  css:
+    theme:
+      css/tag-mapping.css: {}
+  js:
+    js/tag-mapping.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
 admin_forms:
   version: 1.x
   css:
@@ -47,6 +70,14 @@ admin_tools:
   css:
     theme:
       css/admin-tools.css: {}
+  dependencies:
+    - core/drupal
+
+admin_imports:
+  version: 1.x
+  css:
+    theme:
+      css/admin-imports.css: {}
   dependencies:
     - core/drupal
 

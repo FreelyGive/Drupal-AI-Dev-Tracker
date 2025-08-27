@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_summary
+    - node.type.ai_issue
+  module:
+    - text
+id: node.ai_issue.field_issue_summary
+field_name: field_issue_summary
+entity_type: node
+bundle: ai_issue
+label: 'Issue Summary (Body)'
+description: 'The full issue summary/body text from drupal.org containing metadata for parsing'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

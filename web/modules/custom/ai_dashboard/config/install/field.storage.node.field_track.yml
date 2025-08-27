@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_track
+field_name: field_track
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    - label: 'AI Views'
+      value: ai_views
+    - label: 'AI Core'
+      value: ai_core
+    - label: 'AI Integration'
+      value: ai_integration
+    - label: 'AI Logging'
+      value: ai_logging
+    - label: 'Other'
+      value: other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

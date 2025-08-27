@@ -360,9 +360,9 @@ display:
           relationship: none
           group_type: group
           admin_label: ''
-          plugin_id: string
-          operator: '='
-          value: ''
+          plugin_id: list_field
+          operator: or
+          value: {  }
           group: 1
           exposed: true
           expose:
@@ -376,12 +376,13 @@ display:
             identifier: mapping_type
             required: false
             remember: false
-            multiple: false
+            multiple: true
             remember_roles:
               authenticated: authenticated
               anonymous: '0'
               content_editor: '0'
               administrator: '0'
+            reduce: false
           is_grouped: false
           group_info:
             label: ''

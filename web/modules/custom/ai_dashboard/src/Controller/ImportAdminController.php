@@ -147,16 +147,21 @@ class ImportAdminController extends ControllerBase {
           $project_id,
           $filter_tags ?? 'None',
           $max_issues,
-          $active ? '✅ Active' : '❌ Inactive',
-          // @todo: remove inline styles and JS.
-          $config->toLink($this->t('Edit'), 'edit-form', ['attributes' => [
-            'style' => 'color: #0073aa; text-decoration: none; margin-right: 10px',
-          ]]),
-          Link::fromTextAndUrl('▶ ' . $this->t('Run import'), Url::fromRoute('ai_dashboard.module_import.run',
-            ['module_import' => $config->id()], ['attributes' => [
-              'style' => 'color: #28a745; text-decoration: none; margin-right: 10px;',
-              'onclick' => 'return confirm("' . $this->t('Are you sure you want to run this import?') . '")',
-            ]])),
+          $active ? '<span class="import-status-active">✅ Active</span>' : '<span class="import-status-inactive">❌ Inactive</span>',
+          [
+            'data' => [
+              '#type' => 'container',
+              '#attributes' => ['class' => ['ai-dashboard-import-actions']],
+              'edit' => $config->toLink($this->t('Edit'), 'edit-form', ['attributes' => [
+                'class' => ['edit-link'],
+              ]]),
+              'run' => Link::fromTextAndUrl('▶ ' . $this->t('Run import'), Url::fromRoute('ai_dashboard.module_import.run',
+                ['module_import' => $config->id()], ['attributes' => [
+                  'class' => ['run-import-link'],
+                  'onclick' => 'return confirm("' . $this->t('Are you sure you want to run this import?') . '")',
+                ]])),
+            ],
+          ],
         ];
       }
 
@@ -182,12 +187,15 @@ class ImportAdminController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['import-status']],
       '#markup' => '
-        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <div class="import-status-info">
           <h4>📊 Current Status</h4>
           <p><strong>Total Issues:</strong> ' . $issue_count . '</p>
           <p><strong>Import Configurations:</strong> ' . count($configs) . '</p>
         </div>',
     ];
+
+    // Attach admin imports library for styling.
+    $build['#attached']['library'][] = 'ai_dashboard/admin_imports';
 
     return $build;
   }

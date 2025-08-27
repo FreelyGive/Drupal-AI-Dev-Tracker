@@ -174,7 +174,8 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
 - **AI Issue**: Drupal.org issues for AI modules
   - `field_issue_number` - Issue number (unique identifier)
   - `field_issue_url`, `field_issue_status`, `field_issue_priority`
-  - Automatic import/update from drupal.org API
+  - `field_issue_blocked_by` - Multi-value field tracking blocking dependencies (format: #123456)
+  - Automatic import/update from drupal.org API with dependency parsing
 
 - **AI Resource Allocation**: Weekly time commitments per contributor
 
@@ -190,6 +191,7 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
   - Edit buttons for admins (⚙️ cog icon)
   - Sync buttons to pull drupal.org assignments
   - Developer focus and priorities display with PopperJS tooltips
+  - Issue dependency tracking with "Blocked" labels and hover tooltips showing blocking issues
 
 #### CSV Import System
 - **URL**: `/ai-dashboard/admin/contributor-import`

@@ -19,6 +19,10 @@ settings:
       value: status
     - label: 'Module'
       value: module
+    - label: 'Track'
+      value: track
+    - label: 'Workstream'
+      value: workstream
     - label: 'Custom'
       value: custom
   allowed_values_function: ''
