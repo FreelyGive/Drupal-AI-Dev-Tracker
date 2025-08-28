@@ -3,6 +3,7 @@
 namespace Drupal\ai_dashboard\Service;
 
 use Drupal\ai_dashboard\Entity\ModuleImport;
+use Drupal\ai_dashboard\Service\MetadataParserService;
 use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -63,6 +64,13 @@ class IssueImportService {
   protected $tagMappingService;
 
   /**
+   * The metadata parser service.
+   *
+   * @var \Drupal\ai_dashboard\Service\MetadataParserService
+   */
+  protected $metadataParserService;
+
+  /**
    * Constructs a new IssueImportService object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -73,12 +81,15 @@ class IssueImportService {
    *   The logger factory.
    * @param \Drupal\ai_dashboard\Service\TagMappingService $tag_mapping_service
    *   The tag mapping service.
+   * @param \Drupal\ai_dashboard\Service\MetadataParserService $metadata_parser_service
+   *   The metadata parser service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ClientInterface $http_client, LoggerChannelFactoryInterface $logger_factory, TagMappingService $tag_mapping_service) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ClientInterface $http_client, LoggerChannelFactoryInterface $logger_factory, TagMappingService $tag_mapping_service, MetadataParserService $metadata_parser_service) {
     $this->entityTypeManager = $entity_type_manager;
     $this->httpClient = $http_client;
     $this->loggerFactory = $logger_factory;
     $this->tagMappingService = $tag_mapping_service;
+    $this->metadataParserService = $metadata_parser_service;
   }
 
   /**
@@ -903,6 +914,10 @@ class IssueImportService {
     // Process tags through mapping service.
     $processed_tags = $this->tagMappingService->processTags($tags);
 
+    // Extract and parse AI Tracker metadata from issue summary
+    $issue_summary = $this->extractIssueSummary($issue_data);
+    $parsed_metadata = $this->metadataParserService->parseMetadata($issue_summary);
+
     // Extract drupal.org assignee information.
     $do_assignee = '';
     $assignee_id = 0;
@@ -976,6 +991,7 @@ class IssueImportService {
       'category' => $processed_tags['category'] ?? 'general',
       'track' => $processed_tags['track'] ?? '',
       'workstream' => $processed_tags['workstream'] ?? '',
+      'issue_summary' => $issue_summary,
       'tags' => $tags,
       'module' => $module_node_id,
       'do_assignee' => $do_assignee,
@@ -984,7 +1000,89 @@ class IssueImportService {
       'changed' => $issue_data['changed'] ?? time(),
       'non_developer' => $non_dev_flag,
       'config' => $config,
+      // AI Tracker metadata fields
+      'blocked_by' => $parsed_metadata['blocked_by'] ?? '',
+      'update_summary' => $parsed_metadata['update_summary'] ?? '',
+      'checkin_date' => $parsed_metadata['checkin_date'] ?? '',
+      'due_date' => $parsed_metadata['due_date'] ?? '',
+      'additional_collaborators' => $parsed_metadata['additional_collaborators'] ?? '',
     ];
+  }
+
+  /**
+   * Extract issue summary/body from drupal.org API data.
+   *
+   * @param array $issue_data
+   *   The issue data from drupal.org API.
+   *
+   * @return string
+   *   The issue summary/body text.
+   */
+  protected function extractIssueSummary(array $issue_data): string {
+    // Try different possible field names for the issue body in drupal.org API
+    $possible_fields = [
+      'body',
+      'field_issue_body',
+      'description', 
+      'field_body',
+      'field_description',
+    ];
+    
+    foreach ($possible_fields as $field_name) {
+      if (isset($issue_data[$field_name])) {
+        $field_data = $issue_data[$field_name];
+        
+        // Handle different formats the field data might be in
+        if (is_string($field_data)) {
+          // Log successful field extraction for debugging
+          $this->loggerFactory->get('ai_dashboard')->info('Found issue summary in field @field for issue @nid', [
+            '@field' => $field_name,
+            '@nid' => $issue_data['nid'] ?? 'unknown',
+          ]);
+          return $field_data;
+        }
+        elseif (is_array($field_data)) {
+          // Check for Drupal field format with value/summary
+          if (isset($field_data['value'])) {
+            // Log successful field extraction for debugging
+            $this->loggerFactory->get('ai_dashboard')->info('Found issue summary in field @field.value for issue @nid', [
+              '@field' => $field_name,
+              '@nid' => $issue_data['nid'] ?? 'unknown',
+            ]);
+            return $field_data['value'];
+          }
+          // Check for array of field items
+          elseif (isset($field_data[0])) {
+            if (is_string($field_data[0])) {
+              // Log successful field extraction for debugging
+              $this->loggerFactory->get('ai_dashboard')->info('Found issue summary in field @field[0] for issue @nid', [
+                '@field' => $field_name,
+                '@nid' => $issue_data['nid'] ?? 'unknown',
+              ]);
+              return $field_data[0];
+            }
+            elseif (is_array($field_data[0]) && isset($field_data[0]['value'])) {
+              // Log successful field extraction for debugging
+              $this->loggerFactory->get('ai_dashboard')->info('Found issue summary in field @field[0].value for issue @nid', [
+                '@field' => $field_name,
+                '@nid' => $issue_data['nid'] ?? 'unknown',
+              ]);
+              return $field_data[0]['value'];
+            }
+          }
+        }
+      }
+    }
+    
+    // Log when no body field is found to help with debugging
+    $available_fields = array_keys($issue_data);
+    $this->loggerFactory->get('ai_dashboard')->warning('No issue summary field found for issue @nid. Available fields: @fields', [
+      '@nid' => $issue_data['nid'] ?? 'unknown',
+      '@fields' => implode(', ', $available_fields),
+    ]);
+    
+    // If no body field found, return empty string
+    return '';
   }
 
   /**
@@ -1145,6 +1243,7 @@ class IssueImportService {
       'field_issue_category' => $mapped_data['category'],
       'field_track' => $mapped_data['track'],
       'field_workstream' => $mapped_data['workstream'],
+      'field_issue_summary' => $mapped_data['issue_summary'] ?? '',
       'field_issue_tags' => !empty($mapped_data['tags']) ? array_map(function($tag) { return ['value' => $tag]; }, $mapped_data['tags']) : [],
       'field_issue_module' => $mapped_data['module'] ?? '',
       'field_issue_do_assignee' => $mapped_data['do_assignee'] ?? '',
@@ -1170,6 +1269,33 @@ class IssueImportService {
     }
     if ($issue->hasField('field_issue_dashboard_category')) {
       $issue->set('field_issue_dashboard_category', array_map(function ($v) { return ['value' => $v]; }, $audiences));
+    }
+
+    // Set AI Tracker metadata fields if they exist and have values.
+    if (!empty($mapped_data['blocked_by']) && $issue->hasField('field_issue_blocked_by')) {
+      $issue->set('field_issue_blocked_by', $mapped_data['blocked_by']);
+    }
+    if (!empty($mapped_data['update_summary']) && $issue->hasField('field_update_summary')) {
+      $issue->set('field_update_summary', $mapped_data['update_summary']);
+    }
+    if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {
+      // Convert date format if needed (MM/DD/YYYY to Y-m-d).
+      $checkin_date = $this->convertDateFormat($mapped_data['checkin_date']);
+      if ($checkin_date) {
+        $issue->set('field_checkin_date', $checkin_date);
+      }
+    }
+    if (!empty($mapped_data['due_date']) && $issue->hasField('field_due_date')) {
+      // Convert date format if needed (MM/DD/YYYY to Y-m-d).
+      $due_date = $this->convertDateFormat($mapped_data['due_date']);
+      if ($due_date) {
+        $issue->set('field_due_date', $due_date);
+      }
+    }
+    if (!empty($mapped_data['additional_collaborators']) && $issue->hasField('field_additional_collaborators')) {
+      // Additional collaborators would need to be resolved to user entities
+      // For now, store as a text field if the field type supports it
+      $issue->set('field_additional_collaborators', $mapped_data['additional_collaborators']);
     }
 
     $issue->save();
@@ -1226,6 +1352,7 @@ class IssueImportService {
     $issue->set('field_issue_category', $mapped_data['category']);
     $issue->set('field_track', $mapped_data['track']);
     $issue->set('field_workstream', $mapped_data['workstream']);
+    $issue->set('field_issue_summary', $mapped_data['issue_summary'] ?? '');
     $issue->set('field_issue_tags', !empty($mapped_data['tags']) ? array_map(function($tag) { return ['value' => $tag]; }, $mapped_data['tags']) : []);
     $issue->set('field_issue_module', $mapped_data['module'] ?? '');
     $issue->set('field_issue_do_assignee', $mapped_data['do_assignee'] ?? '');
@@ -1247,6 +1374,33 @@ class IssueImportService {
     }
     if ($issue->hasField('field_issue_dashboard_category')) {
       $issue->set('field_issue_dashboard_category', array_map(function ($v) { return ['value' => $v]; }, $audiences));
+    }
+
+    // Update AI Tracker metadata fields if they exist and have values.
+    if (!empty($mapped_data['blocked_by']) && $issue->hasField('field_issue_blocked_by')) {
+      $issue->set('field_issue_blocked_by', $mapped_data['blocked_by']);
+    }
+    if (!empty($mapped_data['update_summary']) && $issue->hasField('field_update_summary')) {
+      $issue->set('field_update_summary', $mapped_data['update_summary']);
+    }
+    if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {
+      // Convert date format if needed (MM/DD/YYYY to Y-m-d).
+      $checkin_date = $this->convertDateFormat($mapped_data['checkin_date']);
+      if ($checkin_date) {
+        $issue->set('field_checkin_date', $checkin_date);
+      }
+    }
+    if (!empty($mapped_data['due_date']) && $issue->hasField('field_due_date')) {
+      // Convert date format if needed (MM/DD/YYYY to Y-m-d).
+      $due_date = $this->convertDateFormat($mapped_data['due_date']);
+      if ($due_date) {
+        $issue->set('field_due_date', $due_date);
+      }
+    }
+    if (!empty($mapped_data['additional_collaborators']) && $issue->hasField('field_additional_collaborators')) {
+      // Additional collaborators would need to be resolved to user entities
+      // For now, store as a text field if the field type supports it
+      $issue->set('field_additional_collaborators', $mapped_data['additional_collaborators']);
     }
 
     $issue->setChangedTime($mapped_data['changed']);
@@ -1734,6 +1888,37 @@ class IssueImportService {
     }
     
     return TRUE;
+  }
+
+  /**
+   * Convert date from MM/DD/YYYY format to Y-m-d format for Drupal date fields.
+   *
+   * @param string $date_string
+   *   Date string in MM/DD/YYYY format.
+   *
+   * @return string|null
+   *   Date in Y-m-d format or null if conversion fails.
+   */
+  protected function convertDateFormat(string $date_string): ?string {
+    // Handle MM/DD/YYYY format (US format as documented).
+    if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $date_string, $matches)) {
+      $month = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+      $day = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+      $year = $matches[3];
+      
+      // Validate the date.
+      if (checkdate((int)$month, (int)$day, (int)$year)) {
+        return "$year-$month-$day";
+      }
+    }
+    
+    // Try to parse other common date formats as fallback.
+    $timestamp = strtotime($date_string);
+    if ($timestamp !== FALSE) {
+      return date('Y-m-d', $timestamp);
+    }
+    
+    return NULL;
   }
 
   /**

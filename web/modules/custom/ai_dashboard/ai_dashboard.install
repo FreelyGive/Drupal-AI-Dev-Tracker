@@ -2829,3 +2829,138 @@ function ai_dashboard_update_9027() {
     '@m' => implode(' | ', $messages),
   ]);
 }
+
+/**
+ * Add AI Tracker metadata fields to AI Issue content type.
+ */
+function ai_dashboard_update_9028() {
+  $messages = [];
+  
+  // Define metadata fields to create
+  $metadata_fields = [
+    'field_update_summary' => [
+      'type' => 'string',
+      'label' => 'Update Summary',
+      'description' => 'One-line status update for stakeholders from AI Tracker metadata',
+      'widget_type' => 'string_textfield',
+      'formatter_type' => 'string',
+      'cardinality' => 1,
+    ],
+    'field_checkin_date' => [
+      'type' => 'datetime',
+      'label' => 'Check-in Date', 
+      'description' => 'Date when progress should be checked from AI Tracker metadata',
+      'widget_type' => 'datetime_default',
+      'formatter_type' => 'datetime_default',
+      'cardinality' => 1,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ],
+    'field_due_date' => [
+      'type' => 'datetime',
+      'label' => 'Due Date',
+      'description' => 'Date when issue should be completed from AI Tracker metadata',
+      'widget_type' => 'datetime_default', 
+      'formatter_type' => 'datetime_default',
+      'cardinality' => 1,
+      'settings' => [
+        'datetime_type' => 'date',
+      ],
+    ],
+    'field_additional_collaborators' => [
+      'type' => 'string',
+      'label' => 'Additional Collaborators',
+      'description' => 'Additional collaborators beyond d.o assignee from AI Tracker metadata',
+      'widget_type' => 'string_textfield',
+      'formatter_type' => 'string',
+      'cardinality' => 1,
+    ],
+  ];
+
+  foreach ($metadata_fields as $field_name => $config) {
+    // Create field storage if it doesn't exist
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::load("node.{$field_name}");
+    if (!$field_storage) {
+      $storage_config = [
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $config['type'],
+        'cardinality' => $config['cardinality'],
+      ];
+      
+      // Add type-specific settings
+      if (isset($config['settings'])) {
+        $storage_config['settings'] = $config['settings'];
+      }
+      
+      $field_storage = \Drupal\field\Entity\FieldStorageConfig::create($storage_config);
+      $field_storage->save();
+      $messages[] = "Created field storage for {$field_name}.";
+    }
+    
+    // Create field instance if it doesn't exist
+    $field = \Drupal\field\Entity\FieldConfig::load("node.ai_issue.{$field_name}");
+    if (!$field) {
+      $field = \Drupal\field\Entity\FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'ai_issue',
+        'label' => $config['label'],
+        'description' => $config['description'],
+        'required' => FALSE,
+      ]);
+      $field->save();
+      $messages[] = "Created field instance for {$field_name}.";
+    }
+    
+    // Add to form display
+    $form_display = \Drupal\Core\Entity\Entity\EntityFormDisplay::load('node.ai_issue.default');
+    if ($form_display && !$form_display->getComponent($field_name)) {
+      $widget_config = [
+        'type' => $config['widget_type'],
+        'weight' => 15,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      
+      // Add widget-specific settings
+      if ($config['type'] == 'datetime' && isset($config['settings']['datetime_type'])) {
+        $widget_config['settings']['datetime_type'] = $config['settings']['datetime_type'];
+      }
+      
+      $form_display->setComponent($field_name, $widget_config)->save();
+      $messages[] = "Added {$field_name} to form display.";
+    }
+    
+    // Add to view display
+    $view_display = \Drupal\Core\Entity\Entity\EntityViewDisplay::load('node.ai_issue.default');
+    if ($view_display && !$view_display->getComponent($field_name)) {
+      $formatter_config = [
+        'type' => $config['formatter_type'],
+        'weight' => 15,
+        'region' => 'content',
+        'settings' => [],
+        'third_party_settings' => [],
+      ];
+      
+      // Add formatter-specific settings for datetime fields
+      if ($config['type'] == 'datetime' && isset($config['settings']['datetime_type'])) {
+        $formatter_config['settings']['date_format'] = 'medium';
+      }
+      
+      $view_display->setComponent($field_name, $formatter_config)->save();
+      $messages[] = "Added {$field_name} to view display.";
+    }
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  
+  return t('Added AI Tracker metadata fields to AI Issue content type. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+

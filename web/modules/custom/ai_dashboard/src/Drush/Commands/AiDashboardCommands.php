@@ -720,4 +720,178 @@ class AiDashboardCommands extends DrushCommands {
     }
   }
 
+  /**
+   * Process AI Tracker metadata for all existing AI issues.
+   *
+   * @command ai-dashboard:process-metadata
+   * @aliases aid-meta
+   * @usage ai-dashboard:process-metadata
+   *   Re-process AI Tracker metadata for all existing AI issues (debugging)
+   */
+  public function processMetadata() {
+    $this->output()->writeln("Re-processing AI Tracker metadata for all existing AI issues...");
+    
+    try {
+      // Get metadata parser service
+      $metadata_parser = \Drupal::service('ai_dashboard.metadata_parser');
+      
+      // Get all AI issues that have summaries
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      $query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('status', 1)
+        ->exists('field_issue_summary')
+        ->accessCheck(FALSE);
+      
+      $issue_ids = $query->execute();
+      
+      if (empty($issue_ids)) {
+        $this->output()->writeln("No AI issues with summaries found to process.");
+        return;
+      }
+      
+      $issues = $node_storage->loadMultiple($issue_ids);
+      $total_count = count($issues);
+      $processed_count = 0;
+      $updated_count = 0;
+      
+      $this->output()->writeln("Found {$total_count} AI issues with summaries to process.");
+      
+      foreach ($issues as $issue) {
+        $issue_number = $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : 'unknown';
+        $this->output()->write("Processing issue #{$issue_number}... ");
+        
+        // Get issue summary
+        if ($issue->hasField('field_issue_summary') && !$issue->get('field_issue_summary')->isEmpty()) {
+          $summary = $issue->get('field_issue_summary')->value;
+          
+          // Parse metadata
+          $parsed_metadata = $metadata_parser->parseMetadata($summary);
+          
+          if (!empty($parsed_metadata)) {
+            $needs_save = false;
+            
+            // Apply metadata to fields using the same logic as the import service
+            foreach ($parsed_metadata as $key => $value) {
+              if (empty($value)) continue;
+              
+              switch ($key) {
+                case 'update_summary':
+                  if ($issue->hasField('field_update_summary')) {
+                    $current = $issue->get('field_update_summary')->value ?? '';
+                    if ($current !== $value) {
+                      $issue->set('field_update_summary', $value);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+                  
+                case 'checkin_date':
+                  if ($issue->hasField('field_checkin_date')) {
+                    $converted_date = $this->convertDateFormat($value);
+                    $current = $issue->get('field_checkin_date')->value ?? '';
+                    if ($current !== $converted_date) {
+                      $issue->set('field_checkin_date', $converted_date);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+                  
+                case 'due_date':
+                  if ($issue->hasField('field_due_date')) {
+                    $converted_date = $this->convertDateFormat($value);
+                    $current = $issue->get('field_due_date')->value ?? '';
+                    if ($current !== $converted_date) {
+                      $issue->set('field_due_date', $converted_date);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+                  
+                case 'blocked_by':
+                  if ($issue->hasField('field_issue_blocked_by')) {
+                    $current = $issue->get('field_issue_blocked_by')->value ?? '';
+                    if ($current !== $value) {
+                      $issue->set('field_issue_blocked_by', $value);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+                  
+                case 'additional_collaborators':
+                  if ($issue->hasField('field_additional_collaborators')) {
+                    $current = $issue->get('field_additional_collaborators')->value ?? '';
+                    if ($current !== $value) {
+                      $issue->set('field_additional_collaborators', $value);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+              }
+            }
+            
+            if ($needs_save) {
+              $issue->save();
+              $updated_count++;
+              $this->output()->writeln("✅ Updated with metadata: " . implode(', ', array_keys($parsed_metadata)));
+            } else {
+              $this->output()->writeln("✓ Metadata already current");
+            }
+          } else {
+            $this->output()->writeln("- No AI Tracker metadata found");
+          }
+        } else {
+          $this->output()->writeln("- No summary content");
+        }
+        
+        $processed_count++;
+      }
+      
+      $this->output()->writeln("✅ Processing complete!");
+      $this->output()->writeln("   Processed: {$processed_count} issues");
+      $this->output()->writeln("   Updated: {$updated_count} issues");
+      $this->output()->writeln("   Skipped: " . ($processed_count - $updated_count) . " issues");
+      
+    }
+    catch (\Exception $e) {
+      $this->output()->writeln("❌ Error processing metadata: " . $e->getMessage());
+      \Drupal::logger('ai_dashboard')->error('Metadata processing error: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+  
+  /**
+   * Convert date from MM/DD/YYYY format to Y-m-d format.
+   *
+   * @param string $date_string
+   *   Date string in various formats.
+   *
+   * @return string
+   *   Date in Y-m-d format, or original string if conversion fails.
+   */
+  private function convertDateFormat($date_string) {
+    if (empty($date_string)) {
+      return '';
+    }
+    
+    // Try MM/DD/YYYY format first
+    if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})/', $date_string, $matches)) {
+      $month = (int) $matches[1];
+      $day = (int) $matches[2];
+      $year = (int) $matches[3];
+      
+      if (checkdate($month, $day, $year)) {
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+      }
+    }
+    
+    // Try other common formats using strtotime
+    $timestamp = strtotime($date_string);
+    if ($timestamp !== false) {
+      return date('Y-m-d', $timestamp);
+    }
+    
+    // Return original if can't convert
+    return $date_string;
+  }
+
 }

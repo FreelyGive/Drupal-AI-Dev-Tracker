@@ -241,6 +241,9 @@
                     <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}" data-issue-id="{{ issue.id }}">
                       <div class="issue-header">
                         <div class="issue-header-left">
+                          {% if issue.track %}
+                            <span class="issue-track" data-track="{{ issue.track }}" title="Track: {{ issue.track_label|default(issue.track) }}">{{ issue.track_label|default(issue.track) }}</span>
+                          {% endif %}
                           {% if issue.issue_number %}
                             <span class="issue-number">#{{ issue.issue_number }}</span>
                           {% endif %}
@@ -276,9 +279,6 @@
                         <div class="issue-meta">
                           <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
                           <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
-                          {% if issue.track %}
-                            <span class="issue-track" data-track="{{ issue.track }}" title="Track: {{ issue.track_label|default(issue.track) }}">{{ issue.track_label|default(issue.track) }}</span>
-                          {% endif %}
                           {% if issue.workstream %}
                             <span class="issue-workstream" data-workstream="{{ issue.workstream }}" title="Workstream: {{ issue.workstream_label|default(issue.workstream) }}">{{ issue.workstream_label|default(issue.workstream) }}</span>
                           {% endif %}
@@ -294,16 +294,16 @@
                         
                         <div class="issue-planning-badges">
                           <div class="issue-dates">
-                            {% if issue.deadline %}
-                              {% set deadline_date = issue.deadline|date('Y-m-d') %}
+                            {% if issue.due_date %}
+                              {% set due_date = issue.due_date|date('Y-m-d') %}
                               {% set today = 'now'|date('Y-m-d') %}
-                              {% set is_overdue = deadline_date < today %}
-                              {% set days_diff = (deadline_date|date('U') - today|date('U')) / 86400 %}
+                              {% set is_overdue = due_date < today %}
+                              {% set days_diff = (due_date|date('U') - today|date('U')) / 86400 %}
                               {% set is_due_soon = days_diff <= 3 and days_diff >= 0 %}
                               
-                              <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}" data-tooltip="Due Date: {{ issue.deadline|date('M j, Y') }}">
+                              <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}" data-tooltip="Due Date: {{ issue.due_date|date('M j, Y') }}">
                                 <span class="clock-icon">⏰</span>
-                                <span class="deadline-text">{{ issue.deadline|date('M j') }}</span>
+                                <span class="deadline-text">{{ issue.due_date|date('M j') }}</span>
                               </div>
                             {% endif %}
 

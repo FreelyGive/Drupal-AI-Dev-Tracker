@@ -101,6 +101,28 @@ drush en module_name
 drush cron
 ```
 
+### AI Dashboard Commands
+```bash
+# Import all active issue configurations
+drush ai-dashboard:import-all
+
+# Import issues from a specific configuration
+drush ai-dashboard:import all_open_active_issues
+drush ai-dashboard:import openai_provider
+drush ai-dashboard:import ai_agents
+
+# Import with date filter (issues changed since specific date)
+drush ai-dashboard:import all_open_active_issues --full-from=2025-01-01
+
+# Re-process AI Tracker metadata for all existing issues (debugging)
+drush ai-dashboard:process-metadata
+drush aid-meta  # alias
+
+# Generate sample tag mappings
+drush ai-dashboard:generate-tag-mappings
+drush aid-tags  # alias
+```
+
 ### Testing
 ```bash
 # Run PHPUnit tests from web container
@@ -175,7 +197,13 @@ This site includes a custom **AI Dashboard** module (`web/modules/custom/ai_dash
   - `field_issue_number` - Issue number (unique identifier)
   - `field_issue_url`, `field_issue_status`, `field_issue_priority`
   - `field_issue_blocked_by` - Multi-value field tracking blocking dependencies (format: #123456)
-  - Automatic import/update from drupal.org API with dependency parsing
+  - `field_issue_summary` - Full issue body/summary from drupal.org for metadata parsing
+  - **AI Tracker Metadata Fields** (automatically parsed from issue summaries):
+    - `field_update_summary` - Status update for stakeholders
+    - `field_checkin_date` - When team leads should follow up for progress updates
+    - `field_due_date` - When the issue should be fully completed
+    - `field_additional_collaborators` - Additional team members working on this issue
+  - Automatic import/update from drupal.org API with dependency parsing and AI Tracker metadata extraction
 
 - **AI Resource Allocation**: Weekly time commitments per contributor
 
@@ -231,6 +259,25 @@ For best results when exporting CSV from Google Sheets:
 - **Multi-status Import**: Handles multiple status filters without creating duplicates
 - **Auto-update**: Updates existing issues when they change on drupal.org (with API delay)
 - **Session Caching**: Prevents duplicates during single import session
+- **AI Tracker Metadata Processing**: Automatically extracts structured metadata from issue summaries during import
+
+#### AI Tracker Metadata Format
+Issues can include structured metadata in their summaries using this format:
+```
+--- AI TRACKER METADATA ---
+Update Summary: Will put together some copy for the OpenAI funding
+Check-in Date: 09/01/2025
+Due Date: 09/09/2025
+Blocked by: #3412340, #3412341
+Additional Collaborators: @username1, @username2
+--- END METADATA ---
+```
+
+- **Automatic Processing**: Metadata is extracted during issue import and stored in dedicated fields
+- **Date Formats**: Supports MM/DD/YYYY format, converts to standard Y-m-d format
+- **Issue References**: Blocked by field extracts issue numbers from #1234567 format
+- **Collaborators**: Extracts usernames from @username format
+- **Re-processing**: Use `drush aid-meta` to re-process metadata for all existing issues
 
 ### Database Update Hooks
 - `ai_dashboard_update_8001()` - Remove unsupported status filters

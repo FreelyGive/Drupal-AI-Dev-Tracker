@@ -9,7 +9,10 @@ services:
     arguments: ['@entity_type.manager', '@cache.default']
   ai_dashboard.issue_import:
     class: Drupal\ai_dashboard\Service\IssueImportService
-    arguments: ['@entity_type.manager', '@http_client', '@logger.factory', '@ai_dashboard.tag_mapping']
+    arguments: ['@entity_type.manager', '@http_client', '@logger.factory', '@ai_dashboard.tag_mapping', '@ai_dashboard.metadata_parser']
   ai_dashboard.batch_import:
     class: Drupal\ai_dashboard\Service\IssueBatchImportService
     arguments: ['@entity_type.manager', '@logger.factory', '@messenger', '@ai_dashboard.issue_import']
+  ai_dashboard.metadata_parser:
+    class: Drupal\ai_dashboard\Service\MetadataParserService
+    arguments: ['@logger.factory']
