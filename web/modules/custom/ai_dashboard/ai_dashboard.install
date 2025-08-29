@@ -2964,3 +2964,153 @@ function ai_dashboard_update_9028() {
   ]);
 }
 
+/**
+ * Add AI Agents import configuration and Check-in Date field for live site.
+ */
+function ai_dashboard_update_9029() {
+  $messages = [];
+  
+  // Create AI Agents module import configuration
+  $config_storage = \Drupal::entityTypeManager()->getStorage('ai_dashboard_module_import');
+  $ai_agents_config = $config_storage->load('ai_agents');
+  
+  if (!$ai_agents_config) {
+    $ai_agents_config = $config_storage->create([
+      'id' => 'ai_agents',
+      'label' => 'AI Agents',
+      'source_type' => 'drupal_org',
+      'project_id' => '3471208',
+      'project_name' => 'ai_agents',
+      'status_filters' => ['1', '8', '13', '14'], // active, needs_review, needs_work, rtbc
+      'import_audiences' => ['dev'],
+      'status' => TRUE,
+    ]);
+    $ai_agents_config->save();
+    $messages[] = 'Created AI Agents module import configuration.';
+  }
+  
+  // Only create Check-in Date field if it doesn't exist (Due Date already exists on live)
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  
+  $field_name = 'field_checkin_date';
+  
+  // Create field storage if it doesn't exist
+  $storage = $field_storage_manager->load("node.{$field_name}");
+  if (!$storage) {
+    $storage_config = [
+      'field_name' => $field_name,
+      'entity_type' => 'node', 
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'translatable' => TRUE,
+      'settings' => ['datetime_type' => 'date'],
+    ];
+    
+    $storage = $field_storage_manager->create($storage_config);
+    $storage->save();
+    $messages[] = "Created field storage for {$field_name}.";
+  }
+
+  // Create field instance on ai_issue bundle
+  $field = $field_manager->load("node.ai_issue.{$field_name}");
+  if (!$field) {
+    $field_config = [
+      'field_storage' => $storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Check-in Date',
+      'description' => 'When team leads should follow up for progress updates',
+      'required' => FALSE,
+      'settings' => [],
+    ];
+    
+    $field = $field_manager->create($field_config);
+    $field->save(); 
+    $messages[] = "Created field instance {$field_name} on ai_issue.";
+  }
+
+  // Add to form display
+  $form_display = \Drupal\Core\Entity\Entity\EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && !$form_display->getComponent($field_name)) {
+    $widget_config = [
+      'type' => 'datetime_default',
+      'weight' => 16, 
+      'region' => 'content',
+      'settings' => [],
+      'third_party_settings' => [],
+    ];
+    
+    $form_display->setComponent($field_name, $widget_config)->save();
+    $messages[] = "Added {$field_name} to form display.";
+  }
+  
+  // Add to view display  
+  $view_display = \Drupal\Core\Entity\Entity\EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && !$view_display->getComponent($field_name)) {
+    $formatter_config = [
+      'type' => 'datetime_default',
+      'weight' => 16,
+      'region' => 'content', 
+      'settings' => [],
+      'third_party_settings' => [],
+    ];
+    
+    $view_display->setComponent($field_name, $formatter_config)->save();
+    $messages[] = "Added {$field_name} to view display.";
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions(); 
+  \Drupal::service('plugin.manager.field.formatter')->clearCachedDefinitions();
+  
+  return t('Added AI Agents config and Check-in Date field. @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+
+/**
+ * Remove duplicate field_issue_deadline (metadata uses field_due_date instead).
+ */
+function ai_dashboard_update_9030() {
+  $messages = [];
+  
+  // Remove field_issue_deadline from form and view displays first
+  $form_display = \Drupal\Core\Entity\Entity\EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && $form_display->getComponent('field_issue_deadline')) {
+    $form_display->removeComponent('field_issue_deadline');
+    $form_display->save();
+    $messages[] = 'Removed field_issue_deadline from form display.';
+  }
+  
+  $view_display = \Drupal\Core\Entity\Entity\EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && $view_display->getComponent('field_issue_deadline')) {
+    $view_display->removeComponent('field_issue_deadline');
+    $view_display->save();
+    $messages[] = 'Removed field_issue_deadline from view display.';
+  }
+  
+  // Delete field instance
+  $field_manager = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_manager->load('node.ai_issue.field_issue_deadline');
+  if ($field) {
+    $field->delete();
+    $messages[] = 'Deleted field_issue_deadline instance.';
+  }
+  
+  // Delete field storage (this will remove all data)
+  $field_storage_manager = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $storage = $field_storage_manager->load('node.field_issue_deadline');
+  if ($storage) {
+    $storage->delete();
+    $messages[] = 'Deleted field_issue_deadline storage.';
+  }
+  
+  // Clear field caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  return t('Removed duplicate field_issue_deadline (metadata uses field_due_date). @m', [
+    '@m' => implode(' | ', $messages),
+  ]);
+}
+

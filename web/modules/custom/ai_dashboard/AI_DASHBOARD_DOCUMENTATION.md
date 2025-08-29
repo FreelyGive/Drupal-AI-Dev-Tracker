@@ -1261,6 +1261,20 @@ AI Tracker found here: <a href="https://www.drupalstarforge.ai/" title="AI Track
 
 **Note**: Tracks, Workstreams, and Epics are now handled through Drupal.org issue tags rather than metadata fields. The AI Tracker uses tag mapping to identify which tags represent tracks vs workstreams. Epic issues are identified by titles containing [meta] or [META] and their relationship to child issues.
 
+## Drush Commands Reference
+
+### Import Commands
+- `drush ai-dashboard:import-all` - Import all active configurations (with automatic metadata + tag processing)
+- `drush ai-dashboard:import all_open_active_issues` - Import main AI module issues
+- `drush ai-dashboard:import openai_provider` - Import OpenAI provider module issues
+- `drush ai-dashboard:import ai_agents` - Import AI Agents module issues
+- `drush ai-dashboard:import config_id --full-from=2025-01-01` - Import with date filter
+
+### Maintenance Commands  
+- `drush ai-dashboard:process-metadata` - Re-process AI Tracker metadata for all existing issues
+- `drush ai-dashboard:update-tag-mappings` - Reapply tag mappings to all existing issues
+- `drush ai-dashboard:sync-assignments` - Sync drupal.org assignments for current week
+
 ### Tag-Based Project Organization
 Instead of including track, workstream, and epic information in the metadata block, use Drupal.org issue tags:
 
@@ -1307,5 +1321,52 @@ Instead of including track, workstream, and epic information in the metadata blo
 ---
 
 *This plan represents the roadmap for enhanced project management integration. Implementation will be iterative with regular stakeholder feedback and system refinements.*
+
+## Reference - AI Dashboard Commands
+
+**IMPORTANT: Do not create new drush commands without explicit permission. Use existing commands where possible.**
+
+### Current AI Dashboard Drush Commands
+
+```bash
+# Import all active issue configurations (with automatic metadata + tag processing)
+drush ai-dashboard:import-all
+
+# Import single configuration (with automatic metadata + tag processing) 
+drush ai-dashboard:import all_open_active_issues
+drush ai-dashboard:import openai_provider
+drush ai-dashboard:import ai_agents
+
+# Import with date filter (issues changed since specific date)
+drush ai-dashboard:import all_open_active_issues --full-from=2025-01-01
+
+# Manual reprocessing of metadata for ALL existing issues (debugging)
+drush ai-dashboard:process-metadata
+
+# Manual reapplication of tag mappings to ALL existing issues  
+drush ai-dashboard:update-tag-mappings
+
+# Sync drupal.org assignments for current week
+drush ai-dashboard:sync-assignments
+```
+
+### Command Integration Notes
+
+- **Metadata processing** - Automatic during every import via MetadataParserService
+- **Tag mapping** - Automatic during every import via TagMappingService
+- **Manual commands** - Use `process-metadata` and `update-tag-mappings` for bulk updates to existing issues
+- **Import commands** - Handle metadata and tag processing automatically for new/updated issues
+
+### Available Import Configurations
+
+Popular configurations for single imports:
+- `all_open_active_issues` - Main AI module (most issues)
+- `openai_provider` - OpenAI provider module
+- `ai_provider_anthropic` - Anthropic provider module  
+- `provider_google_gemini` - Google Gemini provider
+- `ai_agents` - AI Agents module
+- `experience_builder` - Experience Builder module
+
+---
 
 For questions or contributions, see the project repository or contact the development team.

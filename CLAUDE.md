@@ -101,27 +101,6 @@ drush en module_name
 drush cron
 ```
 
-### AI Dashboard Commands
-```bash
-# Import all active issue configurations
-drush ai-dashboard:import-all
-
-# Import issues from a specific configuration
-drush ai-dashboard:import all_open_active_issues
-drush ai-dashboard:import openai_provider
-drush ai-dashboard:import ai_agents
-
-# Import with date filter (issues changed since specific date)
-drush ai-dashboard:import all_open_active_issues --full-from=2025-01-01
-
-# Re-process AI Tracker metadata for all existing issues (debugging)
-drush ai-dashboard:process-metadata
-drush aid-meta  # alias
-
-# Generate sample tag mappings
-drush ai-dashboard:generate-tag-mappings
-drush aid-tags  # alias
-```
 
 ### Testing
 ```bash
@@ -355,3 +334,38 @@ SIMPLETEST_BASE_URL=https://drupalcmsaitest1.ddev.site SIMPLETEST_DB=mysql://db:
 - Recipe-specific tests in `recipes/*/tests/`
 - Use environment variable `SIMPLETEST_BASE_URL` for functional tests
 - Test database configured via `SIMPLETEST_DB`
+
+## Reference - AI Dashboard Commands
+
+**IMPORTANT: Do not create new drush commands without explicit permission. Use existing commands where possible.**
+
+### Current AI Dashboard Drush Commands
+
+```bash
+# Import all active issue configurations (with automatic metadata + tag processing)
+drush ai-dashboard:import-all
+
+# Import single configuration (with automatic metadata + tag processing) 
+drush ai-dashboard:import all_open_active_issues
+drush ai-dashboard:import openai_provider
+drush ai-dashboard:import ai_agents
+
+# Import with date filter (issues changed since specific date)
+drush ai-dashboard:import all_open_active_issues --full-from=2025-01-01
+
+# Manual reprocessing of metadata for ALL existing issues (debugging)
+drush ai-dashboard:process-metadata
+
+# Manual reapplication of tag mappings to ALL existing issues  
+drush ai-dashboard:update-tag-mappings
+
+# Sync drupal.org assignments for current week
+drush ai-dashboard:sync-assignments
+```
+
+### Command Integration Notes
+
+- **Metadata processing** - Automatic during every import via MetadataParserService
+- **Tag mapping** - Automatic during every import via TagMappingService
+- **Manual commands** - Use `process-metadata` and `update-tag-mappings` for bulk updates to existing issues
+- **Import commands** - Handle metadata and tag processing automatically for new/updated issues
