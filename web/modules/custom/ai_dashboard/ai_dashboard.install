@@ -2971,21 +2971,32 @@ function ai_dashboard_update_9029() {
   $messages = [];
   
   // Create AI Agents module import configuration
-  $config_storage = \Drupal::entityTypeManager()->getStorage('ai_dashboard_module_import');
-  $ai_agents_config = $config_storage->load('ai_agents');
+  $config_factory = \Drupal::configFactory();
+  $config_name = 'ai_dashboard.module_import.ai_agents';
+  $ai_agents_config = $config_factory->get($config_name);
   
-  if (!$ai_agents_config) {
-    $ai_agents_config = $config_storage->create([
-      'id' => 'ai_agents',
-      'label' => 'AI Agents',
-      'source_type' => 'drupal_org',
-      'project_id' => '3471208',
-      'project_name' => 'ai_agents',
-      'status_filters' => ['1', '8', '13', '14'], // active, needs_review, needs_work, rtbc
-      'import_audiences' => ['dev'],
-      'status' => TRUE,
-    ]);
-    $ai_agents_config->save();
+  if ($ai_agents_config->isNew()) {
+    $config_factory->getEditable($config_name)
+      ->setData([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'langcode' => 'en',
+        'status' => TRUE,
+        'dependencies' => [],
+        'id' => 'ai_agents',
+        'label' => 'AI Agents',
+        'source_type' => 'drupal_org',
+        'project_id' => '3471208',
+        'project_name' => 'ai_agents',
+        'filter_tags' => '',
+        'filter_component' => '',
+        'status_filter' => ['1', '8', '13', '14'], // active, needs_review, needs_work, rtbc
+        'max_issues' => NULL,
+        'date_filter' => NULL,
+        'active' => TRUE,
+        'last_run' => NULL,
+        'import_audiences' => ['dev'],
+      ])
+      ->save();
     $messages[] = 'Created AI Agents module import configuration.';
   }
   
