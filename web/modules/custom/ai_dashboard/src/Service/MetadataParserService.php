@@ -141,8 +141,8 @@ class MetadataParserService {
     if (!empty($matches[1])) {
       return implode(', ', array_unique($matches[1]));
     }
-
-    return $value;
+    // No digits found: treat placeholders (e.g., "[#XXXXXX@]") as no data
+    return '';
   }
 
   /**
@@ -165,8 +165,8 @@ class MetadataParserService {
     if (!empty($matches[1])) {
       return implode(', ', array_unique($matches[1]));
     }
-
-    return $value;
+    // If no usernames detected, treat as empty (ignore template placeholders)
+    return '';
   }
 
   /**

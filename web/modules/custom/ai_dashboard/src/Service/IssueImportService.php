@@ -1377,11 +1377,22 @@ class IssueImportService {
     }
 
     // Update AI Tracker metadata fields if they exist and have values.
-    if (!empty($mapped_data['blocked_by']) && $issue->hasField('field_issue_blocked_by')) {
-      $issue->set('field_issue_blocked_by', $mapped_data['blocked_by']);
+    if ($issue->hasField('field_issue_blocked_by')) {
+      if (!empty($mapped_data['blocked_by'])) {
+        $issue->set('field_issue_blocked_by', $mapped_data['blocked_by']);
+      }
+      else {
+        // Clear previously saved placeholders/invalid values.
+        $issue->set('field_issue_blocked_by', []);
+      }
     }
-    if (!empty($mapped_data['update_summary']) && $issue->hasField('field_update_summary')) {
-      $issue->set('field_update_summary', $mapped_data['update_summary']);
+    if ($issue->hasField('field_update_summary')) {
+      if (!empty($mapped_data['update_summary'])) {
+        $issue->set('field_update_summary', $mapped_data['update_summary']);
+      }
+      else {
+        $issue->set('field_update_summary', '');
+      }
     }
     if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {
       // Convert date format if needed (MM/DD/YYYY to Y-m-d).
@@ -1397,10 +1408,15 @@ class IssueImportService {
         $issue->set('field_due_date', $due_date);
       }
     }
-    if (!empty($mapped_data['additional_collaborators']) && $issue->hasField('field_additional_collaborators')) {
-      // Additional collaborators would need to be resolved to user entities
-      // For now, store as a text field if the field type supports it
-      $issue->set('field_additional_collaborators', $mapped_data['additional_collaborators']);
+    if ($issue->hasField('field_additional_collaborators')) {
+      if (!empty($mapped_data['additional_collaborators'])) {
+        // Additional collaborators would need to be resolved to user entities
+        // For now, store as a text field if the field type supports it
+        $issue->set('field_additional_collaborators', $mapped_data['additional_collaborators']);
+      }
+      else {
+        $issue->set('field_additional_collaborators', '');
+      }
     }
 
     $issue->setChangedTime($mapped_data['changed']);

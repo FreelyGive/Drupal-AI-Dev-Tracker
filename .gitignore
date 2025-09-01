@@ -192,3 +192,7 @@ run_enhanced_data.sh
 
 /.devpanel/salt.txt
 /web/sites/default/settings.php
+
+# Ignore sensitive test artifacts
+cookies.txt
+test-kanban-login.js
