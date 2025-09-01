@@ -38,13 +38,21 @@ ai_dashboard.calendar:
   requirements:
     _access: 'TRUE'
 
+ai_dashboard.priority_kanban:
+  path: '/ai-dashboard/priority-kanban'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\PriorityKanbanController::kanbanView'
+    _title: 'Priority Kanban Board'
+  requirements:
+    _access: 'TRUE'
+
 ai_dashboard.calendar_non_dev:
   path: '/ai-dashboard/calendar/organizational'
   defaults:
     _controller: '\Drupal\ai_dashboard\Controller\CalendarController::calendarViewNonDev'
     _title: 'Organizational Issues Calendar'
   requirements:
-    _access: 'TRUE'
+    _access: 'TRUE' 
 
 # Admin routes for content management
 ai_dashboard.admin:

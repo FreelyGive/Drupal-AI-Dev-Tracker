@@ -44,6 +44,14 @@ function ai_dashboard_theme() {
         'user_has_admin_permission' => FALSE,
       ],
     ],
+    'ai_priority_kanban' => [
+      'variables' => [
+        'kanban_data' => [],
+        'user_has_admin_permission' => FALSE,
+        'filter_options' => [],
+        'selected_tag' => 'priority',
+      ],
+    ],
     'admin_navigation' => [
       'variables' => [
         'navigation_items' => [],
@@ -180,4 +188,3 @@ function ai_dashboard_form_node_form_alter(&$form, \Drupal\Core\Form\FormStateIn
     ];
   }
 }
-

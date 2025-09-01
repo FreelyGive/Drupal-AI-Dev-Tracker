@@ -1,0 +1,628 @@
+/**
+ * AI Dashboard Shared Component Styles
+ * 
+ * This file contains styles that are shared across multiple views (calendar, kanban, etc.)
+ * to ensure complete visual consistency. Any changes here will affect all views.
+ */
+
+/* ==========================================================================
+   NAVIGATION STYLES
+   ========================================================================== */
+
+.dashboard-navigation {
+  background: linear-gradient(135deg, #0073aa, #005a87);
+  padding: 1rem;
+  margin-bottom: 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.9em;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  color: white;
+}
+
+.nav-link.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* ==========================================================================
+   WEEK SUMMARY CARDS
+   ========================================================================== */
+
+.week-summary {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+}
+
+.summary-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.summary-card {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  transition: box-shadow 0.15s ease;
+}
+
+.summary-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.active {
+  background: linear-gradient(135deg, #dbeafe 0%, rgba(0, 115, 187, 0.1) 100%);
+  border-color: #93c5fd;
+}
+
+.summary-card.review {
+  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 0.1);
+  border-color: #fcd34d;
+}
+
+.summary-card.work {
+  background: linear-gradient(135deg, #fed7aa 0%, #fb923c 0.1);
+  border-color: #fdba74;
+}
+
+.summary-card.fixed {
+  background: linear-gradient(135deg, #dcfce7 0%, #22c55e 0.1);
+  border-color: #86efac;
+}
+
+.summary-card.capacity {
+  background: linear-gradient(135deg, #f3f4f6 0%, #9ca3af 0.1);
+  border-color: #d1d5db;
+}
+
+.summary-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.summary-card.active .summary-number {
+  color: #0073bb;
+}
+
+.summary-card.review .summary-number {
+  color: #d97706;
+}
+
+.summary-card.work .summary-number {
+  color: #ea580c;
+}
+
+.summary-card.fixed .summary-number {
+  color: #16a34a;
+}
+
+.summary-card.capacity .summary-number {
+  color: #374151;
+}
+
+.capacity-total {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   FILTER SECTIONS
+   ========================================================================== */
+
+.calendar-filters,
+.kanban-filters {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  min-width: 140px;
+  background: white;
+  color: #111827;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+/* ==========================================================================
+   ISSUE CARDS - SHARED STYLES
+   ========================================================================== */
+
+.issue-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 0.375rem 0.5rem;
+  border-left: 4px solid;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  min-height: auto;
+  background: white;
+}
+
+.issue-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+
+.issue-card:active {
+  transform: scale(0.98);
+}
+
+/* Issue Status Colors */
+.issue-card.active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.issue-card.needs-review {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.issue-card.needs-work {
+  background: #fed7aa;
+  border-color: #ea580c;
+}
+
+.issue-card.fixed,
+.issue-card.rtbc {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+/* Priority Colors */
+.issue-card.priority-critical {
+  border-left-color: #dc2626 !important;
+}
+
+.issue-card.priority-major {
+  border-left-color: #ea580c !important;
+}
+
+.issue-card.priority-normal {
+  border-left-color: #3b82f6 !important;
+}
+
+.issue-card.priority-minor {
+  border-left-color: #6b7280 !important;
+}
+
+/* Assignment Status Styles */
+.issue-card.assignment-current {
+  opacity: 1.0;
+}
+
+.issue-card.assignment-historical {
+  opacity: 0.6;
+  position: relative;
+}
+
+.issue-card.assignment-historical::before {
+  content: "Historical";
+  position: absolute;
+  top: -8px;
+  right: 4px;
+  background: #6b7280;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.issue-card.assignment-historical .issue-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(107, 114, 128, 0.5);
+  text-decoration-thickness: 1px;
+}
+
+/* Issue Header */
+.issue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.issue-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.issue-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Issue Components */
+.issue-track {
+  background: #ddd6fe;
+  color: #7c3aed;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.issue-number {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.issue-module {
+  color: #374151;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.issue-link,
+.issue-edit-link {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.issue-link:hover,
+.issue-edit-link:hover {
+  color: #3b82f6;
+  background: #f3f4f6;
+}
+
+/* Issue Title */
+.issue-title-container {
+  margin-bottom: 0.5rem;
+}
+
+.issue-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.issue-update-summary {
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Issue Footer */
+.issue-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+}
+
+.issue-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.issue-status {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.issue-card.active .issue-status {
+  background: #3b82f6;
+  color: white;
+}
+
+.issue-card.needs-review .issue-status {
+  background: #f59e0b;
+  color: white;
+}
+
+.issue-card.needs-work .issue-status {
+  background: #ea580c;
+  color: white;
+}
+
+.issue-card.fixed .issue-status,
+.issue-card.rtbc .issue-status {
+  background: #22c55e;
+  color: white;
+}
+
+.issue-priority {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.issue-priority.priority-critical {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.issue-priority.priority-major {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.issue-priority.priority-normal {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.issue-priority.priority-minor {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.issue-workstream {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.issue-blocked {
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.issue-assignee {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+/* Planning Badges */
+.issue-planning-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem;
+  margin-top: 0.125rem;
+  align-items: center;
+}
+
+.issue-dates {
+  display: flex;
+  gap: 0.125rem;
+  align-items: center;
+}
+
+.issue-deadline,
+.issue-checkin-date {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.issue-deadline {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.issue-deadline.overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.issue-deadline.due-soon {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.issue-checkin-date {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.issue-checkin-date.checkin-today {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.issue-checkin-date.checkin-soon {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.issue-change-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.issue-meta-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  background: #f3e8ff;
+  color: #8b5cf6;
+}
+
+/* Assignment Conflicts */
+.assignment-conflict {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: #fee2e2;
+  border-radius: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.conflict-text {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Recently Changed Badge */
+.issue-card.recently-changed::after {
+  content: "🆕";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.75rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .calendar-filters,
+  .kanban-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .filter-select {
+    min-width: auto;
+    flex: 1;
+    max-width: 60%;
+  }
+  
+  .issue-card {
+    padding: 0.75rem;
+  }
+  
+  .issue-title {
+    font-size: 0.875rem;
+  }
+}

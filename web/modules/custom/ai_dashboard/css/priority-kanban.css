@@ -1,0 +1,628 @@
+/**
+ * @file
+ * AI Priority Kanban Board Styles.
+ * Adds page layout overrides and aligns components with calendar styles.
+ */
+
+/* Page layout overrides (match calendar) */
+body.path-ai-dashboard-priority-kanban .layout-container,
+body.path-ai-dashboard-priority-kanban .site-main-wrapper,
+body.path-ai-dashboard-priority-kanban .site-main,
+body.path-ai-dashboard-priority-kanban .main-content,
+body.path-ai-dashboard-priority-kanban .layout-content,
+body[class*="path-ai-dashboard/priority-kanban"] .layout-container,
+body[class*="path-ai-dashboard/priority-kanban"] .site-main-wrapper,
+body[class*="path-ai-dashboard/priority-kanban"] .site-main,
+body[class*="path-ai-dashboard/priority-kanban"] .main-content,
+body[class*="path-ai-dashboard/priority-kanban"] .layout-content {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+body.path-ai-dashboard-priority-kanban .site-header,
+body.path-ai-dashboard-priority-kanban .site-footer,
+body.path-ai-dashboard-priority-kanban .site-navigation,
+body.path-ai-dashboard-priority-kanban .sidebar,
+body[class*="path-ai-dashboard/priority-kanban"] .site-header,
+body[class*="path-ai-dashboard/priority-kanban"] .site-footer,
+body[class*="path-ai-dashboard/priority-kanban"] .site-navigation,
+body[class*="path-ai-dashboard/priority-kanban"] .sidebar {
+  display: none !important;
+}
+
+body.path-ai-dashboard-priority-kanban,
+body[class*="path-ai-dashboard/priority-kanban"] {
+  margin: 0;
+  padding: 0;
+}
+
+.ai-priority-kanban .kanban-board {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.ai-priority-kanban .kanban-column {
+  flex: 1;
+  min-width: 340px;
+  background-color: #f9fafb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.ai-priority-kanban .kanban-column.collapsed {
+  flex-basis: 60px;
+  min-width: 60px;
+}
+
+/* Header (align with calendar header look) */
+.kanban-header {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1rem;
+}
+
+.ai-priority-kanban .column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.ai-priority-kanban .column-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-priority-kanban .column-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.ai-priority-kanban .column-count {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.ai-priority-kanban .column-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.ai-priority-kanban .column-issues {
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Kanban Controls */
+.kanban-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.main-columns-info .columns-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Removed legacy optional-columns-toggle button styles (no longer used) */
+
+/* Optional columns picker */
+.optional-columns-menu {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.optional-columns-menu .column-toggle-button {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optional-columns-menu .column-toggle-button:hover {
+  background: #e5e7eb;
+}
+
+.optional-columns-menu .column-toggle-button.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.ai-priority-kanban .add-column-container {
+  padding: 1rem;
+}
+
+.ai-priority-kanban .optional-column {
+  display: none;
+}
+
+.ai-priority-kanban .optional-column.expanded {
+  display: block;
+}
+
+/* Issue Card Styles from Calendar */
+.ai-priority-kanban .issue-card {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  border-left: 4px solid;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+  min-height: auto;
+  background-color: white;
+}
+
+.ai-priority-kanban .issue-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+
+/* Issue Status Colors */
+.ai-priority-kanban .issue-card.active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.ai-priority-kanban .issue-card.needs-review {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.ai-priority-kanban .issue-card.needs-work {
+  background: #fed7aa;
+  border-color: #ea580c;
+}
+
+.ai-priority-kanban .issue-card.fixed,
+.ai-priority-kanban .issue-card.rtbc {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+/* Priority Colors */
+.ai-priority-kanban .issue-card.priority-critical {
+  border-left-color: #dc2626 !important;
+}
+
+.ai-priority-kanban .issue-card.priority-major {
+  border-left-color: #ea580c !important;
+}
+
+.ai-priority-kanban .issue-card.priority-normal {
+  border-left-color: #3b82f6 !important;
+}
+
+.ai-priority-kanban .issue-card.priority-minor {
+  border-left-color: #6b7280 !important;
+}
+
+.ai-priority-kanban .issue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.ai-priority-kanban .issue-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-priority-kanban .issue-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.ai-priority-kanban .issue-number {
+  font-size: 0.625rem;
+  background: #f8fafc;
+  color: #64748b;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-family: 'Monaco', 'Consolas', monospace;
+  border: 1px solid #e2e8f0;
+}
+
+.ai-priority-kanban .issue-module {
+  font-size: 0.625rem;
+  background: #0073bb;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.ai-priority-kanban .issue-link {
+  color: #0073bb;
+  text-decoration: none;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  transition: color 0.15s ease;
+}
+
+.ai-priority-kanban .issue-link:hover {
+  color: #1d4ed8;
+}
+
+.ai-priority-kanban .external-icon {
+  font-size: 1rem;
+}
+
+.ai-priority-kanban .issue-edit-link {
+  color: #6b7280;
+  text-decoration: none;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  transition: all 0.15s ease;
+  border-radius: 0.25rem;
+}
+
+.ai-priority-kanban .issue-edit-link:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.05);
+  text-decoration: none;
+}
+
+.ai-priority-kanban .issue-title-container {
+  position: relative;
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-priority-kanban .issue-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.ai-priority-kanban .assignee-link {
+  color: #0369a1;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: 0.25rem;
+  margin-right: 0.25rem;
+}
+
+.ai-priority-kanban .assignee-link:hover {
+  color: #0ea5e9;
+  background: #cff0ff;
+}
+
+.ai-priority-kanban .issue-change-badge.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+  font-size: 0.625rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.ai-priority-kanban .issue-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.ai-priority-kanban .issue-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-priority-kanban .issue-status {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.ai-priority-kanban .issue-card.active .issue-status {
+  background: #3b82f6;
+  color: white;
+}
+
+.ai-priority-kanban .issue-card.needs-review .issue-status {
+  background: #f59e0b;
+  color: white;
+}
+
+.ai-priority-kanban .issue-card.needs-work .issue-status {
+  background: #ea580c;
+  color: white;
+}
+
+.ai-priority-kanban .issue-card.fixed .issue-status,
+.ai-priority-kanban .issue-card.rtbc .issue-status {
+  background: #22c55e;
+  color: white;
+}
+
+.ai-priority-kanban .issue-priority {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-right: 0.5rem;
+}
+
+.ai-priority-kanban .issue-priority.priority-critical {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+.ai-priority-kanban .issue-priority.priority-major {
+    background: #fed7aa;
+    color: #ea580c;
+}
+
+.ai-priority-kanban .issue-priority.priority-normal {
+    background: #dbeafe;
+    color: #3b82f6;
+}
+
+.ai-priority-kanban .issue-priority.priority-minor {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.ai-priority-kanban .issue-blocked {
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  background: #fecaca;
+  color: #dc2626;
+  cursor: help;
+  margin-left: 0.25rem;
+}
+
+.ai-priority-kanban .issue-deadline {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6b7280;
+}
+
+.ai-priority-kanban .issue-deadline.overdue {
+  color: #ea580c;
+}
+
+.ai-priority-kanban .issue-deadline.due-soon {
+  color: #f59e0b;
+}
+
+.ai-priority-kanban .clock-icon {
+  font-size: 0.5rem;
+}
+
+.ai-priority-kanban .deadline-text {
+  font-size: 0.75rem;
+}
+
+.ai-priority-kanban .assignment-conflict {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #dc2626;
+  background-color: #fef2f2;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  border: 1px solid #fecaca;
+  margin-top: 0.25rem;
+}
+
+.ai-priority-kanban .warning-icon {
+  font-size: 0.625rem;
+}
+
+.ai-priority-kanban .conflict-text {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.ai-priority-kanban .issue-planning-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.ai-priority-kanban .issue-due-date,
+.ai-priority-kanban .issue-checkin-date,
+.ai-priority-kanban .issue-update-summary,
+.ai-priority-kanban .issue-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+.ai-priority-kanban .issue-due-date {
+  background: rgba(239, 246, 255, 1);
+  color: #4b5563;
+  border: 1px solid rgba(191, 219, 254, 0.8);
+}
+
+.ai-priority-kanban .issue-due-date.overdue {
+  background: rgba(254, 242, 242, 1);
+  color: #dc2626;
+  border: 1px solid rgba(254, 202, 202, 1);
+}
+
+.ai-priority-kanban .issue-due-date.due-soon {
+  background: rgba(255, 247, 237, 1);
+  color: #ea580c;
+  border: 1px solid rgba(254, 215, 170, 1);
+}
+
+.ai-priority-kanban .issue-checkin-date {
+  background: rgba(240, 253, 244, 1);
+  color: #4b5563;
+  border: 1px solid rgba(187, 247, 208, 0.8);
+}
+
+.ai-priority-kanban .issue-checkin-date.checkin-today {
+  background: rgba(254, 243, 199, 1);
+  color: #d97706;
+  border: 1px solid rgba(253, 230, 138, 1);
+  font-weight: 600;
+}
+
+.ai-priority-kanban .issue-checkin-date.checkin-soon {
+  background: rgba(255, 244, 230, 1);
+  color: #c2410c;
+  border: 1px solid rgba(254, 215, 170, 1);
+}
+
+.ai-priority-kanban .issue-update-summary {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.3;
+  cursor: help;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.ai-priority-kanban .issue-dates {
+  display: block;
+  gap: 0.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ai-priority-kanban .issue-meta-badge {
+  background: rgba(253, 244, 255, 1);
+  color: #9333ea;
+  border: 1px solid rgba(243, 232, 255, 0.8);
+  font-weight: 500;
+}
+
+.ai-priority-kanban .due-icon,
+.ai-priority-kanban .checkin-icon,
+.ai-priority-kanban .update-icon,
+.ai-priority-kanban .meta-icon {
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+/* New styles for issue tags */
+.ai-priority-kanban .issue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-priority-kanban .issue-tags .issue-track,
+.ai-priority-kanban .issue-tags .issue-workstream {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.ai-priority-kanban .issue-tags .issue-track {
+  background: #ddd6fe;
+  color: #7c3aed;
+}
+
+.ai-priority-kanban .issue-tags .issue-workstream {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Kanban Filters */
+.kanban-filters {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.kanban-filters .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tag-filter-form .filter-select {
+  min-width: 200px;
+}
+
+.kanban-filters label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.kanban-filters .filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  min-width: 140px;
+}

@@ -107,3 +107,14 @@ toolbar:
       css/toolbar.css: {}
   dependencies:
     - core/drupal
+
+priority-kanban:
+  version: 1.x
+  css:
+    theme:
+      css/priority-kanban.css: {}
+  js:
+    js/priority-kanban.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

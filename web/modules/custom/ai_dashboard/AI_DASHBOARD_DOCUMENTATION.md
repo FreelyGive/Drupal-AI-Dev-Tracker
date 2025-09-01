@@ -579,6 +579,49 @@ Built using Drupal Views with exposed filters:
 - **Issues Admin**: Filter by category, status, priority
 - **Tag Mappings Admin**: Filter by mapping type
 
+## Priority Kanban Board
+
+### User Documentation
+- Location: `/ai-dashboard/priority-kanban`.
+- Tags: Use the Tag dropdown to filter by any value in `field_issue_tags`. Defaults to `priority`. The selection auto-applies and persists across sessions until you click Clear Filters.
+- Columns:
+  - Main: Todos, Needs Review, Past Check‑in Date.
+  - Optional: Working On, Blocked, RTBC, Fixed. Toggle individually; your choices persist across sessions.
+- Counts: Column headers show counts; optional column buttons also show counts for the current tag.
+- Cards: Same layout as calendar (status, priority, module, title, update summary, due/check‑in dates).
+- Updated: 🆕 badge for issues changed in the last 7 days.
+- Assignee: When assigned this week, the assignee appears in the header as a link to their Drupal.org profile.
+- Clear Filters: Resets to the default tag (priority) and closes optional columns.
+
+### Developer Documentation
+- Controller: `src/Controller/PriorityKanbanController.php`.
+  - `kanbanView()`: Reads `?tag=` (default `priority`), adds cache context `url.query_args:tag`, passes `selected_tag` and tag options.
+  - `getKanbanData(array $selected_tags)`: Builds columns; groups by status, check‑in date, blocked flag, and assignment.
+  - `getPriorityIssues(...)`: Loads all published `ai_issue`; tag filtering runs post‑load (supports multi‑value and comma‑separated `field_issue_tags`).
+  - Assignee resolution: Uses AssignmentRecord for the current week; contributor profile link built from `field_drupal_username` → `https://www.drupal.org/u/{username}`.
+  - Fields read: `field_issue_tags`, `field_track`, `field_workstream`, `field_checkin_date`, `field_due_date`, `field_issue_blocked_by`, `field_issue_status`, `field_issue_priority`, `field_issue_module`.
+- Template: `templates/ai-priority-kanban.html.twig`.
+  - Tag dropdown; per‑column toggle buttons with counts; calendar‑style cards; assignee link rendered before Updated badge; Workstream chip in footer.
+- Assets:
+  - CSS: `css/priority-kanban.css` (scoped `.ai-priority-kanban`; aligns with `css/calendar-dashboard.css`).
+  - JS: `js/priority-kanban.js` (auto‑apply Tag, persist selected tag and optional columns in `localStorage`).
+  - LocalStorage: `aiDashboard.kanban.selectedTag`, `aiDashboard.kanban.optionalColumns`.
+- Libraries: Declared in `ai_dashboard.libraries.yml` as `calendar_dashboard` and `priority-kanban`.
+- Caching: `#cache['contexts'][] = 'url.query_args:tag'` ensures render varies by Tag.
+
+### Column Logic (v1)
+- Todos: Unassigned Active/Needs Work.
+- Needs Review: Status `needs_review`.
+- Past Check‑in Date: `checkin_date < today`.
+- Working On (optional): Assigned, or status in {active, needs_work, working_on}.
+- Blocked (optional): `field_issue_blocked_by` populated.
+- RTBC (optional): Status `rtbc`.
+- Fixed (optional): Status `fixed` or `closed_fixed`.
+
+### Pending Items (Planning)
+- Validate check‑in date workflows end‑to‑end.
+- “Blocker issue” detection (reverse dependency) and blocker‑based sorting.
+
 ## API Integration Plan
 
 ### Supported APIs

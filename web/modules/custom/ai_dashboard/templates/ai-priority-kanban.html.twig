@@ -1,0 +1,262 @@
+{#
+/**
+ * @file
+ * Template for the AI Priority Kanban Board.
+ *
+ * Available variables:
+ * - kanban_data: Array of kanban data organized by columns
+ */
+#}
+
+<div class="ai-priority-kanban">
+  <!-- Header -->
+  <div class="kanban-header">
+    <div class="header-content">
+      <div class="kanban-info">
+        <h1 class="page-title">Priority Kanban Board</h1>
+        <h2 class="kanban-subtitle">
+          Weekly Stand-up Focus
+          <span class="issue-count">({{ kanban_data.summary.total_issues }} priority issues)</span>
+        </h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week Summary to match calendar -->
+  <div class="week-summary">
+    <h3 class="summary-title">Week Summary</h3>
+    <div class="summary-grid">
+      <div class="summary-card active">
+        <div class="summary-number">{{ kanban_data.columns.todos.issues|length + kanban_data.columns.working_on.issues|length }}</div>
+        <div class="summary-label">Active</div>
+      </div>
+      
+      <div class="summary-card review">
+        <div class="summary-number">{{ kanban_data.columns.needs_review.issues|length }}</div>
+        <div class="summary-label">Review</div>
+      </div>
+      
+      <div class="summary-card work">
+        <div class="summary-number">1</div>
+        <div class="summary-label">Work</div>
+      </div>
+      
+      <div class="summary-card fixed">
+        <div class="summary-number">0</div>
+        <div class="summary-label">Fixed</div>
+      </div>
+      
+      <div class="summary-card capacity">
+        <div class="summary-number">
+          {{ kanban_data.columns.needs_review.issues|length + kanban_data.columns.todos.issues|length }}
+          <span class="capacity-total">/260</span>
+        </div>
+        <div class="summary-label">Team Capacity</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kanban Filters to match calendar -->
+  <div class="kanban-filters">
+    <form method="get" action="/ai-dashboard/priority-kanban" class="filter-group tag-filter-form">
+      <label for="kanban-tag-filter">Tag:</label>
+      <select id="kanban-tag-filter" name="tag" class="filter-select">
+        {% for tag in filter_options.tags %}
+          <option value="{{ tag }}" {{ tag == selected_tag ? 'selected="selected"' : '' }}>{{ tag }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <div class="filter-group">
+      <label for="kanban-priority-filter">Filter by Priority:</label>
+      <select id="kanban-priority-filter" class="filter-select">
+        <option value="">All Priorities</option>
+        <option value="critical">Critical</option>
+        <option value="major">Major</option>
+        <option value="normal">Normal</option>
+        <option value="minor">Minor</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="kanban-status-filter">Filter by Status:</label>
+      <select id="kanban-status-filter" class="filter-select">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="needs-review">Needs Review</option>
+        <option value="needs-work">Needs Work</option>
+        <option value="fixed">Fixed</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="kanban-track-filter">Filter by Track:</label>
+      <select id="kanban-track-filter" class="filter-select">
+        <option value="">All Tracks</option>
+      </select>
+    </div>
+    
+    <div class="filter-group">
+      <label for="kanban-workstream-filter">Filter by Workstream:</label>
+      <select id="kanban-workstream-filter" class="filter-select">
+        <option value="">All Workstreams</option>
+      </select>
+    </div>
+    
+    <button id="clear-kanban-filters" class="btn btn-secondary">Clear Filters</button>
+  </div>
+
+  <!-- Optional Columns Toggle -->
+  <div class="kanban-controls">
+    <div class="main-columns-info">
+      <span class="columns-label">3 main columns shown</span>
+    </div>
+    <div class="optional-columns-menu" id="optional-columns-menu" aria-label="Toggle optional columns">
+      {% for column_id, column in kanban_data.columns %}
+        {% if not column.main_column %}
+          <button class="column-toggle-button" data-target="{{ column.id }}" aria-pressed="false" title="Toggle {{ column.title }} column">
+            {{ column.title }} ({{ column.issues|length }})
+          </button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban-board" id="kanban-board">
+    {% for column_id, column in kanban_data.columns %}
+      <div class="kanban-column {{ column.collapsed ? 'collapsed' : 'expanded' }} {{ column.main_column ? 'main-column' : 'optional-column' }}" data-column-id="{{ column.id }}" data-main-column="{{ column.main_column ? 'true' : 'false' }}">
+        <!-- Column Header -->
+        <div class="column-header">
+          <div class="column-title-container">
+            <h3 class="column-title">{{ column.title }}</h3>
+            <span class="column-count">({{ column.issues|length }})</span>
+          </div>
+        </div>
+        
+        <!-- Column Description -->
+        <div class="column-description">{{ column.description }}</div>
+
+        <!-- Issues Container -->
+        <div class="column-issues {{ column.collapsed ? 'hidden' : '' }}" data-column="{{ column.id }}">
+          {% if column.issues|length > 0 %}
+            {% for issue in column.issues %}
+              <!-- Use identical card structure as calendar -->
+              <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}{{ issue.is_recently_changed ? ' recently-changed' : '' }}" data-issue-id="{{ issue.id }}" data-has-priority="{{ issue.has_priority ? '1' : '0' }}">
+                <div class="issue-header">
+                  <div class="issue-header-left">
+                    {% if issue.track %}
+                      <span class="issue-track" data-track="{{ issue.track }}" title="Track: {{ issue.track_label|default(issue.track) }}">{{ issue.track_label|default(issue.track) }}</span>
+                    {% endif %}
+                    {% if issue.issue_number %}
+                      <span class="issue-number">#{{ issue.issue_number }}</span>
+                    {% endif %}
+                    <span class="issue-module">{{ issue.module }}</span>
+                  </div>
+                  {% if issue.assignee and issue.assignee_profile_url %}
+                    <a href="{{ issue.assignee_profile_url }}" target="_blank" class="assignee-link" title="View {{ issue.assignee }} on drupal.org">{{ issue.assignee }}</a>
+                  {% endif %}
+                  {% if issue.is_recently_changed %}
+                    <div class="issue-change-badge header-badge" title="Updated in last 7 days">
+                      <span class="change-icon">🆕</span>
+                      <span class="change-text">Updated</span>
+                    </div>
+                  {% endif %}
+                  <div class="issue-actions">
+                    {% if issue.url != '#' %}
+                      <a href="{{ issue.url }}" target="_blank" class="issue-link">
+                        <span class="external-icon">↗</span>
+                      </a>
+                    {% endif %}
+                    {% if user_has_admin_permission and issue.nid %}
+                      <a href="/node/{{ issue.nid }}/edit" class="issue-edit-link" title="Edit issue">
+                        <span class="edit-icon">⚙</span>
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+                
+                <div class="issue-title-container">
+                  <h5 class="issue-title" data-tooltip="{{ issue.title }}">{{ issue.title }}</h5>
+                  {% if issue.update_summary %}
+                    <div class="issue-update-summary" data-tooltip="{{ issue.update_summary_full|striptags }}">{{ issue.update_summary|striptags }}</div>
+                  {% endif %}
+                </div>
+
+
+                <div class="issue-footer">
+                  <div class="issue-meta">
+                    <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
+                    <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
+                    {% if issue.workstream %}
+                      <span class="issue-workstream" data-workstream="{{ issue.workstream }}" title="Workstream: {{ issue.workstream_label|default(issue.workstream) }}">{{ issue.workstream_label|default(issue.workstream) }}</span>
+                    {% endif %}
+                    {% if issue.is_blocked and issue.blocked_issues is not empty %}
+                      {% set blocked_tooltip %}Blocked By:
+                          {%- for blocked_issue in issue.blocked_issues %}
+                            <br>#{{ blocked_issue.issue_number }} - {{ blocked_issue.title }} - {{ blocked_issue.assignee }}
+                          {%- endfor -%}
+                        {% endset %}
+                        <span class="issue-blocked" title="{{ blocked_tooltip }}">Blocked</span>
+                    {% endif %}
+                    {# Assignee shown in header as a link; omit duplicate in footer #}
+                  </div>
+                  
+                  <div class="issue-planning-badges">
+                    <div class="issue-dates">
+                      {% if issue.due_date %}
+                        {% set due_date = issue.due_date|date('Y-m-d') %}
+                        {% set today = 'now'|date('Y-m-d') %}
+                        {% set is_overdue = due_date < today %}
+                        {% set days_diff = (due_date|date('U') - today|date('U')) / 86400 %}
+                        {% set is_due_soon = days_diff <= 3 and days_diff >= 0 %}
+
+                        <div class="issue-deadline {{ is_overdue ? 'overdue' : (is_due_soon ? 'due-soon' : '') }}" data-tooltip="Due Date: {{ issue.due_date|date('M j, Y') }}">
+                          <span class="clock-icon">⏰</span>
+                          <span class="deadline-text">{{ issue.due_date|date('M j') }}</span>
+                        </div>
+                      {% endif %}
+
+                      {% if issue.checkin_date %}
+                        {% set checkin_date = issue.checkin_date|date('Y-m-d') %}
+                        {% set today = 'now'|date('Y-m-d') %}
+                        {% set is_checkin_today = checkin_date == today %}
+                        {% set days_diff = (checkin_date|date('U') - today|date('U')) / 86400 %}
+                        {% set is_checkin_soon = days_diff <= 1 and days_diff >= 0 %}
+
+                        <div class="issue-checkin-date {{ is_checkin_today ? 'checkin-today' : (is_checkin_soon ? 'checkin-soon' : '') }}" data-tooltip="Check-in Date: {{ issue.checkin_date|date('M j, Y') }}">
+                          <span class="checkin-icon">🔔</span>
+                          <span class="checkin-text">{{ issue.checkin_date|date('M j') }}</span>
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    {% if issue.is_meta_issue %}
+                      <div class="issue-meta-badge">
+                        <span class="meta-icon">🏷️</span>
+                        <span class="meta-text">Epic</span>
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  {% if issue.has_conflict %}
+                    <div class="assignment-conflict">
+                      <span class="warning-icon">⚠️</span>
+                      <span class="conflict-text">Assignment conflict on d.o</span>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="no-issues">
+              <div class="no-issues-content">
+                <span class="kanban-icon">📋</span>
+                <span class="no-issues-text">No {{ column.title|lower }}</span>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
