@@ -12,6 +12,11 @@ body.path-ai-dashboard .layout-content {
   padding: 0 !important;
 }
 
+body.path-ai-dashboard .layout-container:has(.page-title) {
+  margin-inline: min(5vw, var(--gin-spacing-xxl)) !important;
+  width: auto !important;
+}
+
 /* Hide theme sidebars and navigation for cleaner look */
 body.path-ai-dashboard .site-header,
 body.path-ai-dashboard .site-footer,
@@ -27,7 +32,7 @@ body.path-ai-dashboard {
 }
 
 .ai-dashboard-container {
-  width: 100vw;
+  width: calc(100vw - 40px);
   margin: 0;
   padding: 20px;
   min-height: 100vh;
@@ -583,17 +588,17 @@ body.path-ai-dashboard {
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .issues-filters {
     grid-template-columns: 1fr;
   }
-  
+
   .contributors-table,
   .issues-table,
   .monthly-resources-table {
     font-size: 14px;
   }
-  
+
   .contributors-table th,
   .issues-table th,
   .monthly-resources-table th,
