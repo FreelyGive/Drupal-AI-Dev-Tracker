@@ -56,6 +56,7 @@
             e.preventDefault();
             try {
               localStorage.removeItem('aiDashboard.kanban.optionalColumns');
+              localStorage.removeItem('aiDashboard.kanban.mainColumnsHidden');
               localStorage.removeItem('aiDashboard.kanban.selectedTag');
             } catch (err) {}
             window.location.href = '/ai-dashboard/priority-kanban';
@@ -63,32 +64,34 @@
         }
         // Tags filter handled server-side via GET params.
 
-        // Individual optional column toggles
-        const menu = document.getElementById('optional-columns-menu');
-        if (menu) {
-          const storageKey = 'aiDashboard.kanban.optionalColumns';
+        // Initialize a toggle menu for columns (optional/main)
+        function initColumnMenu(menuId, storageKey, mode) {
+          const menu = document.getElementById(menuId);
+          if (!menu) return;
           const loadState = () => {
-            try {
-              const raw = localStorage.getItem(storageKey);
-              return raw ? JSON.parse(raw) : [];
-            } catch (e) { return []; }
+            try { const raw = localStorage.getItem(storageKey); return raw ? JSON.parse(raw) : []; } catch (e) { return []; }
           };
-          const saveState = (ids) => {
-            try { localStorage.setItem(storageKey, JSON.stringify(ids)); } catch (e) {}
-          };
-
+          const saveState = (ids) => { try { localStorage.setItem(storageKey, JSON.stringify(ids)); } catch (e) {} };
           const buttons = menu.querySelectorAll('.column-toggle-button');
-          const current = new Set(loadState());
+          const state = new Set(loadState());
 
           // Apply saved state on load.
           buttons.forEach((btn) => {
             const target = btn.getAttribute('data-target');
-            const column = document.querySelector(`.kanban-column[data-column-id="${target}"]`);
-            if (!column) return;
-            if (current.has(target)) {
-              column.classList.add('expanded');
-              btn.classList.add('active');
-              btn.setAttribute('aria-pressed', 'true');
+            const col = document.querySelector(`.kanban-column[data-column-id="${target}"]`);
+            if (!col) return;
+            if (mode === 'optional') {
+              if (state.has(target)) {
+                col.classList.add('expanded');
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+              }
+            } else if (mode === 'main') {
+              if (state.has(target)) {
+                col.classList.add('hidden');
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+              }
             }
           });
 
@@ -96,20 +99,29 @@
           buttons.forEach((btn) => {
             btn.addEventListener('click', () => {
               const target = btn.getAttribute('data-target');
-              const column = document.querySelector(`.kanban-column[data-column-id="${target}"]`);
-              if (!column) return;
-              const isNowShown = column.classList.toggle('expanded');
-              btn.classList.toggle('active', isNowShown);
-              btn.setAttribute('aria-pressed', isNowShown ? 'true' : 'false');
-              if (isNowShown) {
-                current.add(target);
-              } else {
-                current.delete(target);
+              const col = document.querySelector(`.kanban-column[data-column-id="${target}"]`);
+              if (!col) return;
+              if (mode === 'optional') {
+                const nowShown = col.classList.toggle('expanded');
+                btn.classList.toggle('active', nowShown);
+                btn.setAttribute('aria-pressed', nowShown ? 'true' : 'false');
+                if (nowShown) state.add(target); else state.delete(target);
+              } else if (mode === 'main') {
+                const wasHidden = col.classList.toggle('hidden');
+                const nowShown = !wasHidden;
+                btn.classList.toggle('active', nowShown);
+                btn.setAttribute('aria-pressed', nowShown ? 'true' : 'false');
+                if (wasHidden) state.add(target); else state.delete(target);
               }
-              saveState(Array.from(current));
+              saveState(Array.from(state));
             });
           });
         }
+
+        // Optional columns menu (persist shown list)
+        initColumnMenu('optional-columns-menu', 'aiDashboard.kanban.optionalColumns', 'optional');
+        // Main columns menu (persist hidden list)
+        initColumnMenu('main-columns-menu', 'aiDashboard.kanban.mainColumnsHidden', 'main');
 
         // Removed prototype "add column" helper (not part of v1)
       }

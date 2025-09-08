@@ -113,8 +113,14 @@
 
   <!-- Optional Columns Toggle -->
   <div class="kanban-controls">
-    <div class="main-columns-info">
-      <span class="columns-label">3 main columns shown</span>
+    <div class="main-columns-menu" id="main-columns-menu" aria-label="Toggle main columns">
+      {% for column_id, column in kanban_data.columns %}
+        {% if column.main_column %}
+          <button class="column-toggle-button active" data-target="{{ column.id }}" aria-pressed="true" title="Toggle {{ column.title }} column">
+            {{ column.title }} ({{ column.issues|length }})
+          </button>
+        {% endif %}
+      {% endfor %}
     </div>
     <div class="optional-columns-menu" id="optional-columns-menu" aria-label="Toggle optional columns">
       {% for column_id, column in kanban_data.columns %}
