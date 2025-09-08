@@ -41,9 +41,10 @@
           } catch (e) {}
 
           tagSelect.addEventListener('change', () => {
+            const val = tagSelect.value;
+            // Persist selection except when choosing All Tags (we still save '__all' for UX consistency)
+            try { localStorage.setItem(tagStorageKey, val); } catch (e4) {}
             tagForm.submit();
-            // Persist selection
-            try { localStorage.setItem(tagStorageKey, tagSelect.value); } catch (e4) {}
           });
         }
 

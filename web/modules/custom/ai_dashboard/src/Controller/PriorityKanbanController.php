@@ -84,9 +84,23 @@ class PriorityKanbanController extends ControllerBase {
   public function kanbanView(Request $request) {
     try {
       // Read a single tag from query; default to 'priority'.
-      $selected_tag = trim((string) $request->query->get('tag', 'priority'));
-      if ($selected_tag === '') { $selected_tag = 'priority'; }
-      $selected_tags = [$selected_tag];
+      // Support a special "all" option (value "__all" or "all") to disable tag filtering.
+      $raw_tag = trim((string) $request->query->get('tag', 'priority'));
+      if ($raw_tag === '') {
+        $selected_tag = 'priority';
+        $selected_tags = ['priority'];
+      }
+      else {
+        $selected_tag = $raw_tag;
+        if (in_array(mb_strtolower($raw_tag), ['__all', 'all'], TRUE)) {
+          // No tag filtering when "All Tags" is selected.
+          $selected_tags = [];
+          $selected_tag = '__all';
+        }
+        else {
+          $selected_tags = [$selected_tag];
+        }
+      }
 
       // Get kanban data with server-side tag filtering
       $kanban_data = $this->getKanbanData($selected_tags);
@@ -125,6 +139,8 @@ class PriorityKanbanController extends ControllerBase {
 
       // Build tag filter options and ensure selected tag is present as a fallback.
       $all_tags = $this->getAllIssueTags();
+      // Insert an explicit "All Tags" option at the top.
+      array_unshift($all_tags, '__all');
       if (!in_array($selected_tag, $all_tags, TRUE)) {
         array_unshift($all_tags, $selected_tag);
         $all_tags = array_values(array_unique($all_tags));
@@ -482,13 +498,22 @@ class PriorityKanbanController extends ControllerBase {
       }
     }
 
-    // Active working items if assigned or status marked.
-    if (!empty($assignee) || in_array($status, ['active', 'needs_work', 'working_on'], TRUE)) {
+    // Determine active-like statuses used for board grouping.
+    $is_activeish = in_array($status, ['active', 'needs_work', 'working_on'], TRUE);
+
+    // Working On = assigned items that are active-ish.
+    if (!empty($assignee) && $is_activeish) {
       $columns['working_on']['issues'][] = $issue;
       return;
     }
 
-    // Default to Todos.
+    // Todos = active/needs work but unassigned.
+    if ($is_activeish && empty($assignee)) {
+      $columns['todos']['issues'][] = $issue;
+      return;
+    }
+
+    // Fallback: if nothing matched above, send to Todos as default inbox.
     $columns['todos']['issues'][] = $issue;
   }
 }

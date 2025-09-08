@@ -62,7 +62,13 @@
       <label for="kanban-tag-filter">Tag:</label>
       <select id="kanban-tag-filter" name="tag" class="filter-select">
         {% for tag in filter_options.tags %}
-          <option value="{{ tag }}" {{ tag == selected_tag ? 'selected="selected"' : '' }}>{{ tag }}</option>
+          {% set value = tag %}
+          {% set label = tag %}
+          {% if tag == '__all' %}
+            {% set value = '__all' %}
+            {% set label = 'All Tags' %}
+          {% endif %}
+          <option value="{{ value }}" {{ value == selected_tag ? 'selected="selected"' : '' }}>{{ label }}</option>
         {% endfor %}
       </select>
     </form>
@@ -176,9 +182,9 @@
                 </div>
                 
                 <div class="issue-title-container">
-                  <h5 class="issue-title" data-tooltip="{{ issue.title }}">{{ issue.title }}</h5>
+                  <h5 class="issue-title" title="{{ issue.title }}" data-tooltip="{{ issue.title }}">{{ issue.title }}</h5>
                   {% if issue.update_summary %}
-                    <div class="issue-update-summary" data-tooltip="{{ issue.update_summary_full|striptags }}">{{ issue.update_summary|striptags }}</div>
+                    <div class="issue-update-summary" title="{{ issue.update_summary_full|striptags }}" data-tooltip="{{ issue.update_summary_full|striptags }}">{{ issue.update_summary|striptags }}</div>
                   {% endif %}
                 </div>
 
