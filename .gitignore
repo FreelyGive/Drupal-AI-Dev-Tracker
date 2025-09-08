@@ -196,3 +196,6 @@ run_enhanced_data.sh
 # Ignore sensitive test artifacts
 cookies.txt
 test-kanban-login.js
+
+# Ignore local development code scratchpad
+.code/
