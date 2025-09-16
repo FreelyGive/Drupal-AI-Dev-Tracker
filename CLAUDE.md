@@ -241,14 +241,15 @@ For best results when exporting CSV from Google Sheets:
 - **AI Tracker Metadata Processing**: Automatically extracts structured metadata from issue summaries during import
 
 #### AI Tracker Metadata Format
-Issues can include structured metadata in their summaries using this format:
+Issues must include structured metadata in their summaries using this exact format with HTML tags:
 ```
 --- AI TRACKER METADATA ---
-Update Summary: Will put together some copy for the OpenAI funding
-Check-in Date: 09/01/2025
-Due Date: 09/09/2025
-Blocked by: #3412340, #3412341
-Additional Collaborators: @username1, @username2
+<strong>Update Summary: </strong>[One-line status update for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY (US format) [When we should see progress/get an update]
+<strong>Due Date:</strong> MM/DD/YYYY (US format) [When the issue should be fully completed]
+<strong>Blocked by:</strong> [#XXXXXX] (New issues on new lines)
+<strong>Additional Collaborators:</strong> @username1, @username2
+AI Tracker found here: <a href="https://www.drupalstarforge.ai/" title="AI Tracker">https://www.drupalstarforge.ai/</a>
 --- END METADATA ---
 ```
 
@@ -258,21 +259,30 @@ Additional Collaborators: @username1, @username2
 - **Collaborators**: Extracts usernames from @username format
 - **Re-processing**: Use `drush aid-meta` to re-process metadata for all existing issues
 
+### Project Kanban Features
+
+#### Priority Kanban Board
+- **URL**: `/ai-dashboard/priority-kanban`
+- **Project Filtering**: Filter issues by AI Projects, with support for default project selection
+- **Tag Filtering**: Filter issues by tags with "All Tags" option
+- **Issue Organization**: Issues organized into columns (Todos, Needs Review, Working On, Blocked, RTBC, Fixed)
+- **Project Issue Ordering**: Custom ordering of issues within projects stored in `ai_dashboard_project_issue` table
+- **Default Project**: One project can be marked as default for initial kanban view
+
+#### AI Project Management
+- **Projects List**: `/ai-dashboard/projects` - View and manage AI projects
+- **Project Issues**: `/ai-dashboard/project/{slug}/issues` - View issues for specific project with drag-and-drop ordering
+- **Default Project Setting**: Checkbox on project edit form to set as default kanban project
+- **Project Tags**: Define tags for each project to filter related issues
+- **Open in Kanban**: Button on project issues page to view in kanban with project filter
+
 ### Database Update Hooks
-- `ai_dashboard_update_8001()` - Remove unsupported status filters
-- `ai_dashboard_update_8002()` - Add company drupal profile and AI maker fields
-- `ai_dashboard_update_8003()` - Update contributors admin view with drupal.org links
-- `ai_dashboard_update_8004()` - Fix missing field storage tables
-- `ai_dashboard_update_8005()` - Force creation of database tables
-- `ai_dashboard_update_8006()` - Add tracker role and GitLab username fields
- - `ai_dashboard_update_9002()` - Ensure Dashboard Category field exists and appears on AI Issue forms/views
- - `ai_dashboard_update_9003()` - Final pass to write field config programmatically if missing
- - `ai_dashboard_update_9004()` - Add Dashboard Category to AI Issue form display
- - `ai_dashboard_update_9005()` - Make AI Issue Dashboard Category multi-valued; add Company Audience field
- - `ai_dashboard_update_9006()` - Make Contributor Type multi-valued and adjust form display
- - `ai_dashboard_update_9007()` - Set widgets to select (later superseded by 9008)
- - `ai_dashboard_update_9008()` - Switch Issue/Contributor widgets to checkboxes
- - `ai_dashboard_update_9009()` - Migrate import configs to Audience checkboxes; purge legacy boolean
+- `ai_dashboard_update_9037()` - **Production update**: Adds project kanban features including:
+  - Project issue ordering table (`ai_dashboard_project_issue`)
+  - Default kanban project field (`field_is_default_kanban_project`)
+  - Form and view display configuration for AI Projects
+
+**Note**: Earlier update hooks (8001-9036) were development iterations and are not needed for production deployment.
 
 ### Permissions
 - **View**: Public access to dashboard views

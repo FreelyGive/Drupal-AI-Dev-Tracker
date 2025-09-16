@@ -1,0 +1,720 @@
+/**
+ * @file
+ * Project Issues Management - Table/List Styles
+ * 
+ * Provides styling for:
+ * - Project issues listing page with drag-and-drop ordering
+ * - Projects list page
+ * - Issue status colors (Active, RTBC, Fixed, etc.)
+ * - Epic issues (items with children) with blue highlighting
+ * - Responsive table layouts
+ */
+
+/* Main containers */
+.ai-project-issues,
+.ai-projects-list {
+  background: #f5f5f7;
+  min-height: 100vh;
+}
+
+/* Projects List Table - matching dashboard style */
+.projects-table-container {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1.5rem 1.5rem;
+  overflow: hidden;
+}
+
+.projects-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.projects-table thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.projects-table th {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.projects-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+.projects-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.projects-table td {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.project-name a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.project-name a:hover {
+  text-decoration: underline;
+}
+
+.project-tags {
+  color: #6b7280;
+}
+
+.project-default {
+  text-align: center;
+}
+
+.default-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty-message {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.empty-message p {
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+/* Navigation styles are handled by shared-components.css */
+
+/* Project Header - matching calendar/kanban style */
+.project-header,
+.projects-header {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem;
+  padding: 1.5rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-info,
+.projects-info {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.project-subtitle,
+.projects-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.issue-count,
+.project-count {
+  font-weight: 500;
+  color: #9333ea;
+}
+
+.project-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #111827;
+}
+
+.project-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Filters - matching calendar/kanban style */
+.filters-container,
+.project-filters {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1.5rem 1.5rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background: white;
+  min-width: 120px;
+  transition: all 0.2s;
+}
+
+.filter-select:hover {
+  border-color: #d1d5db;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #9333ea;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+/* Issue Counts - matching calendar/kanban style */
+.issue-counts {
+  display: flex;
+  gap: 1.5rem;
+  margin: 0 1.5rem 1.5rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.count-item {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.count-item:first-child {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Table Container - matching calendar/kanban style */
+.issues-table-container {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1.5rem 1.5rem;
+  overflow: hidden;
+}
+
+/* Table Header */
+.issues-table-header {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.issue-row-header {
+  display: grid;
+  grid-template-columns: 30px 70px 80px minmax(250px, 2fr) minmax(200px, 1fr) 85px 85px 120px 100px 80px 80px;
+  align-items: center;
+  padding: 12px 10px;
+  gap: 10px;
+}
+
+/* Table Body */
+.issues-table-body {
+  min-height: 200px;
+}
+
+/* Issue Row */
+.issue-row {
+  display: grid;
+  grid-template-columns: 30px 70px 80px minmax(250px, 2fr) minmax(200px, 1fr) 85px 85px 120px 100px 80px 80px;
+  align-items: center;
+  padding: 10px;
+  gap: 10px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.2s ease;
+  background: white;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+}
+
+.issue-row[draggable="true"] {
+  cursor: move;
+}
+
+.issue-row:not([draggable="true"]) {
+  cursor: default;
+}
+
+.issue-row:hover {
+  background: #f9fafb;
+}
+
+/* Status-based colors - muted but visible */
+.issue-row.status-active {
+  background: #f3f4f6;
+  border-left-color: #6b7280;
+}
+
+.issue-row.status-needs-review {
+  background: #fef9c3;
+  border-left-color: #facc15;
+}
+
+.issue-row.status-needs-work {
+  background: #fed7aa;
+  border-left-color: #fb923c;
+}
+
+.issue-row.status-rtbc {
+  background: #bbf7d0;
+  border-left-color: #22c55e;
+}
+
+.issue-row.status-fixed {
+  background: #dcfce7;
+  border-left-color: #86efac;
+}
+
+.issue-row.status-closed {
+  background: #f9fafb;
+  border-left-color: #9ca3af;
+}
+
+/* Epic styling (items with children at indent level 0) */
+.issue-row.is-epic {
+  background: #dbeafe !important;
+  border-left-color: #2563eb !important;
+  font-weight: 600;
+}
+
+.issue-row.is-epic .col-title {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Sub-epic styling (items with children at indent level 1+) */
+.issue-row.is-sub-epic {
+  background: #eff6ff !important;
+  border-left-color: #3b82f6 !important;
+}
+
+/* Hover states for status colors */
+.issue-row.status-active:hover {
+  background: #e5e7eb;
+}
+
+.issue-row.status-needs-review:hover {
+  background: #fef3c7;
+}
+
+.issue-row.status-needs-work:hover {
+  background: #fbbf24;
+}
+
+.issue-row.status-rtbc:hover {
+  background: #86efac;
+}
+
+.issue-row.status-fixed:hover {
+  background: #bbf7d0;
+}
+
+/* Hover for epics */
+.issue-row.is-epic:hover {
+  background: #bfdbfe !important;
+}
+
+.issue-row.is-sub-epic:hover {
+  background: #dbeafe !important;
+}
+
+.issue-row.dragging {
+  opacity: 0.4;
+  background: #eff6ff;
+}
+
+.issue-row.drag-over {
+  border-top: 3px solid #3b82f6;
+}
+
+/* Columns */
+.col-drag {
+  text-align: center;
+}
+
+.drag-handle {
+  cursor: move;
+  color: #9ca3af;
+  font-size: 16px;
+  user-select: none;
+  display: inline-block;
+  padding: 0 4px;
+}
+
+.drag-handle:hover {
+  color: #6b7280;
+}
+
+.col-indent {
+  display: flex;
+  gap: 2px;
+}
+
+.indent-btn {
+  padding: 2px 6px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #6b7280;
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.indent-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.col-issue-number {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.issue-number-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.issue-number-link:hover {
+  text-decoration: underline;
+}
+
+.col-title {
+  font-weight: 500;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  transition: padding-left 0.2s ease;
+  position: relative;
+}
+
+.col-update-summary {
+  color: #6b7280;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.col-checkin-date,
+.col-due-date {
+  color: #6b7280;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.col-due-date {
+  font-weight: 500;
+}
+
+/* Collapse toggle */
+.collapse-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: inline-block;
+  margin-right: 4px;
+  padding: 2px;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.collapse-toggle:hover {
+  background: #e5e7eb;
+}
+
+.collapse-icon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  font-size: 11px;
+  line-height: 12px;
+  text-align: center;
+  color: #6b7280;
+  transition: transform 0.2s;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(0deg);
+}
+
+.collapse-icon.expanded {
+  transform: rotate(0deg);
+}
+
+.child-count {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-left: 2px;
+  font-weight: normal;
+}
+
+/* Parent row styling */
+.issue-row.is-parent .col-title {
+  font-weight: 600;
+}
+
+.issue-row.is-parent {
+  background: #fafbfc;
+}
+
+.issue-row.is-parent:hover {
+  background: #f3f4f6;
+}
+
+/* Hidden children */
+.issue-row.collapsed-child {
+  display: none;
+}
+
+.issue-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  cursor: help;
+}
+
+.blocked-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.col-assignee {
+  color: #4b5563;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-status,
+.col-priority {
+  display: flex;
+  align-items: center;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.status-badge.status-active { background: #9ca3af; color: white; }
+.status-badge.status-needs-work { background: #fb923c; color: white; }
+.status-badge.status-needs-review { background: #facc15; color: #78350f; }
+.status-badge.status-rtbc { background: #22c55e; color: white; }
+.status-badge.status-fixed { background: #86efac; color: #14532d; }
+.status-badge.status-closed { background: #6b7280; color: white; }
+
+/* Priority Badges */
+.priority-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.priority-critical { background: #fecaca; color: #991b1b; }
+.priority-major { background: #fed7aa; color: #9a3412; }
+.priority-normal { background: #e5e7eb; color: #4b5563; }
+.priority-minor { background: #f3f4f6; color: #6b7280; }
+
+/* Actions Column */
+.col-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.action-link {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 16px;
+  transition: color 0.2s;
+  padding: 2px 4px;
+}
+
+.action-link:hover {
+  color: #111827;
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+/* Save Feedback */
+.save-feedback {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  display: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.save-feedback.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.save-feedback.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Buttons - matching calendar/kanban style */
+.button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  background: white;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.button--primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.button--primary:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b3c91 100%);
+}
+
+.button--primary.unsaved {
+  background: #f59e0b;
+}
+
+.button--primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.button--small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Indentation Visual Guides */
+.issue-row[data-indent="1"] .col-title {
+  border-left: 2px solid #e5e7eb;
+  margin-left: 18px;
+  padding-left: 10px !important;
+}
+
+.issue-row[data-indent="2"] .col-title {
+  border-left: 2px solid #d1d5db;
+  margin-left: 38px;
+  padding-left: 10px !important;
+}
+
+.issue-row[data-indent="3"] .col-title {
+  border-left: 2px solid #9ca3af;
+  margin-left: 58px;
+  padding-left: 10px !important;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .issue-row-header,
+  .issue-row {
+    grid-template-columns: 30px 70px 80px 1fr 120px 100px 80px 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+  
+  .issue-counts {
+    flex-wrap: wrap;
+  }
+}

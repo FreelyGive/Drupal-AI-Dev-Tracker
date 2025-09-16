@@ -77,18 +77,7 @@ class CalendarController extends ControllerBase {
         ]
       ];
 
-      // Add navigation.
-      $build['navigation'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['dashboard-navigation']],
-        '#markup' => '<div class="nav-links">
-          <a href="/ai-dashboard" class="nav-link">Dashboard</a>
-          <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organizational" class="nav-link active">Organizational View</a>
-          <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
-          <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
-        </div>',
-      ];
+      // Navigation is handled in the template
 
       // Get backlog data filtered to organizational issues.
       $backlog_data = $this->getBacklogData(TRUE);
@@ -105,6 +94,7 @@ class CalendarController extends ControllerBase {
         '#week_offset' => $week_offset,
         '#filter_options' => $filter_options,
         '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
+        '#is_organizational_view' => TRUE,
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',
@@ -182,18 +172,7 @@ class CalendarController extends ControllerBase {
         ]
       ];
 
-      // Add navigation.
-      $build['navigation'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['dashboard-navigation']],
-        '#markup' => '<div class="nav-links">
-          <a href="/ai-dashboard" class="nav-link">Dashboard</a>
-          <a href="/ai-dashboard/calendar" class="nav-link active">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
-          <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
-          <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
-        </div>',
-      ];
+      // Navigation is handled in the template
 
       // Get backlog data.
       $backlog_data = $this->getBacklogData(FALSE);
@@ -210,6 +189,7 @@ class CalendarController extends ControllerBase {
         '#week_offset' => $week_offset,
         '#filter_options' => $filter_options,
         '#user_has_admin_permission' => \Drupal::currentUser()->id() == 1 || \Drupal::currentUser()->hasPermission('administer ai dashboard'),
+        '#is_organizational_view' => FALSE,
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',

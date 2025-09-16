@@ -10,3 +10,7 @@ administer ai dashboard imports:
   title: 'Administer AI Dashboard Imports'
   description: 'Manage API imports, configure sources, and run import operations'
   restrict access: true
+
+administer ai dashboard content:
+  title: 'Administer AI Dashboard Content'
+  description: 'Create and manage AI dashboard content including projects and assignments'

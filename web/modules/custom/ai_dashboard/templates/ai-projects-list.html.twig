@@ -1,0 +1,85 @@
+{#
+/**
+ * @file
+ * Template for projects list page.
+ *
+ * Available variables:
+ * - projects: Array of project data
+ * - user_has_admin: Whether user can add projects
+ */
+#}
+
+<div class="ai-projects-list">
+  <!-- Top Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link active">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="projects-header">
+    <div class="header-content">
+      <div class="projects-info">
+        <h1 class="page-title">AI Projects</h1>
+        <h2 class="projects-subtitle">
+          Manage Project Issues
+          <span class="project-count">({{ projects|length }} projects)</span>
+        </h2>
+      </div>
+      {% if user_has_admin %}
+      <div class="projects-actions">
+        <a href="/ai-dashboard/projects/add" class="button button--primary">Add Project</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Projects List -->
+  <div class="projects-table-container">
+    <table class="projects-table">
+      <thead>
+        <tr>
+          <th>Project Name</th>
+          <th>Default</th>
+          <th>Tags</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr>
+          <td class="project-name">
+            <a href="/ai-dashboard/project/{{ project.slug }}/issues">{{ project.title }}</a>
+          </td>
+          <td class="project-default">
+            {% if project.is_default %}
+              <span class="default-badge">Default</span>
+            {% endif %}
+          </td>
+          <td class="project-tags">{{ project.tags }}</td>
+          <td class="project-actions">
+            <a href="/ai-dashboard/project/{{ project.slug }}/issues" class="button button--small">View Issues</a>
+            {% if user_has_admin %}
+              <a href="/node/{{ project.nid }}/edit" class="button button--small">Edit</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if projects|length == 0 %}
+      <div class="empty-message">
+        <p>No projects found.</p>
+        {% if user_has_admin %}
+          <a href="/ai-dashboard/projects/add" class="button button--primary">Add First Project</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>

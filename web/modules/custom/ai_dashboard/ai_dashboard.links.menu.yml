@@ -53,3 +53,9 @@ ai_dashboard.module_imports:
   route_name: ai_dashboard.module_import.collection
   parent: system.admin_config_development
   weight: 10
+
+ai_dashboard.projects_menu:
+  title: 'Projects (Gantt)'
+  description: 'View AI Projects and Gantt prototypes'
+  route_name: ai_dashboard.projects
+  parent: ai_dashboard.admin

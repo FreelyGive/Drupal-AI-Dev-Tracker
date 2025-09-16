@@ -9,6 +9,18 @@
 #}
 
 <div class="ai-priority-kanban">
+  <!-- Top Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link active">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+    </div>
+  </div>
+  
   <!-- Header -->
   <div class="kanban-header">
     <div class="header-content">
@@ -58,7 +70,7 @@
 
   <!-- Kanban Filters to match calendar -->
   <div class="kanban-filters">
-    <form method="get" action="/ai-dashboard/priority-kanban" class="filter-group tag-filter-form">
+    <form method="get" action="/ai-dashboard/priority-kanban" class="filter-group tag-filter-form" id="kanban-filter-form">
       <label for="kanban-tag-filter">Tag:</label>
       <select id="kanban-tag-filter" name="tag" class="filter-select">
         {% for tag in filter_options.tags %}
@@ -69,6 +81,14 @@
             {% set label = 'All Tags' %}
           {% endif %}
           <option value="{{ value }}" {{ value == selected_tag ? 'selected="selected"' : '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      
+      <label for="kanban-project-filter">Project:</label>
+      <select id="kanban-project-filter" name="project" class="filter-select">
+        <option value="">All Projects</option>
+        {% for project_id, project_name in filter_options.projects %}
+          <option value="{{ project_id }}" {{ (project_id ~ '') == (selected_project ~ '') ? 'selected="selected"' : '' }}>{{ project_name }}</option>
         {% endfor %}
       </select>
     </form>

@@ -50,6 +50,17 @@ function ai_dashboard_theme() {
         'user_has_admin_permission' => FALSE,
         'filter_options' => [],
         'selected_tag' => 'priority',
+        'selected_project' => '',
+      ],
+    ],
+    'ai_dashboard_public_docs' => [
+      'variables' => [
+        'import_configs' => [],
+      ],
+    ],
+    'ai_import_configurations' => [
+      'variables' => [
+        'configurations' => [],
       ],
     ],
     'admin_navigation' => [
@@ -67,6 +78,21 @@ function ai_dashboard_theme() {
         'issue_id' => NULL,
       ],
     ],
+    'ai_project_issues' => [
+      'variables' => [
+        'project' => NULL,
+        'issues' => [],
+        'filters' => [],
+        'filter_options' => [],
+        'user_has_admin' => FALSE,
+      ],
+    ],
+    'ai_projects_list' => [
+      'variables' => [
+        'projects' => [],
+        'user_has_admin' => FALSE,
+      ],
+    ],
   ];
 }
 
@@ -74,6 +100,32 @@ function ai_dashboard_theme() {
  * Implements hook_entity_presave().
  */
 function ai_dashboard_entity_presave(Drupal\Core\Entity\EntityInterface $entity) {
+  // Handle default kanban project - ensure only one is set as default
+  if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'ai_project') {
+    if ($entity->hasField('field_is_default_kanban_project') && 
+        !$entity->get('field_is_default_kanban_project')->isEmpty() && 
+        $entity->get('field_is_default_kanban_project')->value) {
+      
+      // Clear any other default projects
+      $storage = \Drupal::entityTypeManager()->getStorage('node');
+      $other_defaults = $storage->getQuery()
+        ->condition('type', 'ai_project')
+        ->condition('field_is_default_kanban_project', TRUE)
+        ->condition('nid', $entity->id(), '!=')
+        ->accessCheck(FALSE)
+        ->execute();
+      
+      if (!empty($other_defaults)) {
+        $other_nodes = $storage->loadMultiple($other_defaults);
+        foreach ($other_nodes as $other_node) {
+          $other_node->set('field_is_default_kanban_project', FALSE);
+          $other_node->save();
+        }
+        \Drupal::messenger()->addStatus(t('Previous default kanban project has been unset.'));
+      }
+    }
+  }
+  
   // Clear tag mapping cache when AI issues are saved with new tags
   if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'ai_issue') {
     // Check if this is an update and tags have changed

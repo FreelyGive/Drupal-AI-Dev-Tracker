@@ -13,6 +13,55 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
 
 /**
+ * Implements hook_schema().
+ */
+function ai_dashboard_schema() {
+  $schema = [];
+
+  $schema['ai_dashboard_project_issue'] = [
+    'description' => 'Per-project ordering and planning metadata for AI issues.',
+    'fields' => [
+      'project_nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Project node id (ai_project)',
+      ],
+      'issue_nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'AI Issue node id',
+      ],
+      'weight' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Order weight (lower first)',
+      ],
+      'indent_level' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Indentation level for hierarchy',
+      ],
+      'parent_issue_nid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Parent issue node id for hierarchy',
+      ],
+    ],
+    'primary key' => ['project_nid', 'issue_nid'],
+    'indexes' => [
+      'project_weight' => ['project_nid', 'weight'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Implements hook_install().
  */
 function ai_dashboard_install() {
@@ -3114,3 +3163,493 @@ function ai_dashboard_update_9030() {
   ]);
 }
 
+/**
+ * Create project management infrastructure for AI Dashboard.
+ */
+function ai_dashboard_update_9031() {
+  $messages = [];
+  
+  // 1. Create or update ai_dashboard_project_issue table
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ai_dashboard_project_issue')) {
+    // Create table with correct structure (no Gantt fields)
+    $spec = ai_dashboard_schema();
+    $schema->createTable('ai_dashboard_project_issue', $spec['ai_dashboard_project_issue']);
+    $messages[] = 'Created ai_dashboard_project_issue table.';
+  } else {
+    // Table exists, remove Gantt fields if present and add hierarchy fields
+    $table = 'ai_dashboard_project_issue';
+    
+    // Remove Gantt-specific fields
+    if ($schema->fieldExists($table, 'planned_start')) {
+      $schema->dropField($table, 'planned_start');
+      $messages[] = 'Removed planned_start field.';
+    }
+    if ($schema->fieldExists($table, 'planned_end')) {
+      $schema->dropField($table, 'planned_end');
+      $messages[] = 'Removed planned_end field.';
+    }
+    if ($schema->fieldExists($table, 'percent_complete')) {
+      $schema->dropField($table, 'percent_complete');
+      $messages[] = 'Removed percent_complete field.';
+    }
+    
+    // Add hierarchy fields if missing
+    if (!$schema->fieldExists($table, 'indent_level')) {
+      $schema->addField($table, 'indent_level', [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Indentation level for hierarchy',
+      ]);
+      $messages[] = 'Added indent_level field.';
+    }
+    if (!$schema->fieldExists($table, 'parent_issue_nid')) {
+      $schema->addField($table, 'parent_issue_nid', [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Parent issue node id for hierarchy',
+      ]);
+      $messages[] = 'Added parent_issue_nid field.';
+    }
+  }
+  
+  // 2. Create ai_project content type if missing
+  if (!NodeType::load('ai_project')) {
+    $type = NodeType::create([
+      'type' => 'ai_project',
+      'name' => 'AI Project',
+      'description' => 'Project for grouping and organizing AI issues',
+      'new_revision' => TRUE,
+      'preview_mode' => DRUPAL_OPTIONAL,
+      'display_submitted' => FALSE,
+    ]);
+    $type->save();
+    $messages[] = 'Created AI Project content type.';
+  }
+
+  // 3. Create field_project_tags field
+  if (!FieldStorageConfig::load('node.field_project_tags')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_project_tags',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'cardinality' => -1,
+      'translatable' => TRUE,
+    ])->save();
+    $messages[] = 'Created field_project_tags field storage.';
+  }
+  
+  if (!FieldConfig::load('node.ai_project.field_project_tags')) {
+    FieldConfig::create([
+      'field_name' => 'field_project_tags',
+      'entity_type' => 'node',
+      'bundle' => 'ai_project',
+      'label' => 'Project Tags',
+      'required' => FALSE,
+      'settings' => [],
+    ])->save();
+    $messages[] = 'Added field_project_tags to AI Project.';
+  }
+
+  // 4. Setup form and view displays
+  $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load('node.ai_project.default');
+  if ($form_display && !$form_display->getComponent('field_project_tags')) {
+    $form_display->setComponent('field_project_tags', [
+      'type' => 'string_textfield',
+      'weight' => 1,
+    ])->save();
+    $messages[] = 'Added field_project_tags to form display.';
+  }
+  
+  $view_display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.ai_project.default');
+  if ($view_display && !$view_display->getComponent('field_project_tags')) {
+    $view_display->setComponent('field_project_tags', [
+      'type' => 'string',
+      'weight' => 1,
+    ])->save();
+    $messages[] = 'Added field_project_tags to view display.';
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  return t('Project management infrastructure setup complete. @messages', ['@messages' => implode(' ', $messages)]);
+}
+
+/**
+ * Placeholder for removed update 9032.
+ */
+function ai_dashboard_update_9032() {
+  // This update has been consolidated into 9031.
+  return t('Update consolidated into 9031.');
+}
+
+/**
+ * Placeholder for removed update 9034.
+ */
+function ai_dashboard_update_9034() {
+  // This update has been consolidated into 9031.
+  return t('Update consolidated into 9031.');
+}
+
+/**
+ * Placeholder for removed update 9033.
+ */
+function ai_dashboard_update_9033() {
+  // This update has been consolidated into 9031.
+  return t('Update consolidated into 9031.');
+}
+
+/**
+ * Add default kanban project field to AI Project content type.
+ */
+function ai_dashboard_update_9035() {
+  $messages = [];
+  
+  // 1. Create field storage
+  $field_storage_config = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_storage = $field_storage_config->load('node.field_is_default_kanban_project');
+  
+  if (!$field_storage) {
+    $field_storage = $field_storage_config->create([
+      'field_name' => 'field_is_default_kanban_project',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_is_default_kanban_project field storage.';
+  }
+  
+  // 2. Create field instance
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_config->load('node.ai_project.field_is_default_kanban_project');
+  
+  if (!$field) {
+    $field = $field_config->create([
+      'field_name' => 'field_is_default_kanban_project',
+      'entity_type' => 'node',
+      'bundle' => 'ai_project',
+      'label' => 'Default Kanban Project',
+      'description' => 'When checked, this project will be the default filter for the kanban board.',
+      'required' => FALSE,
+      'default_value' => [['value' => 0]],
+    ]);
+    $field->save();
+    $messages[] = 'Created field_is_default_kanban_project field instance.';
+  }
+  
+  // Clear caches first to ensure form display can be created
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  
+  // 3. Create or update form display
+  $form_display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  $form_display = $form_display_storage->load('node.ai_project.default');
+  
+  if (!$form_display) {
+    // Create the form display if it doesn't exist
+    $form_display = $form_display_storage->create([
+      'targetEntityType' => 'node',
+      'bundle' => 'ai_project',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+    $messages[] = 'Created default form display for AI Project.';
+  }
+  
+  // Configure all fields for the form
+  $form_display->setComponent('title', [
+    'type' => 'string_textfield',
+    'weight' => 0,
+  ]);
+  
+  // Add project tags field if it exists
+  $field = $field_config->load('node.ai_project.field_project_tags');
+  if ($field) {
+    $form_display->setComponent('field_project_tags', [
+      'type' => 'string_textfield',
+      'weight' => 1,
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'Enter comma-separated tags',
+      ],
+    ]);
+    $messages[] = 'Added field_project_tags to form display.';
+  }
+  
+  // Add default kanban project field
+  $form_display->setComponent('field_is_default_kanban_project', [
+    'type' => 'boolean_checkbox',
+    'weight' => 10,
+    'settings' => [
+      'display_label' => TRUE,
+    ],
+  ]);
+  
+  $form_display->save();
+  $messages[] = 'Configured form display for AI Project.';
+  
+  // Clear caches again
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::cache('render')->deleteAll();
+  
+  return t('Added default kanban project field and configured form display. @messages', ['@messages' => implode(' ', $messages)]);
+}
+
+/**
+ * Fix AI Project form display to show all fields.
+ */
+function ai_dashboard_update_9036() {
+  $messages = [];
+  
+  // Get or create form display
+  $form_display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  $form_display = $form_display_storage->load('node.ai_project.default');
+  
+  if (!$form_display) {
+    // Create the form display if it doesn't exist
+    $form_display = $form_display_storage->create([
+      'targetEntityType' => 'node',
+      'bundle' => 'ai_project',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+    $messages[] = 'Created default form display for AI Project.';
+  }
+  
+  // Configure all fields for the form
+  $form_display->setComponent('title', [
+    'type' => 'string_textfield',
+    'weight' => 0,
+  ]);
+  
+  // Add project tags field if it exists
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_config->load('node.ai_project.field_project_tags');
+  if ($field) {
+    $form_display->setComponent('field_project_tags', [
+      'type' => 'string_textfield',
+      'weight' => 1,
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'Enter comma-separated tags',
+      ],
+    ]);
+    $messages[] = 'Added field_project_tags to form display.';
+  }
+  
+  // Add default kanban project field
+  $field = $field_config->load('node.ai_project.field_is_default_kanban_project');
+  if ($field) {
+    $form_display->setComponent('field_is_default_kanban_project', [
+      'type' => 'boolean_checkbox',
+      'weight' => 10,
+      'settings' => [
+        'display_label' => TRUE,
+      ],
+    ]);
+    $messages[] = 'Added field_is_default_kanban_project to form display.';
+  }
+  
+  // Add status field
+  $form_display->setComponent('status', [
+    'type' => 'boolean_checkbox',
+    'weight' => 120,
+    'settings' => [
+      'display_label' => TRUE,
+    ],
+  ]);
+  
+  // Add created/authored fields
+  $form_display->setComponent('created', [
+    'type' => 'datetime_timestamp',
+    'weight' => 10,
+  ]);
+  
+  $form_display->setComponent('uid', [
+    'type' => 'entity_reference_autocomplete',
+    'weight' => 5,
+    'settings' => [
+      'match_operator' => 'CONTAINS',
+      'size' => 60,
+      'placeholder' => '',
+    ],
+  ]);
+  
+  $form_display->save();
+  $messages[] = 'Fixed form display for AI Project with all fields.';
+  
+  // Clear caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::cache('render')->deleteAll();
+  
+  return t('Fixed AI Project form display. @messages', ['@messages' => implode(' ', $messages)]);
+}
+/**
+ * Production update: Add project kanban features.
+ * 
+ * This update adds:
+ * - Project issue ordering table for kanban board
+ * - Default kanban project field for AI Projects
+ * - Proper form display configuration for AI Projects
+ */
+function ai_dashboard_update_9037() {
+  $messages = [];
+  
+  // 1. Create project issue ordering table
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ai_dashboard_project_issue')) {
+    $table = [
+      'description' => 'Stores issue ordering within projects for kanban board.',
+      'fields' => [
+        'project_nid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The node ID of the project.',
+        ],
+        'issue_nid' => [
+          'type' => 'int', 
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The node ID of the issue.',
+        ],
+        'weight' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'The weight of the issue within the project.',
+        ],
+      ],
+      'primary key' => ['project_nid', 'issue_nid'],
+      'indexes' => [
+        'project_weight' => ['project_nid', 'weight'],
+        'issue' => ['issue_nid'],
+      ],
+    ];
+    
+    $schema->createTable('ai_dashboard_project_issue', $table);
+    $messages[] = 'Created ai_dashboard_project_issue table for kanban ordering.';
+  }
+  
+  // 2. Create field storage for default kanban project
+  $field_storage_config = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_storage = $field_storage_config->load('node.field_is_default_kanban_project');
+  
+  if (!$field_storage) {
+    $field_storage = $field_storage_config->create([
+      'field_name' => 'field_is_default_kanban_project',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'settings' => [],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_is_default_kanban_project field storage.';
+  }
+  
+  // 3. Create field instance on AI Project
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_config->load('node.ai_project.field_is_default_kanban_project');
+  
+  if (!$field) {
+    $field = $field_config->create([
+      'field_name' => 'field_is_default_kanban_project',
+      'entity_type' => 'node',
+      'bundle' => 'ai_project',
+      'label' => 'Default Kanban Project',
+      'description' => 'When checked, this project will be the default filter for the kanban board.',
+      'required' => FALSE,
+      'default_value' => [['value' => 0]],
+    ]);
+    $field->save();
+    $messages[] = 'Created field_is_default_kanban_project field instance.';
+  }
+  
+  // 4. Create/update form display for AI Project
+  $form_display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  $form_display = $form_display_storage->load('node.ai_project.default');
+  
+  if (!$form_display) {
+    $form_display = $form_display_storage->create([
+      'targetEntityType' => 'node',
+      'bundle' => 'ai_project',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+    $messages[] = 'Created default form display for AI Project.';
+  }
+  
+  // Configure form fields
+  $form_display->setComponent('title', [
+    'type' => 'string_textfield',
+    'weight' => 0,
+  ]);
+  
+  // Add project tags field if it exists
+  $tags_field = $field_config->load('node.ai_project.field_project_tags');
+  if ($tags_field) {
+    $form_display->setComponent('field_project_tags', [
+      'type' => 'string_textfield',
+      'weight' => 1,
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'Enter comma-separated tags',
+      ],
+    ]);
+  }
+  
+  // Add default kanban project field
+  $form_display->setComponent('field_is_default_kanban_project', [
+    'type' => 'boolean_checkbox',
+    'weight' => 10,
+    'settings' => [
+      'display_label' => TRUE,
+    ],
+  ]);
+  
+  $form_display->save();
+  $messages[] = 'Configured form display for AI Project.';
+  
+  // 5. Create/update view display for AI Project  
+  $view_display_storage = \Drupal::entityTypeManager()->getStorage('entity_view_display');
+  $view_display = $view_display_storage->load('node.ai_project.default');
+  
+  if (!$view_display) {
+    $view_display = $view_display_storage->create([
+      'targetEntityType' => 'node',
+      'bundle' => 'ai_project',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+  
+  // Configure view fields
+  if ($tags_field) {
+    $view_display->setComponent('field_project_tags', [
+      'label' => 'above',
+      'type' => 'string',
+      'weight' => 1,
+    ]);
+  }
+  
+  $view_display->setComponent('field_is_default_kanban_project', [
+    'label' => 'above',
+    'type' => 'boolean',
+    'weight' => 10,
+  ]);
+  
+  $view_display->save();
+  $messages[] = 'Configured view display for AI Project.';
+  
+  // Clear caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::cache('render')->deleteAll();
+  drupal_flush_all_caches();
+  
+  return t('Production update complete: Added project kanban features. @messages', [
+    '@messages' => implode(' ', $messages)
+  ]);
+}

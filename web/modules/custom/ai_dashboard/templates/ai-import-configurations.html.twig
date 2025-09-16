@@ -1,0 +1,401 @@
+{#
+/**
+ * @file
+ * Template for import configurations page (read-only).
+ *
+ * Available variables:
+ * - configurations: Array of import configurations
+ */
+#}
+
+<div class="ai-import-configurations">
+  <!-- Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+    </div>
+  </div>
+
+  <div class="configs-container">
+    <h1>Modules imported</h1>
+    <p class="page-description">These configurations define how issues are imported from drupal.org. Each configuration targets specific modules or issue types.</p>
+    
+    <div class="configs-grid">
+      {% for config in configurations %}
+      <div class="config-card {{ config.active ? 'active' : 'inactive' }}">
+        <div class="config-header">
+          <h3>{{ config.label }}</h3>
+          <span class="config-status {{ config.active ? 'status-active' : 'status-inactive' }}">
+            {{ config.active ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+        
+        {% if config.description %}
+        <p class="config-description">{{ config.description }}</p>
+        {% endif %}
+        
+        <div class="config-details">
+          <div class="detail-row">
+            <span class="detail-label">Config ID:</span>
+            <code class="detail-value">{{ config.id }}</code>
+          </div>
+          
+          {% if config.module %}
+          <div class="detail-row">
+            <span class="detail-label">Module:</span>
+            <span class="detail-value">{{ config.module }}</span>
+          </div>
+          {% endif %}
+          
+          {% if config.last_run %}
+          <div class="detail-row">
+            <span class="detail-label">Last Run:</span>
+            <span class="detail-value last-run">{{ config.last_run }}</span>
+          </div>
+          {% else %}
+          <div class="detail-row">
+            <span class="detail-label">Last Run:</span>
+            <span class="detail-value never-run">Never</span>
+          </div>
+          {% endif %}
+          
+          {% if config.api_url %}
+          <div class="detail-row">
+            <span class="detail-label">API Endpoint:</span>
+            <code class="detail-value small">{{ config.api_url }}</code>
+          </div>
+          {% endif %}
+          
+          {% if config.status_filters %}
+          <div class="detail-row">
+            <span class="detail-label">Status Filters:</span>
+            <div class="status-badges">
+              {% for status in config.status_filters %}
+                <span class="status-badge">{{ status }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if config.tag_filters and config.tag_filters is not empty %}
+          <div class="detail-row">
+            <span class="detail-label">Tag Filters:</span>
+            <div class="filter-badges">
+              {% for tag in config.tag_filters %}
+                <span class="filter-badge tag-filter">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if config.component_filters and config.component_filters is not empty %}
+          <div class="detail-row">
+            <span class="detail-label">Component Filters:</span>
+            <div class="filter-badges">
+              {% for component in config.component_filters %}
+                <span class="filter-badge component-filter">{{ component }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="config-commands">
+          <h4>Import Commands:</h4>
+          <div class="command-block">
+            <code>drush ai-dashboard:import {{ config.id }}</code>
+            <button class="copy-btn" onclick="copyCommand(this, 'drush ai-dashboard:import {{ config.id }}')">Copy</button>
+          </div>
+          <div class="command-block">
+            <code>drush ai-dashboard:import {{ config.id }} --full-from=2024-01-01</code>
+            <button class="copy-btn" onclick="copyCommand(this, 'drush ai-dashboard:import {{ config.id }} --full-from=2024-01-01')">Copy</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
+    <div class="info-section">
+      <h2>Using Import Configurations</h2>
+      <p>To import issues using these configurations, run the drush commands shown above. The <code>--full-from</code> parameter allows you to import all issues updated since a specific date.</p>
+      <p>For administrators: Configuration settings can be managed through the AI Dashboard admin interface.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+.ai-import-configurations {
+  background: #f5f5f7;
+  min-height: 100vh;
+}
+
+.configs-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-description {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.configs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.config-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.config-card.active {
+  border-color: #28a745;
+}
+
+.config-card.inactive {
+  opacity: 0.8;
+  border-color: #dee2e6;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e5e7;
+}
+
+.config-header h3 {
+  margin: 0;
+  color: #1d1d1f;
+  font-size: 1.3rem;
+}
+
+.config-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-inactive {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.config-description {
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.config-details {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 120px;
+  margin-right: 1rem;
+}
+
+.detail-value {
+  flex: 1;
+  color: #212529;
+}
+
+.detail-value code,
+code.detail-value {
+  background: #fff;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+code.detail-value.small {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.status-badge {
+  background: #007aff;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.filter-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.filter-badge.tag-filter {
+  background: #28a745;
+  color: white;
+}
+
+.filter-badge.component-filter {
+  background: #6f42c1;
+  color: white;
+}
+
+.detail-value.last-run {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.detail-value.never-run {
+  color: #dc3545;
+  font-style: italic;
+}
+
+.config-commands {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e5e7;
+}
+
+.config-commands h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #495057;
+}
+
+.command-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.command-block code {
+  flex: 1;
+  background: #f0f0f2;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.copy-btn {
+  padding: 0.25rem 0.75rem;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: #0056b3;
+}
+
+.copy-btn.copied {
+  background: #28a745;
+}
+
+.info-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-section h2 {
+  color: #1d1d1f;
+  margin-bottom: 1rem;
+}
+
+.info-section p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.info-section code {
+  background: #f0f0f2;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+</style>
+
+<script>
+function copyCommand(button, text) {
+  // Create a temporary textarea
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'absolute';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  
+  // Select and copy
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+  
+  // Update button
+  const originalText = button.textContent;
+  button.textContent = 'Copied!';
+  button.classList.add('copied');
+  
+  // Reset after 2 seconds
+  setTimeout(() => {
+    button.textContent = originalText;
+    button.classList.remove('copied');
+  }, 2000);
+}
+</script>

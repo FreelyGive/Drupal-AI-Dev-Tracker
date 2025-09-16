@@ -32,6 +32,49 @@ class PriorityKanbanController extends ControllerBase {
   }
 
   /**
+   * Get all projects for filter options.
+   */
+  private function getAllProjects(): array {
+    $projects = [];
+    $storage = $this->entityTypeManager->getStorage('node');
+    $project_ids = $storage->getQuery()
+      ->condition('type', 'ai_project')
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->execute();
+    
+    if (!empty($project_ids)) {
+      $project_nodes = $storage->loadMultiple($project_ids);
+      foreach ($project_nodes as $node) {
+        $projects[$node->id()] = $node->label();
+      }
+    }
+    
+    asort($projects);
+    return $projects;
+  }
+  
+  /**
+   * Get the default kanban project if one is set.
+   */
+  private function getDefaultKanbanProject(): ?string {
+    $storage = $this->entityTypeManager->getStorage('node');
+    $project_ids = $storage->getQuery()
+      ->condition('type', 'ai_project')
+      ->condition('status', 1)
+      ->condition('field_is_default_kanban_project', TRUE)
+      ->accessCheck(TRUE)
+      ->range(0, 1)
+      ->execute();
+    
+    if (!empty($project_ids)) {
+      return (string) reset($project_ids);
+    }
+    
+    return NULL;
+  }
+
+  /**
    * Collect all distinct tags from issues for filter options.
    */
   private function getAllIssueTags(): array {
@@ -102,8 +145,30 @@ class PriorityKanbanController extends ControllerBase {
         }
       }
 
-      // Get kanban data with server-side tag filtering
-      $kanban_data = $this->getKanbanData($selected_tags);
+      // Get selected project for filtering
+      // Important: distinguish between "All Projects" (empty string) vs no parameter at all (NULL)
+      $project_param = $request->query->get('project');
+      
+      if ($project_param === NULL) {
+        // No project parameter in URL - use default project if one exists
+        $default_project = $this->getDefaultKanbanProject();
+        if ($default_project) {
+          $selected_project = $default_project;
+          // Also set the tag to __all when using default project
+          if ($request->query->get('tag') === NULL) {
+            $selected_tag = '__all';
+            $selected_tags = [];
+          }
+        } else {
+          $selected_project = '';
+        }
+      } else {
+        // Project parameter explicitly set (could be empty string for "All Projects")
+        $selected_project = $project_param;
+      }
+
+      // Get kanban data with server-side tag and project filtering
+      $kanban_data = $this->getKanbanData($selected_tags, $selected_project);
 
       $build = [
         '#cache' => [
@@ -114,25 +179,15 @@ class PriorityKanbanController extends ControllerBase {
             'node_list:ai_contributor',
             'ai_dashboard:import',
           ],
-          // Vary by the selected tag so cached pages are correct per filter.
+          // Vary by the selected tag and project so cached pages are correct per filter.
           'contexts' => [
             'url.query_args:tag',
+            'url.query_args:project',
           ],
         ],
       ];
 
-      // Add navigation
-      $build['navigation'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['dashboard-navigation']],
-        '#markup' => '<div class="nav-links">
-          <a href="/ai-dashboard" class="nav-link">Dashboard</a>
-          <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
-          <a href="/ai-dashboard/priority-kanban" class="nav-link active">Kanban</a>
-          <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
-        </div>',
-      ];
+      // Navigation is handled in the template
 
       // Check admin permissions
       $user_has_admin_permission = $this->currentUser()->hasPermission('administer ai dashboard content');
@@ -145,8 +200,13 @@ class PriorityKanbanController extends ControllerBase {
         array_unshift($all_tags, $selected_tag);
         $all_tags = array_values(array_unique($all_tags));
       }
+      
+      // Get all projects for filter
+      $all_projects = $this->getAllProjects();
+      
       $filter_options = [
         'tags' => $all_tags,
+        'projects' => $all_projects,
       ];
 
       $build['kanban'] = [
@@ -155,6 +215,7 @@ class PriorityKanbanController extends ControllerBase {
         '#user_has_admin_permission' => $user_has_admin_permission,
         '#filter_options' => $filter_options,
         '#selected_tag' => $selected_tag,
+        '#selected_project' => $selected_project,
         '#attached' => [
           'library' => [
             'ai_dashboard/calendar_dashboard',
@@ -177,9 +238,9 @@ class PriorityKanbanController extends ControllerBase {
   /**
    * Get kanban data organized by columns.
    */
-  private function getKanbanData(array $selected_tags = []) {
-    // Get issues across modules, filtered by selected tags if provided
-    $issues = $this->getPriorityIssues(NULL, $selected_tags);
+  private function getKanbanData(array $selected_tags = [], $project_id = '') {
+    // Get issues across modules, filtered by selected tags and project if provided
+    $issues = $this->getPriorityIssues(NULL, $selected_tags, $project_id);
     
     $kanban_data = [
       'columns' => [
@@ -257,7 +318,7 @@ class PriorityKanbanController extends ControllerBase {
   /**
    * Get priority issues from specified module.
    */
-  private function getPriorityIssues($module_filter = NULL, array $selected_tags = []) {
+  private function getPriorityIssues($module_filter = NULL, array $selected_tags = [], $project_id = '') {
     $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'ai_issue')
       ->condition('status', 1)
@@ -267,11 +328,42 @@ class PriorityKanbanController extends ControllerBase {
     if ($module_filter) {
       $query->condition('field_issue_module.entity.title', $module_filter);
     }
+    
+    // Handle project filtering
+    $project_issue_weights = [];
+    $project_tags = [];
+    
+    if (!empty($project_id) && is_numeric($project_id)) {
+      // For a specific project:
+      // 1. Get issues explicitly ordered in the project (for weight sorting)
+      // 2. Filter by project's tags to show ALL matching issues
+      $connection = \Drupal::database();
+      
+      // Get explicitly ordered issues and their weights
+      $project_query = $connection->select('ai_dashboard_project_issue', 'p')
+        ->fields('p', ['issue_nid', 'weight'])
+        ->condition('project_nid', $project_id);
+      
+      $project_issues = $project_query->execute()->fetchAll();
+      foreach ($project_issues as $row) {
+        $project_issue_weights[$row->issue_nid] = $row->weight;
+      }
+      
+      // Get project's tags to filter ALL matching issues
+      $project_node = $this->entityTypeManager->getStorage('node')->load($project_id);
+      if ($project_node && $project_node->hasField('field_project_tags') && !$project_node->get('field_project_tags')->isEmpty()) {
+        foreach ($project_node->get('field_project_tags')->getValue() as $item) {
+          if (!empty($item['value'])) {
+            // Support comma-separated tags
+            $tags = array_map('trim', explode(',', $item['value']));
+            $project_tags = array_merge($project_tags, $tags);
+          }
+        }
+      }
+    }
+    // If project_id is empty string (All Projects), show ALL issues including unassigned
 
-    // Do not filter by tag at the query level; filter robustly after processing
-    // to handle comma-separated values and case differences consistently.
-
-    // For Phase 1, get all issues - priority filtering will be added in Phase 2
+    // Get all issues - we'll filter by project tags in PHP
     $issue_ids = $query->execute();
     
     if (empty($issue_ids)) {
@@ -282,14 +374,53 @@ class PriorityKanbanController extends ControllerBase {
     $processed_issues = [];
 
     foreach ($issues as $issue) {
-      $processed_issues[] = $this->processIssueForKanban($issue);
+      $issue_data = $this->processIssueForKanban($issue);
+      
+      // Determine if issue should be included based on project filter
+      $include_issue = TRUE;
+      
+      // Only filter by project if a specific project is selected AND it has tags
+      if (!empty($project_id) && is_numeric($project_id)) {
+        if (!empty($project_tags)) {
+          // Project has tags - only include issues that match those tags
+          $include_issue = FALSE;
+          if (!empty($issue_data['tags'])) {
+            foreach ($issue_data['tags'] as $issue_tag) {
+              // Handle comma-separated tags in issue
+              $issue_tag_parts = array_map('trim', explode(',', $issue_tag));
+              foreach ($issue_tag_parts as $tag_part) {
+                foreach ($project_tags as $project_tag) {
+                  if (strcasecmp($tag_part, $project_tag) === 0) {
+                    $include_issue = TRUE;
+                    break 3;
+                  }
+                }
+              }
+            }
+          }
+        }
+        // If project has no tags, include all issues (project acts like "All Projects")
+      }
+      // If no project selected (All Projects), include all issues
+      
+      if ($include_issue) {
+        // Add project weight if available (for sorting ordered items first)
+        if (!empty($project_issue_weights) && isset($project_issue_weights[$issue->id()])) {
+          $issue_data['project_weight'] = $project_issue_weights[$issue->id()];
+        }
+        $processed_issues[] = $issue_data;
+      }
     }
 
-    // Safety: also filter in PHP to ensure tag match regardless of storage quirks
+    // Apply tag filter if specified (from the tag dropdown)
+    // When selected_tags is empty, we want ALL issues (no filtering)
     if (!empty($selected_tags)) {
       $needle = mb_strtolower(trim($selected_tags[0]));
       $processed_issues = array_values(array_filter($processed_issues, function($it) use ($needle) {
-        if (empty($it['tags'])) return FALSE;
+        // If no tags on the issue, only exclude if we're filtering for a specific tag
+        if (empty($it['tags'])) {
+          return FALSE; // Issue has no tags, so it can't match the specific tag filter
+        }
         // Build a single lowercase string of all tag values (including comma-separated entries)
         $all = [];
         foreach ($it['tags'] as $t) {
@@ -299,8 +430,18 @@ class PriorityKanbanController extends ControllerBase {
           }
         }
         $haystack = implode(',', $all);
-        return $needle === '' ? TRUE : (mb_stripos($haystack, $needle) !== FALSE);
+        return (mb_stripos($haystack, $needle) !== FALSE);
       }));
+    }
+    // If selected_tags is empty (i.e., "__all" was selected), don't filter at all
+    
+    // Sort by project weight if project is selected (ordered items first, then unordered)
+    if (!empty($project_id) && is_numeric($project_id)) {
+      usort($processed_issues, function($a, $b) {
+        $weight_a = $a['project_weight'] ?? 9999;
+        $weight_b = $b['project_weight'] ?? 9999;
+        return $weight_a <=> $weight_b;
+      });
     }
 
     return $processed_issues;

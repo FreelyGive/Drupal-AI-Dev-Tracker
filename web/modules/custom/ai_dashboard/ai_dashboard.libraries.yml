@@ -9,6 +9,7 @@ dashboard:
     - core/drupal
     - core/jquery
 
+
 calendar_dashboard:
   version: 1.x
   css:
@@ -22,6 +23,7 @@ calendar_dashboard:
   dependencies:
     - core/drupal
     - core/jquery
+    - ai_dashboard/shared_components
 
 csv_import:
   version: 1.x
@@ -118,3 +120,34 @@ priority-kanban:
   dependencies:
     - core/drupal
     - core/jquery
+    - ai_dashboard/shared_components
+
+
+project_issues:
+  version: 1.x
+  css:
+    theme:
+      css/project-issues.css: {}
+      css/focus-tooltips.css: {}
+  js:
+    https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js: { type: external, minified: true, weight: -10 }
+    js/focus-tooltips.js: { weight: -5 }
+    js/project-issues.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - ai_dashboard/shared_components
+
+sortable:
+  version: 1.x
+  js:
+    https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js: { external: true, minified: true }
+
+shared_components:
+  version: 1.x
+  css:
+    theme:
+      css/shared-components.css: {}
+  dependencies:
+    - core/drupal

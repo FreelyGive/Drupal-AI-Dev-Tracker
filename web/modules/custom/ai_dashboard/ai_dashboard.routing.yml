@@ -6,6 +6,22 @@ ai_dashboard.main:
   requirements:
     _access: 'TRUE'
 
+ai_dashboard.public_docs:
+  path: '/ai-dashboard/docs'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\PublicDocsController::view'
+    _title_callback: '\Drupal\ai_dashboard\Controller\PublicDocsController::title'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.import_configurations:
+  path: '/ai-dashboard/import-configurations'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ImportConfigurationsController::view'
+    _title_callback: '\Drupal\ai_dashboard\Controller\ImportConfigurationsController::title'
+  requirements:
+    _access: 'TRUE'
+
 ai_dashboard.contributors:
   path: '/ai-dashboard/contributors'
   defaults:
@@ -350,3 +366,36 @@ entity.assignment_record.canonical:
     _title: 'Assignment Record'
   requirements:
     _permission: 'administer ai dashboard content'
+ai_dashboard.projects:
+  path: '/ai-dashboard/projects'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ProjectController::list'
+    _title: 'AI Projects'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.project_add:
+  path: '/ai-dashboard/projects/add'
+  defaults:
+    _form: '\Drupal\ai_dashboard\Form\ProjectForm'
+    _title: 'Add Project'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+ai_dashboard.project_issues:
+  path: '/ai-dashboard/project/{project_name}/issues'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ProjectIssuesController::manageByName'
+    _title_callback: '\Drupal\ai_dashboard\Controller\ProjectIssuesController::titleByName'
+  requirements:
+    _access: 'TRUE'
+    project_name: '[a-zA-Z0-9\-_]+'
+
+ai_dashboard.project_issues_save_order:
+  path: '/ai-dashboard/project/{project_name}/issues/save-order'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ProjectIssuesController::saveOrderByName'
+  requirements:
+    _permission: 'administer ai dashboard content'
+    project_name: '[a-zA-Z0-9\-_]+'
+  methods: [POST]

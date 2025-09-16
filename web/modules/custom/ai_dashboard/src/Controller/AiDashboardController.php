@@ -72,7 +72,9 @@ class AiDashboardController extends ControllerBase {
         '#markup' => '<div class="nav-links">
           <a href="/ai-dashboard" class="nav-link active">Dashboard</a>
           <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/admin/contributors" class="nav-link">Contributors</a>
+          <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+          <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+          <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
         </div>',
       ],
     ];

@@ -1,0 +1,191 @@
+{#
+/**
+ * @file
+ * Template for project issues management page.
+ *
+ * Available variables:
+ * - project: The project node entity
+ * - issues: Array of issue data
+ * - filters: Current filter values
+ * - filter_options: Available filter options
+ * - user_has_admin: Whether user can edit
+ */
+#}
+
+<div class="ai-project-issues">
+  <!-- Top Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link active">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="project-header">
+    <div class="header-content">
+      <div class="project-info">
+        <h1 class="page-title">{{ project.label }}</h1>
+        <h2 class="project-subtitle">
+          Project Issues
+          <span class="issue-count">({{ issues|length }} issues)</span>
+        </h2>
+      </div>
+      <div class="project-actions">
+        <a href="/ai-dashboard/priority-kanban?tag=__all&project={{ project.id }}" class="button button--primary">Open in Kanban</a>
+        {% if user_has_admin %}
+          <button id="save-order-btn" class="button button--primary">Save Order</button>
+          <a href="/node/{{ project.id }}/edit" class="button">Edit Project</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Filters #}
+  <div class="project-filters">
+    <div class="filter-group">
+      <label for="filter-tag">Tag:</label>
+      <select id="filter-tag" class="filter-select" data-filter="tag">
+        <option value="">All Tags</option>
+        {% for tag in filter_options.tags %}
+          <option value="{{ tag }}" {% if filters.tag == tag %}selected{% endif %}>{{ tag }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-priority">Priority:</label>
+      <select id="filter-priority" class="filter-select" data-filter="priority">
+        <option value="">All Priorities</option>
+        {% for key, label in filter_options.priorities %}
+          <option value="{{ key }}" {% if filters.priority == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-status">Status:</label>
+      <select id="filter-status" class="filter-select" data-filter="status">
+        <option value="">All Statuses</option>
+        {% for key, label in filter_options.statuses %}
+          <option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-track">Track:</label>
+      <select id="filter-track" class="filter-select" data-filter="track">
+        <option value="">All Tracks</option>
+        {% for track in filter_options.tracks %}
+          <option value="{{ track }}" {% if filters.track == track %}selected{% endif %}>{{ track }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-workstream">Workstream:</label>
+      <select id="filter-workstream" class="filter-select" data-filter="workstream">
+        <option value="">All Workstreams</option>
+        {% for ws in filter_options.workstreams %}
+          <option value="{{ ws }}" {% if filters.workstream == ws %}selected{% endif %}>{{ ws }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <button id="clear-filters-btn" class="button button--small">Clear Filters</button>
+    </div>
+  </div>
+
+  {# Issue counts #}
+  <div class="issue-counts">
+    <span class="count-item">Total: {{ issues|length }}</span>
+    <span class="count-item">Active: {{ issues|filter(i => i.status == 'active')|length }}</span>
+    <span class="count-item">Needs Work: {{ issues|filter(i => i.status == 'needs_work')|length }}</span>
+    <span class="count-item">Needs Review: {{ issues|filter(i => i.status == 'needs_review')|length }}</span>
+    <span class="count-item">RTBC: {{ issues|filter(i => i.status == 'rtbc')|length }}</span>
+    <span class="count-item">Fixed: {{ issues|filter(i => i.status == 'fixed')|length }}</span>
+  </div>
+
+  {# Issues list as table #}
+  <div id="issues-list" class="issues-table-container">
+    <div class="issues-table-header">
+      <div class="issue-row-header">
+        <span class="col-drag"></span>
+        <span class="col-indent"></span>
+        <span class="col-issue-number">Issue #</span>
+        <span class="col-title">Title</span>
+        <span class="col-update-summary">Update Summary</span>
+        <span class="col-checkin-date">Check-in</span>
+        <span class="col-due-date">Due</span>
+        <span class="col-assignee">Assignee</span>
+        <span class="col-status">Status</span>
+        <span class="col-priority">Priority</span>
+        <span class="col-actions">Actions</span>
+      </div>
+    </div>
+    <div class="issues-table-body" id="issues-table-body">
+      {% for issue in issues %}
+        <div class="issue-row status-{{ issue.status|replace({'_': '-'}) }}" data-nid="{{ issue.nid }}" data-indent="{{ issue.indent }}" {% if user_has_admin %}draggable="true"{% endif %}>
+          <span class="col-drag">
+            {% if user_has_admin %}
+              <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
+            {% endif %}
+          </span>
+          <span class="col-indent">
+            {% if user_has_admin %}
+              <button class="indent-btn outdent" title="Outdent (Shift+Tab)">◀</button>
+              <button class="indent-btn indent" title="Indent (Tab)">▶</button>
+            {% endif %}
+          </span>
+          <span class="col-issue-number">
+            {% if issue.issue_number %}
+              <a href="{{ issue.url }}" target="_blank" class="issue-number-link">#{{ issue.issue_number }}</a>
+            {% else %}
+              -
+            {% endif %}
+          </span>
+          <span class="col-title" style="padding-left: {{ issue.indent * 20 }}px;">
+            <span class="collapse-toggle" data-nid="{{ issue.nid }}" style="display: none;">
+              <span class="collapse-icon expanded">▼</span>
+              <span class="child-count" style="display: none;"></span>
+            </span>
+            <span class="issue-title-text developer-focus" title="{{ issue.title|e('html_attr') }}">{{ issue.title }}</span>
+            {% if issue.is_blocked %}
+              <span class="blocked-icon" title="Blocked by: {{ issue.blocked_by|join(', ') }}">🚫</span>
+            {% endif %}
+          </span>
+          <span class="col-update-summary developer-focus" title="{{ issue.update_summary|default('No update summary')|e('html_attr') }}">{{ issue.update_summary|default('-')|slice(0, 50) }}{{ issue.update_summary|length > 50 ? '...' : '' }}</span>
+          <span class="col-checkin-date">{{ issue.checkin_date|default('-') }}</span>
+          <span class="col-due-date">{{ issue.due_date|default('-') }}</span>
+          <span class="col-assignee">{{ issue.assignee|default('-') }}</span>
+          <span class="col-status">
+            <span class="status-badge status-{{ issue.status|replace({'_': '-'}) }}">
+              {{ issue.status|replace({'_': ' '})|title }}
+            </span>
+          </span>
+          <span class="col-priority">
+            <span class="priority-badge priority-{{ issue.priority }}">
+              {{ issue.priority|title }}
+            </span>
+          </span>
+          <span class="col-actions">
+            {% if issue.url != '#' %}
+              <a href="{{ issue.url }}" target="_blank" class="action-link" title="View on drupal.org">↗</a>
+            {% endif %}
+            {% if user_has_admin %}
+              <a href="/node/{{ issue.nid }}/edit" class="action-link" title="Edit">✏</a>
+            {% endif %}
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="save-feedback" class="save-feedback"></div>
+</div>

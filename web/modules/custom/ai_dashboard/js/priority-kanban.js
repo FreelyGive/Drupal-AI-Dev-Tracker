@@ -1,6 +1,12 @@
 /**
  * @file
  * JavaScript for the AI Priority Kanban board.
+ * 
+ * Handles:
+ * - Project and tag filter persistence and submission
+ * - Column visibility toggles
+ * - Clear filters functionality
+ * - Respects server-side default project selection
  */
 
 (function ($, Drupal, once) {
@@ -12,13 +18,18 @@
         // Auto-apply tag filter on change
         const tagForm = document.querySelector('.tag-filter-form');
         const tagSelect = document.getElementById('kanban-tag-filter');
+        const projectSelect = document.getElementById('kanban-project-filter');
+        
         if (tagForm && tagSelect) {
           const tagStorageKey = 'aiDashboard.kanban.selectedTag';
+          const projectStorageKey = 'aiDashboard.kanban.selectedProject';
 
-          // Ensure the select reflects the current URL param reliably
+          // Ensure the selects reflect the current URL params reliably
           try {
             const params = new URLSearchParams(window.location.search);
             const urlTag = params.get('tag');
+            const urlProject = params.get('project');
+            
             if (urlTag) {
               // Set value if option exists; fallback handled by server
               const opt = Array.from(tagSelect.options).find(o => o.value === urlTag);
@@ -38,6 +49,24 @@
                 }
               } catch (e3) {}
             }
+            
+            // Handle project parameter - respect server's selection
+            if (projectSelect) {
+              if (urlProject !== null) {
+                // URL has explicit project parameter (could be empty string for "All Projects")
+                const opt = Array.from(projectSelect.options).find(o => o.value === urlProject);
+                if (opt) projectSelect.value = urlProject;
+                try { localStorage.setItem(projectStorageKey, urlProject); } catch (e2) {}
+              } else {
+                // No project in URL - the server may have selected a default
+                // The dropdown should already have the correct selection from server-side rendering
+                // Save the current selection to localStorage for consistency
+                const currentValue = projectSelect.value;
+                if (currentValue) {
+                  try { localStorage.setItem(projectStorageKey, currentValue); } catch (e2) {}
+                }
+              }
+            }
           } catch (e) {}
 
           tagSelect.addEventListener('change', () => {
@@ -46,19 +75,30 @@
             try { localStorage.setItem(tagStorageKey, val); } catch (e4) {}
             tagForm.submit();
           });
+          
+          // Auto-apply project filter on change
+          if (projectSelect) {
+            projectSelect.addEventListener('change', () => {
+              const val = projectSelect.value;
+              try { localStorage.setItem(projectStorageKey, val); } catch (e4) {}
+              tagForm.submit();
+            });
+          }
         }
 
-        // Clear filters: reset to default priority tag
+        // Clear filters: reset to defaults (server will use default project)
         const clearBtn = document.getElementById('clear-kanban-filters');
         if (clearBtn) {
           clearBtn.addEventListener('click', (e) => {
-            // Allow other UI resets, but ensure navigation resets tag to default
+            // Allow other UI resets, but ensure navigation resets to defaults
             e.preventDefault();
             try {
               localStorage.removeItem('aiDashboard.kanban.optionalColumns');
               localStorage.removeItem('aiDashboard.kanban.mainColumnsHidden');
               localStorage.removeItem('aiDashboard.kanban.selectedTag');
+              localStorage.removeItem('aiDashboard.kanban.selectedProject');
             } catch (err) {}
+            // Navigate without parameters - server will apply defaults
             window.location.href = '/ai-dashboard/priority-kanban';
           });
         }

@@ -1,0 +1,431 @@
+{#
+/**
+ * @file
+ * Template for public AI Dashboard documentation.
+ *
+ * Available variables:
+ * - import_configs: Array of import configurations
+ */
+#}
+
+<div class="ai-dashboard-docs">
+  <!-- Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link active">Docs</a>
+    </div>
+  </div>
+
+  <div class="docs-container">
+    <h1>AI Dashboard Documentation</h1>
+    
+    <!-- AI Tracker Metadata Format -->
+    <section class="docs-section">
+      <h2>AI Tracker Metadata Format</h2>
+      <p>Issues can include structured metadata in their summaries. This metadata is automatically extracted during import and stored in dedicated fields. <strong>Important:</strong> Use this exact format including the HTML tags to ensure proper parsing.</p>
+      
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyToClipboard(this)" data-text="--- AI TRACKER METADATA ---
+<strong>Update Summary: </strong>[One-line status update for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY (US format) [When we should see progress/get an update]
+<strong>Due Date:</strong> MM/DD/YYYY (US format) [When the issue should be fully completed]
+<strong>Blocked by:</strong> [#XXXXXX] (New issues on new lines)
+<strong>Additional Collaborators:</strong> @username1, @username2
+AI Tracker found here: <a href=&quot;https://www.drupalstarforge.ai/&quot; title=&quot;AI Tracker&quot;>https://www.drupalstarforge.ai/</a>
+--- END METADATA ---">Copy</button>
+        <pre><code>--- AI TRACKER METADATA ---
+&lt;strong&gt;Update Summary: &lt;/strong&gt;[One-line status update for stakeholders]
+&lt;strong&gt;Check-in Date: &lt;/strong&gt;MM/DD/YYYY (US format) [When we should see progress/get an update]
+&lt;strong&gt;Due Date:&lt;/strong&gt; MM/DD/YYYY (US format) [When the issue should be fully completed]
+&lt;strong&gt;Blocked by:&lt;/strong&gt; [#XXXXXX] (New issues on new lines)
+&lt;strong&gt;Additional Collaborators:&lt;/strong&gt; @username1, @username2
+AI Tracker found here: &lt;a href="https://www.drupalstarforge.ai/" title="AI Tracker"&gt;https://www.drupalstarforge.ai/&lt;/a&gt;
+--- END METADATA ---</code></pre>
+      </div>
+      
+      <h3>Field Descriptions</h3>
+      <ul>
+        <li><strong>Update Summary</strong>: One-line status update for stakeholders that will be displayed in the calendar and kanban views</li>
+        <li><strong>Check-in Date</strong>: When team leads should follow up for progress updates (MM/DD/YYYY US format)</li>
+        <li><strong>Due Date</strong>: When the issue should be fully completed (MM/DD/YYYY US format)</li>
+        <li><strong>Blocked by</strong>: Issue numbers that are blocking this issue (format: #XXXXXX, one per line for multiple)</li>
+        <li><strong>Additional Collaborators</strong>: Other team members working on this issue (use @username format, comma-separated)</li>
+      </ul>
+      
+      <div class="note-box">
+        <strong>Note:</strong> The HTML &lt;strong&gt; tags and the AI Tracker link are required for proper parsing. The importer will automatically fill out the issue with this metadata if not present.
+      </div>
+    </section>
+
+    <!-- Drush Commands -->
+    <section class="docs-section">
+      <h2>Drush Commands Reference</h2>
+      
+      <h3>Import Commands</h3>
+      <div class="command-list">
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:import-all</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import-all">Copy</button>
+          </div>
+          <p>Import all active issue configurations with automatic metadata and tag processing.</p>
+        </div>
+        
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:import [config_id]</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import [config_id]">Copy</button>
+          </div>
+          <p>Import a specific configuration. Example: 
+            <span class="code-with-copy inline">
+              <code>drush ai-dashboard:import all_open_active_issues</code>
+              <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import all_open_active_issues">Copy</button>
+            </span>
+          </p>
+        </div>
+        
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:import [config_id] --full-from=2024-01-01</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import [config_id] --full-from=2024-01-01">Copy</button>
+          </div>
+          <p>Import issues changed since a specific date. Useful for importing all issues from 2024:</p>
+          <div class="code-with-copy">
+            <code class="example">drush ai-dashboard:import all_open_active_issues --full-from=2024-01-01</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import all_open_active_issues --full-from=2024-01-01">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <h3>Processing Commands</h3>
+      <div class="command-list">
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:process-metadata</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:process-metadata">Copy</button>
+          </div>
+          <p>Manually re-process AI Tracker metadata for ALL existing issues.</p>
+        </div>
+        
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:update-tag-mappings</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:update-tag-mappings">Copy</button>
+          </div>
+          <p>Manually re-apply tag mappings to ALL existing issues.</p>
+        </div>
+        
+        <div class="command">
+          <div class="code-with-copy">
+            <code>drush ai-dashboard:sync-assignments</code>
+            <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:sync-assignments">Copy</button>
+          </div>
+          <p>Sync drupal.org assignments for the current week.</p>
+        </div>
+      </div>
+
+      <h3>Import All Issues from 2024</h3>
+      <div class="highlight-box">
+        <p>To import all issues that have been updated since January 1, 2024:</p>
+        <div class="code-with-copy featured">
+          <code class="featured">drush ai-dashboard:import-all --full-from=2024-01-01</code>
+          <button class="copy-btn-inline" onclick="copyToClipboard(this)" data-text="drush ai-dashboard:import-all --full-from=2024-01-01">Copy</button>
+        </div>
+        <p class="note">Note: This may take several minutes due to API rate limits.</p>
+      </div>
+    </section>
+
+    <!-- Import Configurations -->
+    <section class="docs-section">
+      <h2>Import Configurations</h2>
+      <p>View all available module import configurations, including their status filters, tag filters, and last run information.</p>
+      <div style="margin-top: 1rem;">
+        <a href="/ai-dashboard/import-configurations" class="btn btn-primary" style="display: inline-block; padding: 0.75rem 1.5rem; background: #007aff; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; transition: background 0.2s;">
+          View Import Configurations →
+        </a>
+      </div>
+      <p style="margin-top: 1.5rem;">Each configuration shows the modules being imported, their filters, and when they were last run. You can also copy the drush commands needed to run each import.</p>
+    </section>
+
+    <!-- Additional Resources -->
+    <section class="docs-section">
+      <h2>Additional Resources</h2>
+      <ul>
+        <li><a href="/ai-dashboard/admin/documentation">Full Technical Documentation</a> (admin access required)</li>
+        <li><a href="/ai-dashboard">AI Dashboard Main Page</a></li>
+        <li><a href="/ai-dashboard/priority-kanban">Priority Kanban Board</a></li>
+        <li><a href="/ai-dashboard/projects">Projects Overview</a></li>
+        <li><a href="/ai-dashboard/calendar">Calendar View</a></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<style>
+.ai-dashboard-docs {
+  background: #f5f5f7;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.docs-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.docs-section {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.docs-section h2 {
+  color: #1d1d1f;
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #e5e5e7;
+  padding-bottom: 0.5rem;
+}
+
+.docs-section h3 {
+  color: #333;
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.code-block {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.code-block pre {
+  margin: 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.command-list {
+  margin-top: 1rem;
+}
+
+.command {
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+  border-left: 3px solid #007aff;
+}
+
+.command code {
+  display: block;
+  background: #f0f0f2;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  margin-bottom: 0.5rem;
+}
+
+.command code.example {
+  background: #e8f4f8;
+  border: 1px solid #b3d9e6;
+}
+
+.command p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.highlight-box {
+  background: #e8f4f8;
+  border: 2px solid #007aff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+}
+
+.highlight-box code.featured {
+  display: block;
+  background: white;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  margin: 1rem 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.highlight-box .note {
+  font-style: italic;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.note-box {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #856404;
+}
+
+.config-list {
+  margin-top: 1rem;
+}
+
+.config-item {
+  background: #f8f9fa;
+  border: 1px solid #e5e5e7;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.config-item h4 {
+  color: #007aff;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.config-item .description {
+  color: #666;
+  margin: 0.5rem 0;
+}
+
+.config-details {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.config-details span {
+  color: #888;
+}
+
+.config-details code {
+  background: #f0f0f2;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.config-note {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f0f0f2;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+/* Copy button styles */
+.code-block {
+  position: relative;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #0056b3;
+}
+
+.copy-btn.copied {
+  background: #28a745;
+}
+
+.code-with-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.code-with-copy.featured {
+  display: flex;
+  width: 100%;
+}
+
+.code-with-copy.inline {
+  display: inline-flex;
+}
+
+.copy-btn-inline {
+  padding: 0.2rem 0.5rem;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.copy-btn-inline:hover {
+  background: #0056b3;
+}
+
+.copy-btn-inline.copied {
+  background: #28a745;
+}
+
+.command code {
+  display: inline-block;
+  background: #f0f0f2;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  margin-bottom: 0;
+}
+</style>
+
+<script>
+function copyToClipboard(button) {
+  const text = button.getAttribute('data-text');
+  
+  // Create a temporary textarea to copy the text
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'absolute';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  
+  // Select and copy the text
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+  
+  // Update button text
+  const originalText = button.textContent;
+  button.textContent = 'Copied!';
+  button.classList.add('copied');
+  
+  // Reset button after 2 seconds
+  setTimeout(() => {
+    button.textContent = originalText;
+    button.classList.remove('copied');
+  }, 2000);
+}
+</script>
