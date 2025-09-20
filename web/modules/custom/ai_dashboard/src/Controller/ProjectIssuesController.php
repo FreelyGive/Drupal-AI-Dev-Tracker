@@ -311,13 +311,8 @@ class ProjectIssuesController extends ControllerBase {
   private function calculateDeliverableProgress($deliverable) {
     $deliverable_nid = $deliverable->id();
 
-    // Get all child issues for this deliverable across all projects
-    $connection = Database::getConnection();
-    $query = $connection->select('ai_dashboard_project_issue', 'api')
-      ->fields('api', ['issue_nid'])
-      ->condition('parent_issue_nid', $deliverable_nid);
-
-    $child_nids = $query->execute()->fetchCol();
+    // Get ALL descendants recursively (children, grandchildren, etc.)
+    $child_nids = $this->getAllDescendantIssues($deliverable_nid);
 
     if (empty($child_nids)) {
       // No child issues, check the deliverable's own status
@@ -579,6 +574,39 @@ class ProjectIssuesController extends ControllerBase {
     }
 
     return $options;
+  }
+
+  /**
+   * Recursively get all descendant issue NIDs across all projects.
+   */
+  private function getAllDescendantIssues($parent_nid, &$processed = []) {
+    // Prevent infinite loops
+    if (in_array($parent_nid, $processed)) {
+      return [];
+    }
+    $processed[] = $parent_nid;
+
+    // Get direct children from any project
+    $connection = Database::getConnection();
+    $query = $connection->select('ai_dashboard_project_issue', 'api')
+      ->fields('api', ['issue_nid'])
+      ->condition('parent_issue_nid', $parent_nid);
+
+    $direct_children = $query->execute()->fetchCol();
+
+    if (empty($direct_children)) {
+      return [];
+    }
+
+    $all_descendants = $direct_children;
+
+    // Recursively get descendants of each child
+    foreach ($direct_children as $child_nid) {
+      $grandchildren = $this->getAllDescendantIssues($child_nid, $processed);
+      $all_descendants = array_merge($all_descendants, $grandchildren);
+    }
+
+    return array_unique($all_descendants);
   }
 
   /**

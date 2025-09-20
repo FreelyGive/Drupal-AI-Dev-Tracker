@@ -309,13 +309,8 @@ class RoadmapController extends ControllerBase {
    * Calculate progress from project hierarchy.
    */
   protected function calculateProgressFromProject($deliverable_nid, $project_nid) {
-    // Use existing ai_dashboard_project_issue hierarchy
-    $query = $this->database->select('ai_dashboard_project_issue', 'pi')
-      ->fields('pi', ['issue_nid'])
-      ->condition('project_nid', $project_nid)
-      ->condition('parent_issue_nid', $deliverable_nid);
-
-    $sub_issue_nids = $query->execute()->fetchCol();
+    // Get ALL descendants recursively (children, grandchildren, etc.)
+    $sub_issue_nids = $this->getAllDescendants($deliverable_nid, $project_nid);
 
     if (empty($sub_issue_nids)) {
       return NULL; // No sub-issues, no progress to show
@@ -350,5 +345,38 @@ class RoadmapController extends ControllerBase {
   private function isStatusCompleted($status) {
     $completed_statuses = ['fixed', 'closed', 'rtbc'];
     return in_array($status, $completed_statuses);
+  }
+
+  /**
+   * Recursively get all descendant issue NIDs.
+   */
+  private function getAllDescendants($parent_nid, $project_nid, &$processed = []) {
+    // Prevent infinite loops
+    if (in_array($parent_nid, $processed)) {
+      return [];
+    }
+    $processed[] = $parent_nid;
+
+    // Get direct children
+    $query = $this->database->select('ai_dashboard_project_issue', 'pi')
+      ->fields('pi', ['issue_nid'])
+      ->condition('project_nid', $project_nid)
+      ->condition('parent_issue_nid', $parent_nid);
+
+    $direct_children = $query->execute()->fetchCol();
+
+    if (empty($direct_children)) {
+      return [];
+    }
+
+    $all_descendants = $direct_children;
+
+    // Recursively get descendants of each child
+    foreach ($direct_children as $child_nid) {
+      $grandchildren = $this->getAllDescendants($child_nid, $project_nid, $processed);
+      $all_descendants = array_merge($all_descendants, $grandchildren);
+    }
+
+    return array_unique($all_descendants);
   }
 }

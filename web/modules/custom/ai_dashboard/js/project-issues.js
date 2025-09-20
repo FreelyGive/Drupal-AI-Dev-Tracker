@@ -334,12 +334,13 @@
                 toggle.style.display = 'inline-block';
                 row.classList.add('is-parent');
                 
-                // Count children
+                // Count all descendants (children, grandchildren, etc.)
                 let childCount = 0;
                 for (let j = index + 1; j < rows.length; j++) {
                   const checkIndent = parseInt(rows[j].dataset.indent || '0');
                   if (checkIndent <= currentIndent) break;
-                  if (checkIndent === currentIndent + 1) childCount++;
+                  // Count all issues with indent greater than current (all descendants)
+                  if (checkIndent > currentIndent) childCount++;
                 }
                 
                 // Show child count when collapsed

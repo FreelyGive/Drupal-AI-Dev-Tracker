@@ -66,14 +66,35 @@ class BurndownController extends ControllerBase {
   }
 
   /**
-   * Get all child issues for a deliverable.
+   * Get all descendant issues for a deliverable (recursive).
    */
-  private function getChildIssues($parent_nid) {
+  private function getChildIssues($parent_nid, &$processed = []) {
+    // Prevent infinite loops
+    if (in_array($parent_nid, $processed)) {
+      return [];
+    }
+    $processed[] = $parent_nid;
+
+    // Get direct children
     $query = $this->database->select('ai_dashboard_project_issue', 'api')
       ->fields('api', ['issue_nid'])
       ->condition('parent_issue_nid', $parent_nid);
 
-    return $query->execute()->fetchCol();
+    $direct_children = $query->execute()->fetchCol();
+
+    if (empty($direct_children)) {
+      return [];
+    }
+
+    $all_descendants = $direct_children;
+
+    // Recursively get descendants of each child
+    foreach ($direct_children as $child_nid) {
+      $grandchildren = $this->getChildIssues($child_nid, $processed);
+      $all_descendants = array_merge($all_descendants, $grandchildren);
+    }
+
+    return array_unique($all_descendants);
   }
 
   /**
