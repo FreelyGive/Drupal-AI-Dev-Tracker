@@ -49,6 +49,16 @@ class ProjectForm extends FormBase {
       '#rows' => 4,
     ];
 
+    // Add deliverable field
+    $deliverable_options = $this->getDeliverableOptions();
+    $form['deliverable'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Primary Deliverable'),
+      '#options' => $deliverable_options,
+      '#empty_option' => $this->t('- None -'),
+      '#description' => $this->t('Optionally link this project to a primary deliverable (AI Deliverable tagged issues).'),
+    ];
+
     $form['actions'] = [
       '#type' => 'actions',
     ];
@@ -118,6 +128,13 @@ class ProjectForm extends FormBase {
       ]);
     }
 
+    // Add deliverable if selected
+    if (!empty($values['deliverable'])) {
+      $node->set('field_project_deliverable', [
+        'target_id' => $values['deliverable'],
+      ]);
+    }
+
     $node->save();
     
     // Invalidate cache tags to ensure the projects list updates
@@ -142,5 +159,36 @@ class ProjectForm extends FormBase {
     $slug = preg_replace('/\s+/', '-', $slug);
     $slug = trim($slug, '-');
     return $slug;
+  }
+
+  /**
+   * Get options for deliverable select field.
+   */
+  protected function getDeliverableOptions() {
+    $options = [];
+
+    // Load all AI Issues with "AI Deliverable" tag
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $query = $storage->getQuery()
+      ->condition('type', 'ai_issue')
+      ->condition('field_issue_tags', 'AI Deliverable', 'CONTAINS')
+      ->sort('title', 'ASC')
+      ->accessCheck(FALSE);
+
+    $nids = $query->execute();
+
+    if (!empty($nids)) {
+      $nodes = $storage->loadMultiple($nids);
+      foreach ($nodes as $node) {
+        // Include issue number if available
+        $issue_number = '';
+        if ($node->hasField('field_issue_number') && !$node->get('field_issue_number')->isEmpty()) {
+          $issue_number = '#' . $node->get('field_issue_number')->value . ' - ';
+        }
+        $options[$node->id()] = $issue_number . $node->getTitle();
+      }
+    }
+
+    return $options;
   }
 }

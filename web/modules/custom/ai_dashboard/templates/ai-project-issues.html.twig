@@ -19,6 +19,7 @@
       <a href="/ai-dashboard" class="nav-link">Dashboard</a>
       <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
       <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/roadmap" class="nav-link">Roadmap</a>
       <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
       <a href="/ai-dashboard/projects" class="nav-link active">Projects</a>
       <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
@@ -30,6 +31,17 @@
     <div class="header-content">
       <div class="project-info">
         <h1 class="page-title">{{ project.label }}</h1>
+        {% if primary_deliverable %}
+          <h2 class="primary-deliverable-title">
+            {{ primary_deliverable.label }}
+            <a href="https://www.drupal.org/node/{{ primary_deliverable.field_issue_number.value }}"
+               target="_blank"
+               class="deliverable-link"
+               title="View on drupal.org">
+              ↗
+            </a>
+          </h2>
+        {% endif %}
         <h2 class="project-subtitle">
           Project Issues
           <span class="issue-count">({{ issues|length }} issues)</span>
@@ -101,6 +113,73 @@
       <button id="clear-filters-btn" class="button button--small">Clear Filters</button>
     </div>
   </div>
+
+  {# Deliverables Section #}
+  {% if deliverables|length > 0 %}
+    <div class="deliverables-section">
+      <h3 class="section-title">Deliverables</h3>
+      <div class="deliverables-grid">
+        {% for item in deliverables %}
+          <div class="deliverable-card" data-nid="{{ item.node.id }}">
+            <div class="card-header">
+              <h4>
+                <a href="https://www.drupal.org/node/{{ item.node.field_issue_number.value }}"
+                   target="_blank" rel="noopener">
+                  {{ item.node.label }}
+                </a>
+              </h4>
+            </div>
+
+            {% if item.node.field_short_description.value %}
+              <div class="card-description">
+                {{ item.node.field_short_description.value }}
+              </div>
+            {% endif %}
+
+            <div class="card-details">
+              {% if item.node.field_issue_status.value %}
+                <div class="card-status">
+                  <span class="status-badge status-{{ item.node.field_issue_status.value|replace({'_': '-'}) }}">
+                    {{ item.node.field_issue_status.value|replace({'_': ' '})|title }}
+                  </span>
+                </div>
+              {% endif %}
+
+              {% if item.node.field_due_date.value %}
+                <div class="card-due-date">
+                  <span class="due-label">Due:</span>
+                  <span class="due-date">{{ item.node.field_due_date.value|date('M j, Y') }}</span>
+                </div>
+              {% endif %}
+
+              {% if item.node.field_issue_assignees is not empty %}
+                <div class="card-assignees">
+                  <span class="assignees-label">Assigned to:</span>
+                  {% for assignee in item.node.field_issue_assignees %}
+                    <span class="assignee">{{ assignee.entity.label }}</span>{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if item.node.field_update_summary.value %}
+                <div class="card-update">
+                  <span class="update-label">Update:</span>
+                  <span class="update-text">{{ item.node.field_update_summary.value }}</span>
+                </div>
+              {% endif %}
+
+              {% if item.progress %}
+                <div class="card-progress">
+                  <progress value="{{ item.progress.percentage }}" max="100"></progress>
+                  <span class="progress-text">{{ item.progress.completed }}/{{ item.progress.total }} complete</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 
   {# Issue counts #}
   <div class="issue-counts">

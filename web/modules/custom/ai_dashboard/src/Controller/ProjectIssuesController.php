@@ -114,9 +114,23 @@ class ProjectIssuesController extends ControllerBase {
     // Get filter options
     $filter_options = $this->getFilterOptions($issues);
 
+    // Load primary deliverable if set
+    $primary_deliverable = NULL;
+    $primary_deliverable_id = NULL;
+    if ($node->hasField('field_project_deliverable') && !$node->get('field_project_deliverable')->isEmpty()) {
+      $primary_deliverable = $node->get('field_project_deliverable')->entity;
+      $primary_deliverable_id = $primary_deliverable ? $primary_deliverable->id() : NULL;
+    }
+
+    // Load all deliverables for this project (issues with AI Deliverable tag and matching project tags)
+    // Pass primary deliverable ID to exclude it and project ID for ordering
+    $deliverables = $this->loadProjectDeliverables($project_tags, $primary_deliverable_id, $node->id());
+
     $build = [
       '#theme' => 'ai_project_issues',
       '#project' => $node,
+      '#primary_deliverable' => $primary_deliverable,
+      '#deliverables' => $deliverables,
       '#issues' => $issues,
       '#filters' => $filters,
       '#filter_options' => $filter_options,
@@ -201,6 +215,153 @@ class ProjectIssuesController extends ControllerBase {
       \Drupal::logger('ai_dashboard')->error('Save order failed: @message', ['@message' => $e->getMessage()]);
       return new JsonResponse(['error' => 'Save failed: ' . $e->getMessage()], 500);
     }
+  }
+
+  /**
+   * Load deliverables for a project.
+   */
+  private function loadProjectDeliverables(array $project_tags, $exclude_nid = NULL, $project_id = NULL) {
+    if (empty($project_tags)) {
+      return [];
+    }
+
+    $storage = $this->entityTypeManager()->getStorage('node');
+
+    // Get all AI issues with "AI Deliverable" tag
+    $query = $storage->getQuery()
+      ->condition('type', 'ai_issue')
+      ->condition('field_issue_tags', '%AI Deliverable%', 'LIKE')
+      ->condition('status', 1)
+      ->accessCheck(FALSE);
+
+    // Exclude the primary deliverable if specified
+    if ($exclude_nid) {
+      $query->condition('nid', $exclude_nid, '!=');
+    }
+
+    $nids = $query->execute();
+    if (empty($nids)) {
+      return [];
+    }
+
+    // Get ordering from project hierarchy if project_id is provided
+    $ordering = [];
+    if ($project_id) {
+      $connection = Database::getConnection();
+      $order_query = $connection->select('ai_dashboard_project_issue', 'pi')
+        ->fields('pi', ['issue_nid', 'weight'])
+        ->condition('project_nid', $project_id)
+        ->condition('issue_nid', $nids, 'IN')
+        ->orderBy('weight', 'ASC');
+
+      foreach ($order_query->execute() as $row) {
+        $ordering[(int) $row->issue_nid] = (int) $row->weight;
+      }
+    }
+
+    $nodes = $storage->loadMultiple($nids);
+    $deliverables = [];
+
+    foreach ($nodes as $node) {
+      // Check if this deliverable matches project tags
+      $issue_tags = [];
+      if ($node->hasField('field_issue_tags') && !$node->get('field_issue_tags')->isEmpty()) {
+        foreach ($node->get('field_issue_tags')->getValue() as $v) {
+          $raw = $v['value'] ?? '';
+          foreach (preg_split('/\s*,\s*/', $raw) as $p) {
+            if ($p !== '') {
+              $issue_tags[] = mb_strtolower(trim($p));
+            }
+          }
+        }
+      }
+
+      // Check for tag match
+      $match = FALSE;
+      foreach ($project_tags as $tag) {
+        if (in_array(mb_strtolower($tag), $issue_tags, TRUE)) {
+          $match = TRUE;
+          break;
+        }
+      }
+
+      if ($match) {
+        // Calculate progress
+        $progress = $this->calculateDeliverableProgress($node);
+
+        $deliverables[] = [
+          'node' => $node,
+          'progress' => $progress,
+          'weight' => $ordering[$node->id()] ?? 9999,
+        ];
+      }
+    }
+
+    // Sort deliverables by weight
+    usort($deliverables, function($a, $b) {
+      return $a['weight'] <=> $b['weight'];
+    });
+
+    return $deliverables;
+  }
+
+  /**
+   * Calculate progress for a deliverable based on child issues.
+   */
+  private function calculateDeliverableProgress($deliverable) {
+    $deliverable_nid = $deliverable->id();
+
+    // Get all child issues for this deliverable across all projects
+    $connection = Database::getConnection();
+    $query = $connection->select('ai_dashboard_project_issue', 'api')
+      ->fields('api', ['issue_nid'])
+      ->condition('parent_issue_nid', $deliverable_nid);
+
+    $child_nids = $query->execute()->fetchCol();
+
+    if (empty($child_nids)) {
+      // No child issues, check the deliverable's own status
+      $status = $deliverable->hasField('field_issue_status') && !$deliverable->get('field_issue_status')->isEmpty()
+        ? $deliverable->get('field_issue_status')->value
+        : 'active';
+
+      $completed = $this->isStatusCompleted($status) ? 1 : 0;
+      return [
+        'total' => 1,
+        'completed' => $completed,
+        'percentage' => $completed * 100,
+      ];
+    }
+
+    // Load child issues
+    $storage = $this->entityTypeManager()->getStorage('node');
+    $child_nodes = $storage->loadMultiple($child_nids);
+
+    $total = count($child_nodes);
+    $completed = 0;
+
+    foreach ($child_nodes as $child) {
+      if ($child->hasField('field_issue_status') && !$child->get('field_issue_status')->isEmpty()) {
+        $status = $child->get('field_issue_status')->value;
+        if ($this->isStatusCompleted($status)) {
+          $completed++;
+        }
+      }
+    }
+
+    return [
+      'total' => $total,
+      'completed' => $completed,
+      'percentage' => $total > 0 ? round(($completed / $total) * 100) : 0,
+    ];
+  }
+
+  /**
+   * Check if an issue status is considered "completed".
+   */
+  private function isStatusCompleted($status) {
+    $completed_statuses = ['fixed', 'closed', 'rtbc'];
+    return in_array($status, $completed_statuses);
   }
 
   /**

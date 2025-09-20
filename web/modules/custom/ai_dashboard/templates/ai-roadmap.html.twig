@@ -1,0 +1,191 @@
+{#
+/**
+ * @file
+ * Template for the AI Deliverables Roadmap.
+ *
+ * Available variables:
+ * - columns: Array of deliverables grouped by status (complete, now, next, later)
+ * - summary: Summary counts for each status
+ * - user_has_admin: Whether the current user has admin permissions
+ */
+#}
+
+<div class="ai-roadmap">
+  <!-- Top Navigation -->
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/roadmap" class="nav-link active">Roadmap</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="roadmap-header">
+    <div class="roadmap-header-content">
+      <div class="roadmap-header-left">
+        <h1 class="page-title">AI Deliverables Roadmap</h1>
+        <div class="roadmap-subtitle">
+          Tracking {{ summary.total }} deliverables across all AI modules
+        </div>
+      </div>
+      <div class="roadmap-header-right">
+        {% if user_has_admin %}
+          <button id="save-roadmap-order" class="button button--primary" style="display: none;">Save Order</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Roadmap Columns -->
+  <div class="roadmap-columns">
+    <!-- Complete Column -->
+    <div class="roadmap-column complete" data-status="complete">
+      <div class="column-header">
+        <h2>Complete</h2>
+        <span class="count">{{ summary.complete }}</span>
+      </div>
+      <div class="column-content">
+        {% for item in columns.complete %}
+          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+               data-nid="{{ item.issue.id }}"
+               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+            <div class="card-header">
+              <h3>
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener">
+                  {{ item.issue.label }}
+                </a>
+              </h3>
+            </div>
+            {% if item.issue.field_short_description.value %}
+              <div class="card-description">
+                {{ item.issue.field_short_description.value }}
+              </div>
+            {% endif %}
+            {% if item.project %}
+              <div class="card-project">
+                <span class="project-label">Project:</span>
+                <a href="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues">
+                  {{ item.project.label }}
+                </a>
+              </div>
+            {% endif %}
+            {% if item.progress %}
+              <div class="progress-container">
+                <progress value="{{ item.progress.percentage }}" max="100"></progress>
+                <span class="progress-text">{{ item.progress.completed }}/{{ item.progress.total }} complete</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Now Column -->
+    <div class="roadmap-column now" data-status="now">
+      <div class="column-header">
+        <h2>Now</h2>
+        <span class="count">{{ summary.now }}</span>
+      </div>
+      <div class="column-content">
+        {% for item in columns.now %}
+          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+               data-nid="{{ item.issue.id }}"
+               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+            <div class="card-header">
+              <h3>
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener">
+                  {{ item.issue.label }}
+                </a>
+              </h3>
+            </div>
+            {% if item.issue.field_short_description.value %}
+              <div class="card-description">
+                {{ item.issue.field_short_description.value }}
+              </div>
+            {% endif %}
+            {% if item.project %}
+              <div class="card-project">
+                <span class="project-label">Project:</span>
+                <a href="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues">
+                  {{ item.project.label }}
+                </a>
+              </div>
+            {% endif %}
+            {% if item.progress %}
+              <div class="progress-container">
+                <progress value="{{ item.progress.percentage }}" max="100"></progress>
+                <span class="progress-text">{{ item.progress.completed }}/{{ item.progress.total }} complete</span>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Next Column -->
+    <div class="roadmap-column next" data-status="next">
+      <div class="column-header">
+        <h2>Next</h2>
+        <span class="count">{{ summary.next }}</span>
+      </div>
+      <div class="column-content">
+        {% for item in columns.next %}
+          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+               data-nid="{{ item.issue.id }}"
+               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+            <div class="card-header">
+              <h3>
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener">
+                  {{ item.issue.label }}
+                </a>
+              </h3>
+            </div>
+            {% if item.issue.field_short_description.value %}
+              <div class="card-description">
+                {{ item.issue.field_short_description.value }}
+              </div>
+            {% endif %}
+            <div class="status-note">Being worked on but not in a project</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Later Column -->
+    <div class="roadmap-column later" data-status="later">
+      <div class="column-header">
+        <h2>Later</h2>
+        <span class="count">{{ summary.later }}</span>
+      </div>
+      <div class="column-content">
+        {% for item in columns.later %}
+          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+               data-nid="{{ item.issue.id }}"
+               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+            <div class="card-header">
+              <h3>
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener">
+                  {{ item.issue.label }}
+                </a>
+              </h3>
+            </div>
+            {% if item.issue.field_short_description.value %}
+              <div class="card-description">
+                {{ item.issue.field_short_description.value }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

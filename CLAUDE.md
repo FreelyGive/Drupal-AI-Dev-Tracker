@@ -276,13 +276,77 @@ AI Tracker found here: <a href="https://www.drupalstarforge.ai/" title="AI Track
 - **Project Tags**: Define tags for each project to filter related issues
 - **Open in Kanban**: Button on project issues page to view in kanban with project filter
 
+#### Deliverables Roadmap
+- **URL**: `/ai-dashboard/roadmap`
+- **4-Column Layout**: Complete, Now, Next, Later
+- **Filtering**: Automatically filters issues with "AI Deliverable" tag
+- **Features**:
+  - Clean cards showing title, short description, and project
+  - Progress bars for deliverables with child issues
+  - Admin drag-and-drop between columns with save functionality
+  - Click cards to navigate to project pages
+- **Project Pages Enhancement**:
+  - Primary deliverable shown as subtitle
+  - Detailed deliverable cards with expandable burndown charts
+  - Burndown charts show ideal vs actual progress with maximize feature
+  - Historical data tracking based on issue status changes
+
+### Deliverables Roadmap
+
+#### Overview
+The AI Dashboard includes a roadmap view (`/ai-dashboard/roadmap`) that tracks AI Deliverable tagged issues through their lifecycle.
+
+#### Implementation Details
+- **Route**: `/ai-dashboard/roadmap`
+- **Controller**: `RoadmapController`
+- **Template**: `ai-roadmap.html.twig`
+- **CSS/JS**: `css/roadmap.css`, `js/roadmap.js`
+
+#### Status Column Logic
+Issues are organized into 4 columns based on status and assignment:
+1. **Complete**: Issues with status `fixed`, `closed_fixed`, `closed_duplicate`, or `closed_works`
+2. **Now**: Issues with assignees AND in a project (determined by tag matching or `ai_dashboard_project_issue` table)
+3. **Next**: Issues with assignees but NOT in any project
+4. **Later**: Issues with no assignees
+
+#### Project Membership Detection
+An issue is considered "in a project" if ANY of these conditions are met:
+1. **Primary Deliverable**: Referenced in a project's `field_project_deliverable` field
+2. **Explicit Ordering**: Has an entry in `ai_dashboard_project_issue` table (when manually ordered)
+3. **Tag Matching**: Issue tags match any project tags (e.g., "strategic evolution" tag matches Strategic Evolution project)
+
+#### Fields Displayed
+- Issue title with link to drupal.org
+- Short Description (`field_short_description`) - 255 char max, italicized
+- Due Date (`field_due_date`) - Highlighted with yellow background
+- Project link (if linked to a project)
+- Progress bar (if project has sub-issues)
+- Assignees (for Now/Next columns)
+
 ### Database Update Hooks
 - `ai_dashboard_update_9037()` - **Production update**: Adds project kanban features including:
   - Project issue ordering table (`ai_dashboard_project_issue`)
   - Default kanban project field (`field_is_default_kanban_project`)
   - Form and view display configuration for AI Projects
 
-**Note**: Earlier update hooks (8001-9036) were development iterations and are not needed for production deployment.
+- `ai_dashboard_update_9038()` - **Production update**: Adds deliverables roadmap Phase 1:
+  - Creates `ai_dashboard_roadmap_order` table for manual ordering
+  - Adds `field_project_deliverable` to AI Project content type
+  - Updates form and view displays
+
+- `ai_dashboard_update_9039()` - **Production update**: Adds Short Description field:
+  - Creates `field_short_description` field (255 chars) on AI Issue
+  - Configures form and view displays
+
+- `ai_dashboard_update_9040()` - **Production update**: Creates roadmap ordering table:
+  - Creates `ai_dashboard_roadmap_order` table for drag-drop functionality
+  - Stores column position and weight for each deliverable
+
+- `ai_dashboard_update_9041()` - **Production update**: Fixes roadmap order table:
+  - Drops and recreates table with correct column names
+  - Ensures proper primary key and indexes
+
+**Note**: Earlier update hooks (8001-9036, 9038) were development iterations and are not needed for production deployment.
 
 ### Permissions
 - **View**: Public access to dashboard views

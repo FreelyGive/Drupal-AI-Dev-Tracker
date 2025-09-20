@@ -6,8 +6,8 @@
  */
 
 use Drupal\Core\Config\FileStorage;
-use Drupal\Core\Entity\Display\EntityViewDisplay;
-use Drupal\Core\Entity\Display\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
@@ -3652,4 +3652,295 @@ function ai_dashboard_update_9037() {
   return t('Production update complete: Added project kanban features. @messages', [
     '@messages' => implode(' ', $messages)
   ]);
+}
+
+/**
+ * Add deliverables roadmap feature - Phase 1.
+ */
+function ai_dashboard_update_9038() {
+  $messages = [];
+
+  // 1. Create roadmap ordering table
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ai_dashboard_roadmap_order')) {
+    $table = [
+      'description' => 'Stores manual ordering for deliverables on roadmap.',
+      'fields' => [
+        'deliverable_nid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'The node ID of the deliverable issue.',
+        ],
+        'weight' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Weight for ordering.',
+        ],
+      ],
+      'primary key' => ['deliverable_nid'],
+      'indexes' => [
+        'weight' => ['weight'],
+      ],
+    ];
+
+    $schema->createTable('ai_dashboard_roadmap_order', $table);
+    $messages[] = 'Created ai_dashboard_roadmap_order table.';
+  }
+
+  // 2. Add field_project_deliverable to AI Project
+  $field_storage_config = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_storage = $field_storage_config->load('node.field_project_deliverable');
+
+  if (!$field_storage) {
+    $field_storage = $field_storage_config->create([
+      'field_name' => 'field_project_deliverable',
+      'entity_type' => 'node',
+      'type' => 'entity_reference',
+      'settings' => [
+        'target_type' => 'node',
+      ],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_project_deliverable storage.';
+  }
+
+  // 3. Create field instance on ai_project bundle
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_config->load('node.ai_project.field_project_deliverable');
+
+  if (!$field) {
+    $field = $field_config->create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_project',
+      'label' => 'Primary Deliverable',
+      'description' => 'The main deliverable issue this project is working toward (optional).',
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:node',
+        'handler_settings' => [
+          'target_bundles' => [
+            'ai_issue' => 'ai_issue',
+          ],
+          'sort' => [
+            'field' => 'title',
+            'direction' => 'ASC',
+          ],
+        ],
+      ],
+    ]);
+    $field->save();
+    $messages[] = 'Created field_project_deliverable on AI Project.';
+  }
+
+  // 4. Add field to form display
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_project.default');
+
+  if ($form_display) {
+    $form_display->setComponent('field_project_deliverable', [
+      'type' => 'entity_reference_autocomplete',
+      'weight' => 15,
+      'settings' => [
+        'match_operator' => 'CONTAINS',
+        'size' => 60,
+        'placeholder' => 'Search for a deliverable issue...',
+      ],
+    ]);
+    $form_display->save();
+    $messages[] = 'Added deliverable field to project form.';
+  }
+
+  // 5. Add field to view display
+  $view_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_view_display')
+    ->load('node.ai_project.default');
+
+  if ($view_display) {
+    $view_display->setComponent('field_project_deliverable', [
+      'type' => 'entity_reference_label',
+      'label' => 'above',
+      'weight' => 15,
+      'settings' => [
+        'link' => TRUE,
+      ],
+    ]);
+    $view_display->save();
+    $messages[] = 'Added deliverable field to project view.';
+  }
+
+  // Clear caches
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::cache('render')->deleteAll();
+
+  return t('Added deliverables roadmap Phase 1: @messages', [
+    '@messages' => implode(' ', $messages)
+  ]);
+}
+
+/**
+ * Add Short Description field to AI Issues.
+ */
+function ai_dashboard_update_9039() {
+  $messages = [];
+
+  // Check if field storage already exists
+  $field_storage = FieldStorageConfig::loadByName('node', 'field_short_description');
+
+  if (!$field_storage) {
+    // Create field storage for short description
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_short_description',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 255,
+      ],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_short_description storage.';
+  }
+
+  // Check if field instance exists
+  $field = FieldConfig::loadByName('node', 'ai_issue', 'field_short_description');
+
+  if (!$field) {
+    // Create field instance for AI Issue
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Short Description',
+      'description' => 'Brief description of the deliverable for roadmap display (255 chars max)',
+      'required' => FALSE,
+      'default_value' => [],
+    ]);
+    $field->save();
+    $messages[] = 'Created Short Description field on AI Issue.';
+  }
+
+  // Add to form display
+  $form_display = EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && !$form_display->getComponent('field_short_description')) {
+    $form_display->setComponent('field_short_description', [
+      'type' => 'string_textfield',
+      'weight' => 6, // Place after update_summary which is at weight 5
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'Brief one-line description for roadmap display',
+      ],
+      'region' => 'content',
+    ]);
+    $form_display->save();
+    $messages[] = 'Added Short Description to form display.';
+  }
+
+  // Add to view display
+  $view_display = EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && !$view_display->getComponent('field_short_description')) {
+    $view_display->setComponent('field_short_description', [
+      'type' => 'string',
+      'weight' => 6,
+      'label' => 'above',
+      'region' => 'content',
+    ]);
+    $view_display->save();
+    $messages[] = 'Added Short Description to view display.';
+  }
+
+  return t('Added Short Description field to AI Issues: @messages', [
+    '@messages' => implode(' ', $messages)
+  ]);
+}
+
+/**
+ * Add roadmap ordering table.
+ */
+function ai_dashboard_update_9040() {
+  $schema = \Drupal::database()->schema();
+
+  // Create ai_dashboard_roadmap_order table
+  if (!$schema->tableExists('ai_dashboard_roadmap_order')) {
+    $table = [
+      'description' => 'Stores custom ordering for deliverables on the roadmap page.',
+      'fields' => [
+        'issue_nid' => [
+          'description' => 'The node ID of the AI Issue/Deliverable.',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'column_name' => [
+          'description' => 'The roadmap column (complete, now, next, later).',
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+        ],
+        'weight' => [
+          'description' => 'Weight for ordering within the column.',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['issue_nid'],
+      'indexes' => [
+        'column_weight' => ['column_name', 'weight'],
+      ],
+    ];
+
+    $schema->createTable('ai_dashboard_roadmap_order', $table);
+
+    return t('Created ai_dashboard_roadmap_order table for roadmap drag-drop ordering.');
+  }
+
+  return t('Roadmap order table already exists.');
+}
+
+/**
+ * Fix roadmap order table structure.
+ */
+function ai_dashboard_update_9041() {
+  $schema = \Drupal::database()->schema();
+
+  // Drop the old table if it exists
+  if ($schema->tableExists('ai_dashboard_roadmap_order')) {
+    $schema->dropTable('ai_dashboard_roadmap_order');
+  }
+
+  // Create the table with correct structure
+  $table = [
+    'description' => 'Stores custom ordering for deliverables on the roadmap page.',
+    'fields' => [
+      'issue_nid' => [
+        'description' => 'The node ID of the AI Issue/Deliverable.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'column_name' => [
+        'description' => 'The roadmap column (complete, now, next, later).',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'weight' => [
+        'description' => 'Weight for ordering within the column.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['issue_nid'],
+    'indexes' => [
+      'column_weight' => ['column_name', 'weight'],
+    ],
+  ];
+
+  $schema->createTable('ai_dashboard_roadmap_order', $table);
+
+  return t('Fixed ai_dashboard_roadmap_order table structure.');
 }

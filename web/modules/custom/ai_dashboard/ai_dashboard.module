@@ -81,6 +81,8 @@ function ai_dashboard_theme() {
     'ai_project_issues' => [
       'variables' => [
         'project' => NULL,
+        'primary_deliverable' => NULL,
+        'deliverables' => [],
         'issues' => [],
         'filters' => [],
         'filter_options' => [],
@@ -90,6 +92,13 @@ function ai_dashboard_theme() {
     'ai_projects_list' => [
       'variables' => [
         'projects' => [],
+        'user_has_admin' => FALSE,
+      ],
+    ],
+    'ai_roadmap' => [
+      'variables' => [
+        'columns' => [],
+        'summary' => [],
         'user_has_admin' => FALSE,
       ],
     ],

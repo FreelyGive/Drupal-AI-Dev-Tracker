@@ -156,6 +156,448 @@
   color: #111827;
 }
 
+/* Primary Deliverable Subtitle */
+.primary-deliverable-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.primary-deliverable-title .deliverable-link {
+  color: #9333ea;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.primary-deliverable-title .deliverable-link:hover {
+  color: #7e22ce;
+  text-decoration: underline;
+}
+
+/* Deliverables Section */
+.deliverables-section {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 1.5rem 1.5rem;
+  padding: 1.5rem;
+}
+
+.deliverables-section .section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Deliverables Grid */
+.deliverables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+/* Deliverable Cards - Compact roadmap style */
+.deliverable-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.deliverable-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.deliverable-card .card-header {
+  margin-bottom: 0.75rem;
+}
+
+.deliverable-card h4 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.deliverable-card h4 a {
+  color: #1f2937;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.deliverable-card h4 a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Card Description */
+.deliverable-card .card-description {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Card Details Container */
+.deliverable-card .card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Card Status */
+.deliverable-card .card-status {
+  margin-bottom: 0.25rem;
+}
+
+.deliverable-card .status-badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.deliverable-card .status-badge.status-active {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.deliverable-card .status-badge.status-needs-work {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.deliverable-card .status-badge.status-needs-review {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.deliverable-card .status-badge.status-rtbc {
+  background: #bbf7d0;
+  color: #14532d;
+}
+
+.deliverable-card .status-badge.status-fixed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Due Date */
+.deliverable-card .card-due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.deliverable-card .due-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.deliverable-card .due-date {
+  color: #1f2937;
+  font-weight: 600;
+  background-color: #fef3c7;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Assignees */
+.deliverable-card .card-assignees {
+  font-size: 0.875rem;
+}
+
+.deliverable-card .assignees-label {
+  color: #6b7280;
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.deliverable-card .assignee {
+  display: inline-block;
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  margin-right: 0.25rem;
+  font-size: 0.75rem;
+}
+
+/* Update Summary */
+.deliverable-card .card-update {
+  font-size: 0.875rem;
+}
+
+.deliverable-card .update-label {
+  color: #6b7280;
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.deliverable-card .update-text {
+  color: #1f2937;
+}
+
+/* Progress Bar */
+.deliverable-card .card-progress {
+  margin-top: 0.75rem;
+}
+
+.deliverable-card progress {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.deliverable-card progress::-webkit-progress-bar {
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+}
+
+.deliverable-card progress::-webkit-progress-value {
+  background-color: #10b981;
+  border-radius: 9999px;
+}
+
+.deliverable-card progress::-moz-progress-bar {
+  background-color: #10b981;
+  border-radius: 9999px;
+}
+
+.deliverable-card .progress-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Burndown chart styles (shared with roadmap) */
+.burndown-toggle {
+  margin-top: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.burndown-toggle:hover {
+  background: #f9fafb;
+  border-color: #9333ea;
+  color: #9333ea;
+}
+
+.burndown-toggle.active {
+  background: #f3e8ff;
+  border-color: #9333ea;
+  color: #7e22ce;
+}
+
+.burndown-container {
+  margin-top: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.burndown-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.burndown-maximize {
+  padding: 0.25rem 0.5rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6b7280;
+}
+
+.burndown-maximize:hover {
+  background: #9333ea;
+  border-color: #9333ea;
+  color: white;
+}
+
+.burndown-content {
+  padding: 1rem;
+}
+
+.burndown-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.burndown-chart {
+  width: 100% !important;
+  height: 250px !important;
+  margin-bottom: 1rem;
+}
+
+.burndown-stats-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.8125rem;
+}
+
+.burndown-stats-content .stat-item {
+  color: #4b5563;
+}
+
+.burndown-stats-content .stat-item strong {
+  color: #1f2937;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+/* Burndown Modal */
+.burndown-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.burndown-modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.burndown-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.burndown-modal-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.burndown-modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.burndown-modal-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.burndown-modal-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.burndown-modal-chart {
+  width: 100% !important;
+  height: 500px !important;
+  margin-bottom: 2rem;
+}
+
+.burndown-modal-stats {
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.burndown-modal-stats .burndown-stats-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  font-size: 0.9375rem;
+}
+
+/* Prevent body scroll when modal is open */
+body.burndown-modal-open {
+  overflow: hidden;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .burndown-modal {
+    padding: 1rem;
+  }
+
+  .burndown-modal-content {
+    max-height: 95vh;
+  }
+
+  .burndown-modal-body {
+    padding: 1rem;
+  }
+
+  .burndown-modal-chart {
+    height: 300px !important;
+  }
+}
+
 .project-actions {
   display: flex;
   gap: 10px;

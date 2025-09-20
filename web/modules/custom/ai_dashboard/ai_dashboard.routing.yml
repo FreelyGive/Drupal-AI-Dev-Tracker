@@ -399,3 +399,29 @@ ai_dashboard.project_issues_save_order:
     _permission: 'administer ai dashboard content'
     project_name: '[a-zA-Z0-9\-_]+'
   methods: [POST]
+
+ai_dashboard.roadmap:
+  path: '/ai-dashboard/roadmap'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\RoadmapController::view'
+    _title: 'Roadmap'
+  requirements:
+    _permission: 'access ai dashboard'
+
+ai_dashboard.roadmap_save_order:
+  path: '/ai-dashboard/roadmap/save-order'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\RoadmapController::saveOrder'
+  requirements:
+    _permission: 'administer ai dashboard content'
+  methods: [POST]
+
+ai_dashboard.deliverable_burndown_data:
+  path: '/ai-dashboard/deliverable/{node}/burndown-data'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\BurndownController::getBurndownData'
+    _format: 'json'
+  requirements:
+    _access: 'TRUE'
+    node: \d+
+  methods: [GET]

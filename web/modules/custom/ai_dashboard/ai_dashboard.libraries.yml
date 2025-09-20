@@ -138,6 +138,7 @@ project_issues:
     - core/jquery.once
     - core/drupal
     - ai_dashboard/shared_components
+    - ai_dashboard/burndown
 
 sortable:
   version: 1.x
@@ -151,3 +152,31 @@ shared_components:
       css/shared-components.css: {}
   dependencies:
     - core/drupal
+
+chartjs:
+  version: 1.x
+  js:
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js: { external: true, minified: true }
+
+burndown:
+  version: 1.x
+  js:
+    js/burndown.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - ai_dashboard/chartjs
+
+roadmap:
+  version: 1.x
+  css:
+    theme:
+      css/roadmap.css: {}
+  js:
+    js/roadmap.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once
+    - ai_dashboard/shared_components
+    - ai_dashboard/sortable
