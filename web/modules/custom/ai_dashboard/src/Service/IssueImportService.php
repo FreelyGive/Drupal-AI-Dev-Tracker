@@ -1003,6 +1003,7 @@ class IssueImportService {
       // AI Tracker metadata fields
       'blocked_by' => $parsed_metadata['blocked_by'] ?? '',
       'update_summary' => $parsed_metadata['update_summary'] ?? '',
+      'short_description' => $parsed_metadata['short_description'] ?? '',
       'checkin_date' => $parsed_metadata['checkin_date'] ?? '',
       'due_date' => $parsed_metadata['due_date'] ?? '',
       'additional_collaborators' => $parsed_metadata['additional_collaborators'] ?? '',
@@ -1278,6 +1279,9 @@ class IssueImportService {
     if (!empty($mapped_data['update_summary']) && $issue->hasField('field_update_summary')) {
       $issue->set('field_update_summary', $mapped_data['update_summary']);
     }
+    if (!empty($mapped_data['short_description']) && $issue->hasField('field_short_description')) {
+      $issue->set('field_short_description', $mapped_data['short_description']);
+    }
     if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {
       // Convert date format if needed (MM/DD/YYYY to Y-m-d).
       $checkin_date = $this->convertDateFormat($mapped_data['checkin_date']);
@@ -1392,6 +1396,14 @@ class IssueImportService {
       }
       else {
         $issue->set('field_update_summary', '');
+      }
+    }
+    if ($issue->hasField('field_short_description')) {
+      if (!empty($mapped_data['short_description'])) {
+        $issue->set('field_short_description', $mapped_data['short_description']);
+      }
+      else {
+        $issue->set('field_short_description', '');
       }
     }
     if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {

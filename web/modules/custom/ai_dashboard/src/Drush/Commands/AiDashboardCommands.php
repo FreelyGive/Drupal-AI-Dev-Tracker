@@ -164,6 +164,7 @@ class AiDashboardCommands extends DrushCommands {
     foreach ($activeConfigurations as $configuration) {
       $this->importSingleConfiguration($configuration->id(), $options);
     }
+    $this->syncAllAssignments();
   }
 
 

@@ -41,17 +41,33 @@ class MetadataParserService {
     }
 
     $metadata = [];
+    $metadata_block = '';
 
-    // Look for the AI Tracker metadata block
-    // Format: --- AI TRACKER METADATA --- ... --- END METADATA ---
-    $pattern = '/--- AI TRACKER METADATA ---(.*?)--- END METADATA ---/s';
-    
-    if (preg_match($pattern, $summary, $matches)) {
+    // Try new [Tracker] format first
+    $pattern_new = '/\[Tracker\](.*?)\[\/Tracker\]/s';
+
+    // Try legacy format
+    $pattern_legacy = '/--- AI TRACKER METADATA ---(.*?)--- END METADATA ---/s';
+
+    if (preg_match($pattern_new, $summary, $matches)) {
       $metadata_block = $matches[1];
-      
+      $this->loggerFactory->get('ai_dashboard')->debug('Found [Tracker] format metadata block');
+    }
+    elseif (preg_match($pattern_legacy, $summary, $matches)) {
+      $metadata_block = $matches[1];
+      $this->loggerFactory->get('ai_dashboard')->debug('Found legacy AI TRACKER METADATA format block');
+    }
+
+    if (!empty($metadata_block)) {
       // Parse individual metadata fields
       $metadata = $this->parseMetadataFields($metadata_block);
-      
+
+      // Validate parsed data to prevent dummy/template imports
+      if ($this->isTemplateData($metadata)) {
+        $this->loggerFactory->get('ai_dashboard')->debug('Ignoring template/dummy metadata');
+        return [];
+      }
+
       $this->loggerFactory->get('ai_dashboard')->info('Parsed AI Tracker metadata with @count fields', [
         '@count' => count($metadata),
       ]);
@@ -79,7 +95,8 @@ class MetadataParserService {
     // Handle both HTML line breaks and actual newlines
     $field_patterns = [
       'update_summary' => '/Update Summary:\s*(.+?)(?=<br|\\n|$)/i',
-      'checkin_date' => '/Check-in Date:\s*(.+?)(?=<br|\\n|$)/i',  
+      'short_description' => '/Short Description:\s*(.+?)(?=<br|\\n|$)/i',
+      'checkin_date' => '/Check-in Date:\s*(.+?)(?=<br|\\n|$)/i',
       'due_date' => '/Due Date:\s*(.+?)(?=<br|\\n|$)/i',
       'blocked_by' => '/Blocked by:\s*(.+?)(?=<br|\\n|$)/i',
       'additional_collaborators' => '/Additional Collaborators:\s*(.+?)(?=<br|\\n|$)/i',
@@ -200,8 +217,58 @@ class MetadataParserService {
       }
     }
 
-    // If no format matches, return as-is
+    // If no format matches, check if it's template text
+    if (preg_match('/^(MM\/DD\/YYYY|DD\/MM\/YYYY|\[.*\])/', $value)) {
+      return '';
+    }
+
     return $value;
+  }
+
+  /**
+   * Check if metadata contains template/dummy data.
+   *
+   * @param array $metadata
+   *   The parsed metadata array.
+   *
+   * @return bool
+   *   TRUE if this appears to be template data, FALSE otherwise.
+   */
+  protected function isTemplateData(array $metadata) {
+    // Check for common template patterns
+    $template_patterns = [
+      '/\[One-line.*?\]/',
+      '/\[#XXXXXX\]/',
+      '/\[@username[12]\]/',
+      '/MM\/DD\/YYYY/',
+      '/\[.*stakeholders.*\]/',
+      '/\[.*summary.*\]/',
+    ];
+
+    foreach ($metadata as $field => $value) {
+      if (empty($value)) {
+        continue;
+      }
+
+      // Check each pattern
+      foreach ($template_patterns as $pattern) {
+        if (preg_match($pattern, $value)) {
+          $this->loggerFactory->get('ai_dashboard')->debug('Template data detected in field @field: @value', [
+            '@field' => $field,
+            '@value' => $value,
+          ]);
+          return TRUE;
+        }
+      }
+    }
+
+    // Also check if all required fields are template text
+    if (!empty($metadata['update_summary']) &&
+        preg_match('/^\[.*\]$/', trim($metadata['update_summary']))) {
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
 }

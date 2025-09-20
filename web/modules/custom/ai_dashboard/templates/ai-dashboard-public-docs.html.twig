@@ -28,39 +28,68 @@
     <!-- AI Tracker Metadata Format -->
     <section class="docs-section">
       <h2>AI Tracker Metadata Format</h2>
-      <p>Issues can include structured metadata in their summaries. This metadata is automatically extracted during import and stored in dedicated fields. <strong>Important:</strong> Use this exact format including the HTML tags to ensure proper parsing.</p>
+      <p>Add structured metadata to your drupal.org issue summaries to enable tracking in the AI Dashboard. This metadata is automatically extracted during import and displayed throughout the dashboard.</p>
       
+      <h3>Simple Format (Recommended)</h3>
+      <p>For most issues, this streamlined format provides the essential tracking information:</p>
+
       <div class="code-block">
-        <button class="copy-btn" onclick="copyToClipboard(this)" data-text="--- AI TRACKER METADATA ---
+        <button class="copy-btn" onclick="copyToClipboard(this)" data-text="[Tracker]
 <strong>Update Summary: </strong>[One-line status update for stakeholders]
-<strong>Check-in Date: </strong>MM/DD/YYYY (US format) [When we should see progress/get an update]
-<strong>Due Date:</strong> MM/DD/YYYY (US format) [When the issue should be fully completed]
+<strong>Short Description: </strong>[One-line issue summary for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY
+<em>Metadata is used by the <a href=&quot;https://www.drupalstarforge.ai/&quot; title=&quot;AI Tracker&quot;>AI Tracker.</a> Docs and additional fields <a href=&quot;https://www.drupalstarforge.ai/ai-dashboard/docs&quot; title=&quot;AI Issue Tracker Documentation&quot;>here</a>.</em>
+[/Tracker]">Copy</button>
+        <pre><code>[Tracker]
+&lt;strong&gt;Update Summary: &lt;/strong&gt;[One-line status update for stakeholders]
+&lt;strong&gt;Short Description: &lt;/strong&gt;[One-line issue summary for stakeholders]
+&lt;strong&gt;Check-in Date: &lt;/strong&gt;MM/DD/YYYY
+&lt;em&gt;Metadata is used by the &lt;a href="https://www.drupalstarforge.ai/" title="AI Tracker"&gt;AI Tracker.&lt;/a&gt; Docs and additional fields &lt;a href="https://www.drupalstarforge.ai/ai-dashboard/docs" title="AI Issue Tracker Documentation"&gt;here&lt;/a&gt;.&lt;/em&gt;
+[/Tracker]</code></pre>
+      </div>
+
+      <h3>Advanced Format (Optional)</h3>
+      <p>For complex issues requiring dependency tracking and collaboration coordination:</p>
+
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyToClipboard(this)" data-text="[Tracker]
+<strong>Update Summary: </strong>[One-line status update for stakeholders]
+<strong>Short Description: </strong>[One-line issue summary for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY
+<strong>Due Date:</strong> MM/DD/YYYY
 <strong>Blocked by:</strong> [#XXXXXX] (New issues on new lines)
 <strong>Additional Collaborators:</strong> @username1, @username2
-AI Tracker found here: <a href=&quot;https://www.drupalstarforge.ai/&quot; title=&quot;AI Tracker&quot;>https://www.drupalstarforge.ai/</a>
---- END METADATA ---">Copy</button>
-        <pre><code>--- AI TRACKER METADATA ---
+<em>Metadata is used by the <a href=&quot;https://www.drupalstarforge.ai/&quot; title=&quot;AI Tracker&quot;>AI Tracker.</a> Docs and additional fields <a href=&quot;https://www.drupalstarforge.ai/ai-dashboard/docs&quot; title=&quot;AI Issue Tracker Documentation&quot;>here</a>.</em>
+[/Tracker]">Copy</button>
+        <pre><code>[Tracker]
 &lt;strong&gt;Update Summary: &lt;/strong&gt;[One-line status update for stakeholders]
-&lt;strong&gt;Check-in Date: &lt;/strong&gt;MM/DD/YYYY (US format) [When we should see progress/get an update]
-&lt;strong&gt;Due Date:&lt;/strong&gt; MM/DD/YYYY (US format) [When the issue should be fully completed]
+&lt;strong&gt;Short Description: &lt;/strong&gt;[One-line issue summary for stakeholders]
+&lt;strong&gt;Check-in Date: &lt;/strong&gt;MM/DD/YYYY
+&lt;strong&gt;Due Date:&lt;/strong&gt; MM/DD/YYYY
 &lt;strong&gt;Blocked by:&lt;/strong&gt; [#XXXXXX] (New issues on new lines)
 &lt;strong&gt;Additional Collaborators:&lt;/strong&gt; @username1, @username2
-AI Tracker found here: &lt;a href="https://www.drupalstarforge.ai/" title="AI Tracker"&gt;https://www.drupalstarforge.ai/&lt;/a&gt;
---- END METADATA ---</code></pre>
+&lt;em&gt;Metadata is used by the &lt;a href="https://www.drupalstarforge.ai/" title="AI Tracker"&gt;AI Tracker.&lt;/a&gt; Docs and additional fields &lt;a href="https://www.drupalstarforge.ai/ai-dashboard/docs" title="AI Issue Tracker Documentation"&gt;here&lt;/a&gt;.&lt;/em&gt;
+[/Tracker]</code></pre>
       </div>
       
       <h3>Field Descriptions</h3>
       <ul>
-        <li><strong>Update Summary</strong>: One-line status update for stakeholders that will be displayed in the calendar and kanban views</li>
-        <li><strong>Check-in Date</strong>: When team leads should follow up for progress updates (MM/DD/YYYY US format)</li>
-        <li><strong>Due Date</strong>: When the issue should be fully completed (MM/DD/YYYY US format)</li>
-        <li><strong>Blocked by</strong>: Issue numbers that are blocking this issue (format: #XXXXXX, one per line for multiple)</li>
-        <li><strong>Additional Collaborators</strong>: Other team members working on this issue (use @username format, comma-separated)</li>
+        <li><strong>Update Summary</strong>: Current status for stakeholders (displayed in calendar and kanban views)</li>
+        <li><strong>Short Description</strong>: Brief issue summary for roadmap display (max 255 characters)</li>
+        <li><strong>Check-in Date</strong>: Next progress review date (MM/DD/YYYY format)</li>
+        <li><strong>Due Date</strong> (optional): Target completion date (MM/DD/YYYY format)</li>
+        <li><strong>Blocked by</strong> (optional): Blocking issue numbers (#XXXXXX format, one per line)</li>
+        <li><strong>Additional Collaborators</strong> (optional): Team members (@username format, comma-separated)</li>
       </ul>
       
-      <div class="note-box">
-        <strong>Note:</strong> The HTML &lt;strong&gt; tags and the AI Tracker link are required for proper parsing. The importer will automatically fill out the issue with this metadata if not present.
-      </div>
+      <h3>Important Notes</h3>
+      <ul>
+        <li>Replace placeholder text (e.g., "[One-line status update]") with actual content</li>
+        <li>The parser ignores template/dummy data to prevent accidental imports</li>
+        <li>Both [Tracker] and legacy --- AI TRACKER METADATA --- formats are supported</li>
+        <li>Metadata is re-processed automatically during each import</li>
+        <li>The HTML &lt;strong&gt; tags are required for proper field parsing</li>
+      </ul>
     </section>
 
     <!-- Drush Commands -->
