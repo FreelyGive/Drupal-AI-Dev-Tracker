@@ -177,6 +177,5 @@ roadmap:
   dependencies:
     - core/drupal
     - core/jquery
-    - core/jquery.once
     - ai_dashboard/shared_components
     - ai_dashboard/sortable

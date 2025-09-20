@@ -9,30 +9,47 @@
 
   Drupal.behaviors.aiDashboardRoadmap = {
     attach: function (context, settings) {
-      // Initialize once - using jQuery each instead of once for now
-      $('.ai-roadmap', context).once('roadmap-init').each(function() {
+      // Initialize once - check if already initialized
+      if ($('.ai-roadmap', context).hasClass('roadmap-initialized')) {
+        return;
+      }
+      $('.ai-roadmap', context).addClass('roadmap-initialized');
 
-        // Make cards with projects clickable
-        $('.deliverable-card.has-project', context).once('card-click').each(function() {
-          var $card = $(this);
-          var projectUrl = $card.data('project-url');
+      // Make cards with projects clickable
+      $('.deliverable-card.has-project', context).not('.card-click-initialized').each(function() {
+        var $card = $(this);
+        $card.addClass('card-click-initialized');
+        var projectUrl = $card.data('project-url');
 
-          if (projectUrl) {
-            $card.css('cursor', 'pointer');
+        if (projectUrl) {
+          $card.css('cursor', 'pointer');
 
-            // Add click handler to card (except on direct links)
-            $card.on('click', function(e) {
-              // Don't navigate if clicking on a link inside the card
-              if (!$(e.target).closest('a').length) {
-                window.location.href = projectUrl;
-              }
-            });
-          }
-        });
+          // Add click handler to card (except on direct links)
+          $card.on('click', function(e) {
+            // Don't navigate if clicking on a link inside the card
+            if (!$(e.target).closest('a').length) {
+              window.location.href = projectUrl;
+            }
+          });
+        }
+      });
 
-        // Add drag-drop functionality for admin users
-        // Check if user has admin permission (save button will be present)
-        if ($('#save-roadmap-order').length && typeof Sortable !== 'undefined') {
+      // Add drag-drop functionality for admin users
+      // Check if user has admin permission (save button will be present)
+      if ($('#save-roadmap-order').length) {
+        // Wait for Sortable to load
+        if (typeof Sortable === 'undefined') {
+          // Try again in a moment
+          setTimeout(function() {
+            if (typeof Sortable !== 'undefined') {
+              initializeDragDrop();
+            }
+          }, 500);
+        } else {
+          initializeDragDrop();
+        }
+
+        function initializeDragDrop() {
           var columns = document.querySelectorAll('.roadmap-column .column-content');
           var hasChanges = false;
 
@@ -118,8 +135,8 @@
               $(this).remove();
             });
           }
-        }
-      });
+        } // End of initializeDragDrop
+      } // End of admin check
     }
   };
 

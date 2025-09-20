@@ -70,15 +70,10 @@ body[class*="path-ai-dashboard/roadmap"] {
 }
 
 .roadmap-header .page-title {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-size: 2rem;
   font-weight: 700;
   color: #111827;
-}
-
-.roadmap-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
 }
 
 /* Roadmap columns container */
