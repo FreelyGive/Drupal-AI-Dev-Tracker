@@ -630,6 +630,23 @@ body.burndown-modal-open {
   white-space: nowrap;
 }
 
+/* Checkbox toggle for fixed issues */
+.filter-group label[for="show-fixed"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.filter-group label[for="show-fixed"] input[type="checkbox"] {
+  cursor: pointer;
+  margin: 0;
+}
+
 .filter-select {
   padding: 0.375rem 0.75rem;
   border: 1px solid #e5e7eb;
@@ -843,12 +860,12 @@ body.burndown-modal-open {
 }
 
 .indent-btn {
-  padding: 2px 6px;
+  padding: 2px 4px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 3px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 9px;
   color: #6b7280;
   transition: all 0.15s;
   line-height: 1;
@@ -1134,11 +1151,37 @@ body.burndown-modal-open {
   padding-left: 10px !important;
 }
 
-/* Responsive */
+/* Layout for non-admin users (no drag/indent columns) */
+.issues-table-container.no-admin .issue-row-header,
+.issues-table-container.no-admin .issue-row {
+  grid-template-columns: 80px minmax(350px, 2fr) minmax(200px, 1fr) 85px 85px 120px 100px 80px 80px;
+}
+
+/* Responsive - Laptops and smaller desktops */
+@media (max-width: 1400px) {
+  /* Give more space to title on smaller screens */
+  .issue-row-header,
+  .issue-row {
+    grid-template-columns: 30px 60px 70px minmax(300px, 2fr) minmax(150px, 1fr) 80px 80px 100px 90px 70px 70px;
+  }
+
+  .issues-table-container.no-admin .issue-row-header,
+  .issues-table-container.no-admin .issue-row {
+    grid-template-columns: 70px minmax(400px, 2fr) minmax(180px, 1fr) 80px 80px 100px 90px 70px 70px;
+  }
+}
+
+/* Responsive - Tablets */
 @media (max-width: 1200px) {
   .issue-row-header,
   .issue-row {
     grid-template-columns: 30px 70px 80px 1fr 120px 100px 80px 60px;
+  }
+
+  /* Responsive for non-admin */
+  .issues-table-container.no-admin .issue-row-header,
+  .issues-table-container.no-admin .issue-row {
+    grid-template-columns: 80px 1fr 120px 100px 80px 60px;
   }
 }
 

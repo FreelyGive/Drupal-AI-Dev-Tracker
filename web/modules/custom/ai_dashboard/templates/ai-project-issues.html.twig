@@ -110,6 +110,12 @@
     </div>
 
     <div class="filter-group">
+      <label for="show-fixed">
+        <input type="checkbox" id="show-fixed" checked> Show Fixed Issues
+      </label>
+    </div>
+
+    <div class="filter-group">
       <button id="clear-filters-btn" class="button button--small">Clear Filters</button>
     </div>
   </div>
@@ -192,11 +198,13 @@
   </div>
 
   {# Issues list as table #}
-  <div id="issues-list" class="issues-table-container">
+  <div id="issues-list" class="issues-table-container{% if not user_has_admin %} no-admin{% endif %}">
     <div class="issues-table-header">
       <div class="issue-row-header">
-        <span class="col-drag"></span>
-        <span class="col-indent"></span>
+        {% if user_has_admin %}
+          <span class="col-drag"></span>
+          <span class="col-indent"></span>
+        {% endif %}
         <span class="col-issue-number">Issue #</span>
         <span class="col-title">Title</span>
         <span class="col-update-summary">Update Summary</span>
@@ -211,17 +219,15 @@
     <div class="issues-table-body" id="issues-table-body">
       {% for issue in issues %}
         <div class="issue-row status-{{ issue.status|replace({'_': '-'}) }}" data-nid="{{ issue.nid }}" data-indent="{{ issue.indent }}" {% if user_has_admin %}draggable="true"{% endif %}>
-          <span class="col-drag">
-            {% if user_has_admin %}
+          {% if user_has_admin %}
+            <span class="col-drag">
               <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
-            {% endif %}
-          </span>
-          <span class="col-indent">
-            {% if user_has_admin %}
+            </span>
+            <span class="col-indent">
               <button class="indent-btn outdent" title="Outdent (Shift+Tab)">◀</button>
               <button class="indent-btn indent" title="Indent (Tab)">▶</button>
-            {% endif %}
-          </span>
+            </span>
+          {% endif %}
           <span class="col-issue-number">
             {% if issue.issue_number %}
               <a href="{{ issue.url }}" target="_blank" class="issue-number-link">#{{ issue.issue_number }}</a>

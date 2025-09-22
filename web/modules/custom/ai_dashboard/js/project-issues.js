@@ -23,6 +23,7 @@
       initDragDrop();
       initIndentButtons();
       initFilters();
+      initFixedToggle();
       initSaveButton();
       initCollapsible();
       updateEpicStyles();
@@ -176,11 +177,11 @@
               filters[filter] = value;
             }
           });
-          
+
           // Build query string
           const params = new URLSearchParams(filters);
           const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-          
+
           // Navigate to filtered URL
           window.location.href = url;
         });
@@ -189,6 +190,72 @@
         $('#clear-filters-btn').on('click', function() {
           window.location.href = window.location.pathname;
         });
+      }
+
+      /**
+       * Initialize show/hide fixed issues toggle
+       */
+      function initFixedToggle() {
+        const toggle = $('#show-fixed');
+
+        // Restore saved state from localStorage
+        const savedState = localStorage.getItem('showFixedIssues');
+        if (savedState !== null) {
+          toggle.prop('checked', savedState === 'true');
+          toggleFixedIssues(savedState === 'true');
+        }
+
+        // Handle toggle change
+        toggle.on('change', function() {
+          const show = $(this).is(':checked');
+          localStorage.setItem('showFixedIssues', show);
+          toggleFixedIssues(show);
+        });
+
+        function toggleFixedIssues(show) {
+          const fixedRows = $('.issue-row.status-fixed, .issue-row.status-closed-fixed');
+          if (show) {
+            fixedRows.show();
+          } else {
+            fixedRows.hide();
+          }
+
+          // Update issue counts
+          updateIssueCounts();
+          // Update collapsible states after hiding/showing
+          updateCollapsibleStates();
+        }
+
+        function updateIssueCounts() {
+          const visibleIssues = $('.issue-row:visible');
+          const totalVisible = visibleIssues.length;
+          const activeVisible = visibleIssues.filter('.status-active').length;
+          const needsWorkVisible = visibleIssues.filter('.status-needs-work').length;
+          const needsReviewVisible = visibleIssues.filter('.status-needs-review').length;
+          const rtbcVisible = visibleIssues.filter('.status-rtbc').length;
+          const fixedVisible = visibleIssues.filter('.status-fixed, .status-closed-fixed').length;
+
+          // Update the counts display if it exists
+          const countsContainer = $('.issue-counts');
+          if (countsContainer.length) {
+            countsContainer.find('.count-item').each(function() {
+              const text = $(this).text();
+              if (text.startsWith('Total:')) {
+                $(this).text('Total: ' + totalVisible);
+              } else if (text.startsWith('Active:')) {
+                $(this).text('Active: ' + activeVisible);
+              } else if (text.startsWith('Needs Work:')) {
+                $(this).text('Needs Work: ' + needsWorkVisible);
+              } else if (text.startsWith('Needs Review:')) {
+                $(this).text('Needs Review: ' + needsReviewVisible);
+              } else if (text.startsWith('RTBC:')) {
+                $(this).text('RTBC: ' + rtbcVisible);
+              } else if (text.startsWith('Fixed:')) {
+                $(this).text('Fixed: ' + fixedVisible);
+              }
+            });
+          }
+        }
       }
 
       /**

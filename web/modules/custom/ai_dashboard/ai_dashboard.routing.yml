@@ -406,7 +406,7 @@ ai_dashboard.roadmap:
     _controller: '\Drupal\ai_dashboard\Controller\RoadmapController::view'
     _title: 'Roadmap'
   requirements:
-    _permission: 'access ai dashboard'
+    _access: 'TRUE'
 
 ai_dashboard.roadmap_save_order:
   path: '/ai-dashboard/roadmap/save-order'
