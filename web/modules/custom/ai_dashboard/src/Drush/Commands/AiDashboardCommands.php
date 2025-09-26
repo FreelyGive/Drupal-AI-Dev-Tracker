@@ -164,7 +164,11 @@ class AiDashboardCommands extends DrushCommands {
     foreach ($activeConfigurations as $configuration) {
       $this->importSingleConfiguration($configuration->id(), $options);
     }
+
+    // Sync drupal.org assignments after importing all issues
+    $this->output()->writeln("\n📋 Starting assignment sync from drupal.org...");
     $this->syncAllAssignments();
+    $this->output()->writeln("✅ Import and sync complete!");
   }
 
 
