@@ -548,7 +548,7 @@ class PriorityKanbanController extends ControllerBase {
       'track_label' => $track_value,
       'workstream' => $workstream_value,
       'workstream_label' => $workstream_value,
-      'is_meta_issue' => FALSE, // TODO: implement meta issue detection
+      'is_meta_issue' => $issue->hasField('field_is_meta_issue') ? (bool) $issue->get('field_is_meta_issue')->value : FALSE,
       'is_blocked' => FALSE, // This will be set below
       'blocked_issues' => [],
       'has_conflict' => FALSE,

@@ -3944,3 +3944,36 @@ function ai_dashboard_update_9041() {
 
   return t('Fixed ai_dashboard_roadmap_order table structure.');
 }
+
+/**
+ * Ensure Meta Issue field is visible in form display.
+ */
+function ai_dashboard_update_9042() {
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_issue.default');
+
+  if ($form_display) {
+    // Check if the field is already configured
+    if (!$form_display->getComponent('field_is_meta_issue')) {
+      $widget_config = [
+        'type' => 'boolean_checkbox',
+        'weight' => 11,
+        'region' => 'content',
+        'settings' => [
+          'display_label' => TRUE,
+        ],
+        'third_party_settings' => [],
+      ];
+
+      $form_display->setComponent('field_is_meta_issue', $widget_config);
+      $form_display->save();
+
+      return t('Added Meta Issue field to AI Issue form display.');
+    }
+
+    return t('Meta Issue field already exists in form display.');
+  }
+
+  return t('Could not load AI Issue form display.');
+}

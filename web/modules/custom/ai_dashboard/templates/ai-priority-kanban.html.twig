@@ -69,8 +69,8 @@
     </div>
   </div>
 
-  <!-- Kanban Filters to match calendar -->
-  <div class="kanban-filters">
+  <!-- Main Filters (always visible) -->
+  <div class="kanban-main-filters">
     <form method="get" action="/ai-dashboard/priority-kanban" class="filter-group tag-filter-form" id="kanban-filter-form">
       <label for="kanban-tag-filter">Tag:</label>
       <select id="kanban-tag-filter" name="tag" class="filter-select">
@@ -84,7 +84,7 @@
           <option value="{{ value }}" {{ value == selected_tag ? 'selected="selected"' : '' }}>{{ label }}</option>
         {% endfor %}
       </select>
-      
+
       <label for="kanban-project-filter">Project:</label>
       <select id="kanban-project-filter" name="project" class="filter-select">
         <option value="">All Projects</option>
@@ -93,43 +93,69 @@
         {% endfor %}
       </select>
     </form>
+
     <div class="filter-group">
-      <label for="kanban-priority-filter">Filter by Priority:</label>
-      <select id="kanban-priority-filter" class="filter-select">
-        <option value="">All Priorities</option>
+      <input type="checkbox" id="show-meta-issues" checked>
+      <label for="show-meta-issues">Show Meta Issues</label>
+    </div>
+
+    <!-- Advanced Filters Toggle -->
+    <button class="advanced-filters-btn" id="advanced-filters-btn">
+      <span class="filter-icon">⚙️</span>
+      <span>Advanced Filters</span>
+      <span class="toggle-arrow">▼</span>
+    </button>
+  </div>
+
+  <!-- Advanced Filters (collapsible) -->
+  <div class="kanban-advanced-filters" id="kanban-advanced-filters" style="display: none;">
+    <div class="filter-group">
+      <label for="kanban-tags-multi">Tags (multi-select):</label>
+      <select id="kanban-tags-multi" class="filter-select multi-select" multiple size="5">
+        {% for tag in filter_options.tags %}
+          {% if tag != '__all' %}
+            <option value="{{ tag }}">{{ tag }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="kanban-priority-filter">Priority (multi-select):</label>
+      <select id="kanban-priority-filter" class="filter-select multi-select" multiple size="4">
         <option value="critical">Critical</option>
         <option value="major">Major</option>
         <option value="normal">Normal</option>
         <option value="minor">Minor</option>
       </select>
     </div>
-    
+
     <div class="filter-group">
-      <label for="kanban-status-filter">Filter by Status:</label>
-      <select id="kanban-status-filter" class="filter-select">
-        <option value="">All Statuses</option>
+      <label for="kanban-status-filter">Status (multi-select):</label>
+      <select id="kanban-status-filter" class="filter-select multi-select" multiple size="4">
         <option value="active">Active</option>
         <option value="needs-review">Needs Review</option>
         <option value="needs-work">Needs Work</option>
         <option value="fixed">Fixed</option>
       </select>
     </div>
-    
+
     <div class="filter-group">
-      <label for="kanban-track-filter">Filter by Track:</label>
-      <select id="kanban-track-filter" class="filter-select">
-        <option value="">All Tracks</option>
+      <label for="kanban-track-filter">Track (multi-select):</label>
+      <select id="kanban-track-filter" class="filter-select multi-select" multiple size="3">
       </select>
     </div>
-    
+
     <div class="filter-group">
-      <label for="kanban-workstream-filter">Filter by Workstream:</label>
-      <select id="kanban-workstream-filter" class="filter-select">
-        <option value="">All Workstreams</option>
+      <label for="kanban-workstream-filter">Workstream (multi-select):</label>
+      <select id="kanban-workstream-filter" class="filter-select multi-select" multiple size="3">
       </select>
     </div>
-    
-    <button id="clear-kanban-filters" class="btn btn-secondary">Clear Filters</button>
+
+    <div class="filter-actions">
+      <button id="clear-kanban-filters" class="btn btn-secondary">Clear All Filters</button>
+      <div class="filter-help">Hold Ctrl/Cmd to select multiple options</div>
+    </div>
   </div>
 
   <!-- Optional Columns Toggle -->
@@ -174,7 +200,7 @@
           {% if column.issues|length > 0 %}
             {% for issue in column.issues %}
               <!-- Use identical card structure as calendar -->
-              <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}{{ issue.is_recently_changed ? ' recently-changed' : '' }}" data-issue-id="{{ issue.id }}" data-has-priority="{{ issue.has_priority ? '1' : '0' }}">
+              <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}{{ issue.is_recently_changed ? ' recently-changed' : '' }}" data-issue-id="{{ issue.id }}" data-has-priority="{{ issue.has_priority ? '1' : '0' }}" data-is-meta="{{ issue.is_meta_issue ? '1' : '0' }}">
                 <div class="issue-header">
                   <div class="issue-header-left">
                     {% if issue.track %}

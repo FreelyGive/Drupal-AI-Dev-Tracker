@@ -332,10 +332,17 @@ class ProjectIssuesController extends ControllerBase {
     $storage = $this->entityTypeManager()->getStorage('node');
     $child_nodes = $storage->loadMultiple($child_nids);
 
-    $total = count($child_nodes);
+    $total = 0;
     $completed = 0;
 
     foreach ($child_nodes as $child) {
+      // Skip meta issues in counts
+      if ($child->hasField('field_is_meta_issue') && !$child->get('field_is_meta_issue')->isEmpty() && $child->get('field_is_meta_issue')->value) {
+        continue;
+      }
+
+      $total++; // Count this non-meta issue
+
       if ($child->hasField('field_issue_status') && !$child->get('field_issue_status')->isEmpty()) {
         $status = $child->get('field_issue_status')->value;
         if ($this->isStatusCompleted($status)) {

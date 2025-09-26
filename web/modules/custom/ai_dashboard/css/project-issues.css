@@ -605,16 +605,28 @@ body.burndown-modal-open {
 
 /* Filters - matching calendar/kanban style */
 .filters-container,
-.project-filters {
+.project-main-filters {
   background: white;
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin: 0 1.5rem 1.5rem;
+  margin: 0 1.5rem 1rem;
   padding: 1rem 1.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
+}
+
+.project-advanced-filters {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  margin: 0 1.5rem 1.5rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
 }
 
 .filter-group {
@@ -642,9 +654,86 @@ body.burndown-modal-open {
   color: #374151;
 }
 
-.filter-group label[for="show-fixed"] input[type="checkbox"] {
+.filter-group label[for="show-fixed"] input[type="checkbox"],
+.filter-group label[for="show-meta-issues-project"] input[type="checkbox"] {
   cursor: pointer;
   margin: 0;
+}
+
+/* Advanced Filters Button */
+.advanced-filters-btn {
+  margin-left: auto;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.advanced-filters-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.advanced-filters-btn.active {
+  background: #1f2937;
+  color: white;
+  border-color: #1f2937;
+}
+
+.advanced-filters-btn .filter-icon {
+  font-size: 1rem;
+}
+
+.advanced-filters-btn .toggle-arrow {
+  transition: transform 0.2s;
+}
+
+.advanced-filters-btn.active .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+/* Multi-select styles */
+.project-advanced-filters .multi-select {
+  min-height: 60px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  width: 100%;
+}
+
+.project-advanced-filters .multi-select option {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.project-advanced-filters .multi-select option:hover {
+  background-color: #f3f4f6;
+}
+
+.project-advanced-filters .multi-select option:checked {
+  background-color: #e5e7eb;
+  font-weight: 500;
+}
+
+.project-advanced-filters .filter-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.project-advanced-filters .filter-help {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
 }
 
 .filter-select {
@@ -748,9 +837,9 @@ body.burndown-modal-open {
   background: #f9fafb;
 }
 
-/* Status-based colors - muted but visible */
+/* Status-based colors - white for active issues for better contrast */
 .issue-row.status-active {
-  background: #f3f4f6;
+  background: white;
   border-left-color: #6b7280;
 }
 
@@ -779,27 +868,86 @@ body.burndown-modal-open {
   border-left-color: #9ca3af;
 }
 
-/* Epic styling (items with children at indent level 0) */
-.issue-row.is-epic {
-  background: #dbeafe !important;
-  border-left-color: #2563eb !important;
+/* Epic styling (items with children at indent level 0) - Medium blue like previous sub-epics */
+.issue-row.is-epic,
+.issue-row.status-active.is-epic,
+.issue-row.status-needs-work.is-epic,
+.issue-row.status-needs-review.is-epic,
+.issue-row.status-rtbc.is-epic,
+.issue-row.status-fixed.is-epic {
+  background: #0066A9 !important; /* Drupal Dark Blue - not too dark, not too light */
+  border-left-color: #009CDE !important; /* Drupal Blue for accent */
+  border-left-width: 4px;
   font-weight: 600;
 }
 
 .issue-row.is-epic .col-title {
-  color: #1e40af;
+  color: white; /* White text on Dark Blue (W3C compliant) */
   font-weight: 600;
 }
 
-/* Sub-epic styling (items with children at indent level 1+) */
-.issue-row.is-sub-epic {
-  background: #eff6ff !important;
-  border-left-color: #3b82f6 !important;
+/* Light text for contrast on blue background */
+.issue-row.is-epic .col-issue-number a,
+.issue-row.is-epic .col-update-summary,
+.issue-row.is-epic .col-checkin-date,
+.issue-row.is-epic .col-due-date,
+.issue-row.is-epic .col-assignee,
+.issue-row.is-epic .col-actions a {
+  color: #CDE9F9; /* Drupal Light Blue for secondary text */
+}
+
+.issue-row.is-epic .col-issue-number a:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+.issue-row.is-epic .status-badge,
+.issue-row.is-epic .priority-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Sub-epic styling (items with children at indent level 1+) - Light blue background */
+.issue-row.is-sub-epic,
+.issue-row.status-active.is-sub-epic,
+.issue-row.status-needs-work.is-sub-epic,
+.issue-row.status-needs-review.is-sub-epic,
+.issue-row.status-rtbc.is-sub-epic,
+.issue-row.status-fixed.is-sub-epic {
+  background: #CDE9F9 !important; /* Drupal Light Blue */
+  border-left-color: #009CDE !important; /* Drupal Blue accent */
+  border-left-width: 3px;
+}
+
+.issue-row.is-sub-epic .col-title {
+  color: #0066A9; /* Drupal Dark Blue text (W3C compliant) */
+  font-weight: 500;
+}
+
+/* Keep text dark and readable on light blue background */
+.issue-row.is-sub-epic .col-issue-number a,
+.issue-row.is-sub-epic .col-update-summary,
+.issue-row.is-sub-epic .col-checkin-date,
+.issue-row.is-sub-epic .col-due-date,
+.issue-row.is-sub-epic .col-assignee,
+.issue-row.is-sub-epic .col-actions a {
+  color: #374151; /* Dark grey for good contrast */
+}
+
+.issue-row.is-sub-epic .col-issue-number a:hover {
+  color: #0066A9; /* Drupal Dark Blue on hover */
+  text-decoration: underline;
+}
+
+.issue-row.is-sub-epic .status-badge,
+.issue-row.is-sub-epic .priority-badge {
+  /* Keep original status badge colors */
 }
 
 /* Hover states for status colors */
 .issue-row.status-active:hover {
-  background: #e5e7eb;
+  background: #f9fafb; /* Very light grey, not dark grey */
 }
 
 .issue-row.status-needs-review:hover {
@@ -818,13 +966,23 @@ body.burndown-modal-open {
   background: #bbf7d0;
 }
 
-/* Hover for epics */
-.issue-row.is-epic:hover {
-  background: #bfdbfe !important;
+/* Hover for epics - slightly lighter blue */
+.issue-row.is-epic:hover,
+.issue-row.status-active.is-epic:hover,
+.issue-row.status-needs-work.is-epic:hover,
+.issue-row.status-needs-review.is-epic:hover,
+.issue-row.status-rtbc.is-epic:hover,
+.issue-row.status-fixed.is-epic:hover {
+  background: #009CDE !important; /* Drupal Blue on hover */
 }
 
-.issue-row.is-sub-epic:hover {
-  background: #dbeafe !important;
+.issue-row.is-sub-epic:hover,
+.issue-row.status-active.is-sub-epic:hover,
+.issue-row.status-needs-work.is-sub-epic:hover,
+.issue-row.status-needs-review.is-sub-epic:hover,
+.issue-row.status-rtbc.is-sub-epic:hover,
+.issue-row.status-fixed.is-sub-epic:hover {
+  background: #B5E1F7 !important; /* Slightly darker light blue */
 }
 
 .issue-row.dragging {
@@ -854,6 +1012,23 @@ body.burndown-modal-open {
   color: #6b7280;
 }
 
+/* Epic drag handles - light for dark epic, normal for light sub-epic */
+.issue-row.is-epic .drag-handle {
+  color: #CDE9F9;
+}
+
+.issue-row.is-epic .drag-handle:hover {
+  color: white;
+}
+
+.issue-row.is-sub-epic .drag-handle {
+  color: #6b7280;
+}
+
+.issue-row.is-sub-epic .drag-handle:hover {
+  color: #374151;
+}
+
 .col-indent {
   display: flex;
   gap: 2px;
@@ -876,6 +1051,21 @@ body.burndown-modal-open {
   border-color: #9ca3af;
   color: #374151;
 }
+
+/* Epic indent buttons - light for dark epic backgrounds */
+.issue-row.is-epic .indent-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #CDE9F9;
+}
+
+.issue-row.is-epic .indent-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+}
+
+/* Sub-epic indent buttons use default styling */
 
 .col-issue-number {
   font-family: monospace;
@@ -938,6 +1128,24 @@ body.burndown-modal-open {
   background: #e5e7eb;
 }
 
+/* Epic collapse toggle - light for dark epic */
+.issue-row.is-epic .collapse-toggle {
+  color: white;
+}
+
+.issue-row.is-epic .collapse-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Sub-epic collapse toggle - normal colors */
+.issue-row.is-sub-epic .collapse-toggle {
+  color: #374151;
+}
+
+.issue-row.is-sub-epic .collapse-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
 .collapse-icon {
   display: inline-block;
   width: 12px;
@@ -994,6 +1202,8 @@ body.burndown-modal-open {
   font-size: 12px;
   flex-shrink: 0;
 }
+
+/* Blocked icon styling - no special treatment needed on light backgrounds */
 
 .col-assignee {
   color: #4b5563;
@@ -1202,4 +1412,4 @@ body.burndown-modal-open {
   .issue-counts {
     flex-wrap: wrap;
   }
-}
+}}

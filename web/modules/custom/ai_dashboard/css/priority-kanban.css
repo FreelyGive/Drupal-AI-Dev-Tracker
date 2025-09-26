@@ -4,6 +4,105 @@
  * Adds page layout overrides and aligns components with calendar styles.
  */
 
+/* Main Filters (always visible) */
+.kanban-main-filters {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0 1.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Advanced Filters Button */
+.advanced-filters-btn {
+  margin-left: auto;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.advanced-filters-btn:hover {
+  background: #e5e7eb;
+}
+
+.advanced-filters-btn .toggle-arrow {
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.advanced-filters-btn.active .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+/* Advanced Filters Section */
+.kanban-advanced-filters {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0 1.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  transition: all 0.3s ease;
+}
+
+.kanban-main-filters .filter-group,
+.kanban-advanced-filters .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kanban-main-filters label,
+.kanban-advanced-filters label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.kanban-main-filters .filter-select,
+.kanban-advanced-filters .filter-select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  min-width: 120px;
+}
+
+.kanban-main-filters .btn,
+.kanban-advanced-filters .btn {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.kanban-main-filters .btn:hover,
+.kanban-advanced-filters .btn:hover {
+  background: #f3f4f6;
+}
+
 /* Page layout overrides (match calendar) */
 body.path-ai-dashboard-priority-kanban .layout-container,
 body.path-ai-dashboard-priority-kanban .site-main-wrapper,
@@ -640,7 +739,8 @@ body[class*="path-ai-dashboard/priority-kanban"] {
   flex-wrap: wrap;
 }
 
-.kanban-filters .filter-group {
+.kanban-main-filters .filter-group,
+.kanban-advanced-filters .filter-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -650,17 +750,48 @@ body[class*="path-ai-dashboard/priority-kanban"] {
   min-width: 200px;
 }
 
-.kanban-filters label {
+.kanban-main-filters label,
+.kanban-advanced-filters label {
   font-size: 0.875rem;
   font-weight: 500;
   color: #374151;
   margin: 0;
 }
 
-.kanban-filters .filter-select {
+.kanban-main-filters .filter-select,
+.kanban-advanced-filters .filter-select {
   padding: 0.375rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   min-width: 140px;
+}
+
+/* Multi-select styles */
+.kanban-advanced-filters .multi-select {
+  min-height: 60px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+}
+
+.kanban-advanced-filters .multi-select option {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.kanban-advanced-filters .multi-select option:hover {
+  background-color: #f3f4f6;
+}
+
+.kanban-advanced-filters .multi-select option:checked {
+  background-color: #e5e7eb;
+  font-weight: 500;
+}
+
+.kanban-advanced-filters .filter-help {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 1rem;
+  font-style: italic;
 }

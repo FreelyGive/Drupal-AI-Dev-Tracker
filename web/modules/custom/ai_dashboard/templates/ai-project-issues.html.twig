@@ -57,8 +57,8 @@
     </div>
   </div>
 
-  {# Filters #}
-  <div class="project-filters">
+  {# Main Filters (always visible) #}
+  <div class="project-main-filters">
     <div class="filter-group">
       <label for="filter-tag">Tag:</label>
       <select id="filter-tag" class="filter-select" data-filter="tag">
@@ -70,53 +70,75 @@
     </div>
 
     <div class="filter-group">
-      <label for="filter-priority">Priority:</label>
-      <select id="filter-priority" class="filter-select" data-filter="priority">
-        <option value="">All Priorities</option>
-        {% for key, label in filter_options.priorities %}
-          <option value="{{ key }}" {% if filters.priority == key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label for="filter-status">Status:</label>
-      <select id="filter-status" class="filter-select" data-filter="status">
-        <option value="">All Statuses</option>
-        {% for key, label in filter_options.statuses %}
-          <option value="{{ key }}" {% if filters.status == key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label for="filter-track">Track:</label>
-      <select id="filter-track" class="filter-select" data-filter="track">
-        <option value="">All Tracks</option>
-        {% for track in filter_options.tracks %}
-          <option value="{{ track }}" {% if filters.track == track %}selected{% endif %}>{{ track }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label for="filter-workstream">Workstream:</label>
-      <select id="filter-workstream" class="filter-select" data-filter="workstream">
-        <option value="">All Workstreams</option>
-        {% for ws in filter_options.workstreams %}
-          <option value="{{ ws }}" {% if filters.workstream == ws %}selected{% endif %}>{{ ws }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="filter-group">
       <label for="show-fixed">
         <input type="checkbox" id="show-fixed" checked> Show Fixed Issues
       </label>
     </div>
 
     <div class="filter-group">
-      <button id="clear-filters-btn" class="button button--small">Clear Filters</button>
+      <label for="show-meta-issues-project">
+        <input type="checkbox" id="show-meta-issues-project" checked> Show Meta Issues
+      </label>
+    </div>
+
+    <!-- Advanced Filters Toggle -->
+    <button class="advanced-filters-btn" id="project-advanced-filters-btn">
+      <span class="filter-icon">⚙️</span>
+      <span>Advanced Filters</span>
+      <span class="toggle-arrow">▼</span>
+    </button>
+  </div>
+
+  {# Advanced Filters (collapsible) #}
+  <div class="project-advanced-filters" id="project-advanced-filters" style="display: none;">
+    <div class="filter-group">
+      <label for="project-tags-multi">Tags (multi-select):</label>
+      <select id="project-tags-multi" class="filter-select multi-select" multiple size="5">
+        {% for tag in filter_options.tags %}
+          <option value="{{ tag }}">{{ tag }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="project-priority-multi">Priority (multi-select):</label>
+      <select id="project-priority-multi" class="filter-select multi-select" multiple size="4">
+        {% for key, label in filter_options.priorities %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="project-status-multi">Status (multi-select):</label>
+      <select id="project-status-multi" class="filter-select multi-select" multiple size="7">
+        {% for key, label in filter_options.statuses %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="project-track-multi">Track (multi-select):</label>
+      <select id="project-track-multi" class="filter-select multi-select" multiple size="3">
+        {% for track in filter_options.tracks %}
+          <option value="{{ track }}">{{ track }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="project-workstream-multi">Workstream (multi-select):</label>
+      <select id="project-workstream-multi" class="filter-select multi-select" multiple size="3">
+        {% for ws in filter_options.workstreams %}
+          <option value="{{ ws }}">{{ ws }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-actions">
+      <button id="clear-project-filters" class="btn btn-secondary">Clear All Filters</button>
+      <div class="filter-help">Hold Ctrl/Cmd to select multiple options</div>
     </div>
   </div>
 

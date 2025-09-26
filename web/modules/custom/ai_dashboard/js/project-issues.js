@@ -168,15 +168,43 @@
        * Initialize filters
        */
       function initFilters() {
-        $('.filter-select').on('change', function() {
-          const filters = {};
-          $('.filter-select').each(function() {
-            const filter = $(this).data('filter');
-            const value = $(this).val();
-            if (value) {
-              filters[filter] = value;
-            }
+        // Handle advanced filters toggle
+        const advancedBtn = document.getElementById('project-advanced-filters-btn');
+        const advancedSection = document.getElementById('project-advanced-filters');
+
+        if (advancedBtn && advancedSection) {
+          // Load saved state from localStorage
+          const savedState = localStorage.getItem('aiDashboard.project.advancedVisible');
+          const isVisible = savedState === 'true'; // Default to hidden
+
+          // Apply saved state
+          advancedSection.style.display = isVisible ? 'flex' : 'none';
+          advancedBtn.classList.toggle('active', isVisible);
+
+          // Handle toggle click
+          advancedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isCurrentlyVisible = advancedSection.style.display !== 'none';
+            const newState = !isCurrentlyVisible;
+
+            advancedSection.style.display = newState ? 'flex' : 'none';
+            advancedBtn.classList.toggle('active', newState);
+
+            // Save state to localStorage
+            localStorage.setItem('aiDashboard.project.advancedVisible', newState);
           });
+        }
+
+        // Initialize multi-select filters
+        initAdvancedFilters();
+
+        // Handle single-select filter changes (main filters)
+        $('#filter-tag').on('change', function() {
+          const filters = {};
+          const value = $(this).val();
+          if (value) {
+            filters['tag'] = value;
+          }
 
           // Build query string
           const params = new URLSearchParams(filters);
@@ -187,9 +215,249 @@
         });
 
         // Clear filters button
-        $('#clear-filters-btn').on('click', function() {
+        $('#clear-project-filters').on('click', function() {
+          // Clear localStorage for filters
+          localStorage.removeItem('aiDashboard.project.tagsMulti');
+          localStorage.removeItem('aiDashboard.project.priority');
+          localStorage.removeItem('aiDashboard.project.status');
+          localStorage.removeItem('aiDashboard.project.track');
+          localStorage.removeItem('aiDashboard.project.workstream');
+          localStorage.removeItem('showFixedIssues');
+          localStorage.removeItem('showMetaIssues');
+
           window.location.href = window.location.pathname;
         });
+      }
+
+      /**
+       * Initialize advanced multi-select filters
+       */
+      function initAdvancedFilters() {
+        const tagsMulti = document.getElementById('project-tags-multi');
+        const priorityMulti = document.getElementById('project-priority-multi');
+        const statusMulti = document.getElementById('project-status-multi');
+        const trackMulti = document.getElementById('project-track-multi');
+        const workstreamMulti = document.getElementById('project-workstream-multi');
+
+        // Load saved selections from localStorage
+        function loadFilterState(filterId) {
+          try {
+            const saved = localStorage.getItem(`aiDashboard.project.${filterId}`);
+            return saved ? JSON.parse(saved) : [];
+          } catch (e) {
+            return [];
+          }
+        }
+
+        // Save selections to localStorage
+        function saveFilterState(filterId, values) {
+          try {
+            localStorage.setItem(`aiDashboard.project.${filterId}`, JSON.stringify(values));
+          } catch (e) {}
+        }
+
+        // Apply saved selections
+        if (tagsMulti) {
+          const saved = loadFilterState('tagsMulti');
+          Array.from(tagsMulti.options).forEach(opt => {
+            opt.selected = saved.includes(opt.value);
+          });
+        }
+        if (priorityMulti) {
+          const saved = loadFilterState('priority');
+          Array.from(priorityMulti.options).forEach(opt => {
+            opt.selected = saved.includes(opt.value);
+          });
+        }
+        if (statusMulti) {
+          const saved = loadFilterState('status');
+          Array.from(statusMulti.options).forEach(opt => {
+            opt.selected = saved.includes(opt.value);
+          });
+        }
+        if (trackMulti) {
+          const saved = loadFilterState('track');
+          Array.from(trackMulti.options).forEach(opt => {
+            opt.selected = saved.includes(opt.value);
+          });
+        }
+        if (workstreamMulti) {
+          const saved = loadFilterState('workstream');
+          Array.from(workstreamMulti.options).forEach(opt => {
+            opt.selected = saved.includes(opt.value);
+          });
+        }
+
+        // Apply all filters
+        function applyFilters() {
+          const selectedTags = tagsMulti ? Array.from(tagsMulti.selectedOptions).map(o => o.value) : [];
+          const selectedPriorities = priorityMulti ? Array.from(priorityMulti.selectedOptions).map(o => o.value) : [];
+          const selectedStatuses = statusMulti ? Array.from(statusMulti.selectedOptions).map(o => o.value) : [];
+          const selectedTracks = trackMulti ? Array.from(trackMulti.selectedOptions).map(o => o.value) : [];
+          const selectedWorkstreams = workstreamMulti ? Array.from(workstreamMulti.selectedOptions).map(o => o.value) : [];
+          const showFixed = document.getElementById('show-fixed').checked;
+          const showMeta = document.getElementById('show-meta-issues-project').checked;
+
+          const issueRows = document.querySelectorAll('.issue-row');
+
+          issueRows.forEach(row => {
+            let shouldShow = true;
+
+            // Meta filter
+            const isMeta = row.dataset.isMeta === '1' || row.classList.contains('is-meta');
+            if (!showMeta && isMeta) {
+              shouldShow = false;
+            }
+
+            // Fixed filter
+            const isFixed = row.classList.contains('status-fixed') || row.classList.contains('status-closed-fixed');
+            if (!showFixed && isFixed) {
+              shouldShow = false;
+            }
+
+            // Tags filter (match ANY selected tag)
+            if (shouldShow && selectedTags.length > 0) {
+              const rowTags = row.dataset.tags ? row.dataset.tags.split(',').map(t => t.trim()) : [];
+              if (!selectedTags.some(tag => rowTags.includes(tag))) {
+                shouldShow = false;
+              }
+            }
+
+            // Priority filter
+            if (shouldShow && selectedPriorities.length > 0) {
+              const rowPriority = row.dataset.priority;
+              if (!selectedPriorities.includes(rowPriority)) {
+                shouldShow = false;
+              }
+            }
+
+            // Status filter
+            if (shouldShow && selectedStatuses.length > 0) {
+              const rowStatus = row.dataset.status;
+              if (!selectedStatuses.includes(rowStatus)) {
+                shouldShow = false;
+              }
+            }
+
+            // Track filter
+            if (shouldShow && selectedTracks.length > 0) {
+              const rowTrack = row.dataset.track;
+              if (!rowTrack || !selectedTracks.includes(rowTrack)) {
+                shouldShow = false;
+              }
+            }
+
+            // Workstream filter
+            if (shouldShow && selectedWorkstreams.length > 0) {
+              const rowWorkstream = row.dataset.workstream;
+              if (!rowWorkstream || !selectedWorkstreams.includes(rowWorkstream)) {
+                shouldShow = false;
+              }
+            }
+
+            row.style.display = shouldShow ? '' : 'none';
+          });
+
+          // Update counts
+          updateIssueCounts();
+          updateCollapsibleStates();
+        }
+
+        // Add change listeners
+        if (tagsMulti) {
+          tagsMulti.addEventListener('change', () => {
+            const selected = Array.from(tagsMulti.selectedOptions).map(o => o.value);
+            saveFilterState('tagsMulti', selected);
+            applyFilters();
+          });
+        }
+        if (priorityMulti) {
+          priorityMulti.addEventListener('change', () => {
+            const selected = Array.from(priorityMulti.selectedOptions).map(o => o.value);
+            saveFilterState('priority', selected);
+            applyFilters();
+          });
+        }
+        if (statusMulti) {
+          statusMulti.addEventListener('change', () => {
+            const selected = Array.from(statusMulti.selectedOptions).map(o => o.value);
+            saveFilterState('status', selected);
+            applyFilters();
+          });
+        }
+        if (trackMulti) {
+          trackMulti.addEventListener('change', () => {
+            const selected = Array.from(trackMulti.selectedOptions).map(o => o.value);
+            saveFilterState('track', selected);
+            applyFilters();
+          });
+        }
+        if (workstreamMulti) {
+          workstreamMulti.addEventListener('change', () => {
+            const selected = Array.from(workstreamMulti.selectedOptions).map(o => o.value);
+            saveFilterState('workstream', selected);
+            applyFilters();
+          });
+        }
+
+        // Handle meta issues checkbox
+        const showMetaCheckbox = document.getElementById('show-meta-issues-project');
+        if (showMetaCheckbox) {
+          // Load saved preference
+          const savedState = localStorage.getItem('showMetaIssues');
+          if (savedState !== null) {
+            showMetaCheckbox.checked = savedState === 'true';
+          }
+
+          // Handle checkbox change
+          showMetaCheckbox.addEventListener('change', () => {
+            localStorage.setItem('showMetaIssues', showMetaCheckbox.checked);
+            applyFilters();
+          });
+        }
+
+        // Initial filter application
+        applyFilters();
+
+        // Update issue counts function
+        function updateIssueCounts() {
+          const visibleIssues = $('.issue-row:visible');
+          const totalVisible = visibleIssues.length;
+          const activeVisible = visibleIssues.filter('.status-active').length;
+          const needsWorkVisible = visibleIssues.filter('.status-needs-work').length;
+          const needsReviewVisible = visibleIssues.filter('.status-needs-review').length;
+          const rtbcVisible = visibleIssues.filter('.status-rtbc').length;
+          const fixedVisible = visibleIssues.filter('.status-fixed, .status-closed-fixed').length;
+
+          // Update the counts display if it exists
+          const countsContainer = $('.issue-counts');
+          if (countsContainer.length) {
+            countsContainer.find('.count-item').each(function() {
+              const text = $(this).text();
+              if (text.startsWith('Total:')) {
+                $(this).text('Total: ' + totalVisible);
+              } else if (text.startsWith('Active:')) {
+                $(this).text('Active: ' + activeVisible);
+              } else if (text.startsWith('Needs Work:')) {
+                $(this).text('Needs Work: ' + needsWorkVisible);
+              } else if (text.startsWith('Needs Review:')) {
+                $(this).text('Needs Review: ' + needsReviewVisible);
+              } else if (text.startsWith('RTBC:')) {
+                $(this).text('RTBC: ' + rtbcVisible);
+              } else if (text.startsWith('Fixed:')) {
+                $(this).text('Fixed: ' + fixedVisible);
+              }
+            });
+          }
+        }
+
+        // Update collapsible states function
+        function updateCollapsibleStates() {
+          // This function should be available from the parent scope
+          if (typeof window.updateCollapsibleStates === 'function') {
+            window.updateCollapsibleStates();
+          }
+        }
       }
 
       /**

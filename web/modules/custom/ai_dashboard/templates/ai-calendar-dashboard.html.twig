@@ -106,30 +106,8 @@
     </div>
   </div>
 
-  <!-- Calendar Filters -->
-  <div class="calendar-filters">
-    <div class="filter-group">
-      <label for="calendar-priority-filter">Filter by Priority:</label>
-      <select id="calendar-priority-filter" class="filter-select">
-        <option value="">All Priorities</option>
-        <option value="critical">Critical</option>
-        <option value="major">Major</option>
-        <option value="normal">Normal</option>
-        <option value="minor">Minor</option>
-      </select>
-    </div>
-    
-    <div class="filter-group">
-      <label for="calendar-status-filter">Filter by Status:</label>
-      <select id="calendar-status-filter" class="filter-select">
-        <option value="">All Statuses</option>
-        <option value="active">Active</option>
-        <option value="needs-review">Needs Review</option>
-        <option value="needs-work">Needs Work</option>
-        <option value="fixed">Fixed</option>
-      </select>
-    </div>
-    
+  <!-- Main Filters (always visible) -->
+  <div class="calendar-main-filters">
     <div class="filter-group">
       <label for="calendar-track-filter">Filter by Track:</label>
       <select id="calendar-track-filter" class="filter-select">
@@ -139,18 +117,63 @@
         {% endfor %}
       </select>
     </div>
-    
+
     <div class="filter-group">
-      <label for="calendar-workstream-filter">Filter by Workstream:</label>
-      <select id="calendar-workstream-filter" class="filter-select">
-        <option value="">All Workstreams</option>
+      <label for="show-meta-issues">
+        <input type="checkbox" id="show-meta-issues" checked> Show Meta Issues
+      </label>
+    </div>
+
+    <!-- Advanced Filters Toggle -->
+    <button class="advanced-filters-btn" id="calendar-advanced-btn">
+      <span class="filter-icon">⚙️</span>
+      <span>Advanced Filters</span>
+      <span class="toggle-arrow">▼</span>
+    </button>
+  </div>
+
+  <!-- Advanced Filters (collapsible) -->
+  <div class="calendar-advanced-filters" id="calendar-advanced-filters" style="display: none;">
+    <div class="filter-group">
+      <label for="calendar-tags-multi">Tags (multi-select):</label>
+      <select id="calendar-tags-multi" class="filter-select multi-select" multiple size="5">
+        {% for tag in filter_options.tags %}
+          <option value="{{ tag.value }}">{{ tag.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="calendar-priority-multi">Priority (multi-select):</label>
+      <select id="calendar-priority-multi" class="filter-select multi-select" multiple size="4">
+        {% for priority in filter_options.priorities %}
+          <option value="{{ priority.value }}">{{ priority.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="calendar-status-multi">Status (multi-select):</label>
+      <select id="calendar-status-multi" class="filter-select multi-select" multiple size="7">
+        {% for status in filter_options.statuses %}
+          <option value="{{ status.value }}">{{ status.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="calendar-workstream-filter">Workstream (multi-select):</label>
+      <select id="calendar-workstream-filter" class="filter-select multi-select" multiple size="3">
         {% for workstream in filter_options.workstreams %}
           <option value="{{ workstream.value }}">{{ workstream.label }}</option>
         {% endfor %}
       </select>
     </div>
-    
-    <button id="clear-calendar-filters" class="btn btn-secondary">Clear Filters</button>
+
+    <div class="filter-actions">
+      <button id="clear-calendar-filters" class="btn btn-secondary">Clear All Filters</button>
+      <div class="filter-help">Hold Ctrl/Cmd to select multiple options</div>
+    </div>
   </div>
 
   <!-- Company Groups -->
@@ -251,7 +274,7 @@
               <div class="issues-grid">
                 {% if developer.issues|length > 0 %}
                   {% for issue in developer.issues %}
-                    <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}" data-issue-id="{{ issue.id }}">
+                    <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}" data-issue-id="{{ issue.id }}" {% if issue.is_meta_issue %}data-is-meta="true"{% endif %}>
                       <div class="issue-header">
                         <div class="issue-header-left">
                           {% if issue.track %}

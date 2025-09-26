@@ -601,15 +601,31 @@ class CalendarController extends ControllerBase {
   }
 
   /**
-   * Get dynamic filter options for tracks and workstreams.
+   * Get dynamic filter options for tracks, workstreams, tags, priorities, and statuses.
    *
    * @return array
-   *   An array containing unique track and workstream values.
+   *   An array containing unique values for filtering.
    */
   private function getFilterOptions() {
     $filter_options = [
       'tracks' => [],
       'workstreams' => [],
+      'tags' => [],
+      'priorities' => [
+        ['value' => 'critical', 'label' => 'Critical'],
+        ['value' => 'major', 'label' => 'Major'],
+        ['value' => 'normal', 'label' => 'Normal'],
+        ['value' => 'minor', 'label' => 'Minor'],
+      ],
+      'statuses' => [
+        ['value' => 'active', 'label' => 'Active'],
+        ['value' => 'needs_review', 'label' => 'Needs Review'],
+        ['value' => 'needs_work', 'label' => 'Needs Work'],
+        ['value' => 'rtbc', 'label' => 'RTBC'],
+        ['value' => 'fixed', 'label' => 'Fixed'],
+        ['value' => 'postponed', 'label' => 'Postponed'],
+        ['value' => 'closed', 'label' => 'Closed'],
+      ],
     ];
 
     // Get track field definition for allowed values
@@ -698,6 +714,53 @@ class CalendarController extends ControllerBase {
       });
       
       $filter_options['workstreams'] = $workstream_options;
+    }
+
+    // Get all issue tags
+    $tags = [];
+    try {
+      $tag_query = $this->entityTypeManager->getStorage('node')->getQuery()
+        ->condition('type', 'ai_issue')
+        ->condition('status', 1)
+        ->exists('field_issue_tags')
+        ->accessCheck(FALSE);
+
+      $tag_nids = $tag_query->execute();
+
+      if (!empty($tag_nids)) {
+        $tag_issues = $this->entityTypeManager->getStorage('node')->loadMultiple($tag_nids);
+
+        foreach ($tag_issues as $issue) {
+          if ($issue->hasField('field_issue_tags') && !$issue->get('field_issue_tags')->isEmpty()) {
+            foreach ($issue->get('field_issue_tags')->getValue() as $item) {
+              if (!empty($item['value'])) {
+                $raw = $item['value'];
+                // Support comma-separated tags in a single item.
+                $parts = preg_split('/\s*,\s*/', $raw);
+                foreach ($parts as $p) {
+                  if ($p !== '' && !in_array($p, $tags)) {
+                    $tags[] = $p;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Sort tags and format for options
+      $tags = array_values(array_unique($tags));
+      sort($tags, SORT_NATURAL | SORT_FLAG_CASE);
+
+      $tag_options = [];
+      foreach ($tags as $tag) {
+        $tag_options[] = ['value' => $tag, 'label' => $tag];
+      }
+
+      $filter_options['tags'] = $tag_options;
+    }
+    catch (\Exception $e) {
+      // Ignore errors, leave tags empty.
     }
 
     return $filter_options;

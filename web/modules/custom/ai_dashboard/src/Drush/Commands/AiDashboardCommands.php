@@ -288,10 +288,10 @@ class AiDashboardCommands extends DrushCommands {
    * @command ai-dashboard:process-metadata
    * @aliases aid-meta
    * @usage ai-dashboard:process-metadata
-   *   Re-process AI Tracker metadata for all existing AI issues (debugging)
+   *   Re-process AI Tracker metadata and meta issue detection for all existing AI issues
    */
   public function processMetadata() {
-    $this->output()->writeln("Re-processing AI Tracker metadata for all existing AI issues...");
+    $this->output()->writeln("Re-processing AI Tracker metadata and meta issue detection for all existing AI issues...");
     
     try {
       // Get metadata parser service
@@ -323,15 +323,17 @@ class AiDashboardCommands extends DrushCommands {
         $issue_number = $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : 'unknown';
         $this->output()->write("Processing issue #{$issue_number}... ");
         
-        // Get issue summary
+        $needs_save = false;
+        $parsed_metadata = [];
+
+        // Get issue summary and parse AI Tracker metadata
         if ($issue->hasField('field_issue_summary') && !$issue->get('field_issue_summary')->isEmpty()) {
           $summary = $issue->get('field_issue_summary')->value;
-          
+
           // Parse metadata
           $parsed_metadata = $metadata_parser->parseMetadata($summary);
-          
+
           if (!empty($parsed_metadata)) {
-            $needs_save = false;
             
             // Apply metadata to fields using the same logic as the import service
             foreach ($parsed_metadata as $key => $value) {
@@ -392,18 +394,56 @@ class AiDashboardCommands extends DrushCommands {
               }
             }
             
-            if ($needs_save) {
-              $issue->save();
-              $updated_count++;
-              $this->output()->writeln("✅ Updated with metadata: " . implode(', ', array_keys($parsed_metadata)));
-            } else {
-              $this->output()->writeln("✓ Metadata already current");
+          }
+        }
+
+        // Always check for meta issue detection (regardless of AI Tracker metadata)
+        if ($issue->hasField('field_is_meta_issue')) {
+          $title = $issue->getTitle();
+          $tags = $issue->hasField('field_issue_tags') ? $issue->get('field_issue_tags')->value : '';
+          $tag_array = [];
+          if (!empty($tags)) {
+            foreach (explode(',', $tags) as $tag) {
+              $tag_array[] = trim(strtolower($tag));
             }
+          }
+
+          // Check if this should be a meta issue
+          $should_be_meta = false;
+          if (preg_match('/\[meta\]/i', $title)) {
+            $should_be_meta = true;
           } else {
-            $this->output()->writeln("- No AI Tracker metadata found");
+            foreach ($tag_array as $tag) {
+              if (preg_match('/^meta(\s+issue)?$/i', $tag)) {
+                $should_be_meta = true;
+                break;
+              }
+            }
+          }
+
+          $current_meta = (bool) $issue->get('field_is_meta_issue')->value;
+          if ($current_meta !== $should_be_meta) {
+            $issue->set('field_is_meta_issue', $should_be_meta ? 1 : 0);
+            $needs_save = true;
+            $parsed_metadata['meta_status'] = $should_be_meta ? 'meta' : 'not-meta';
+          }
+        }
+
+        // Save if needed and report results
+        if ($needs_save) {
+          $issue->save();
+          $updated_count++;
+          if (!empty($parsed_metadata)) {
+            $this->output()->writeln("✅ Updated with: " . implode(', ', array_keys($parsed_metadata)));
+          } else {
+            $this->output()->writeln("✅ Updated");
           }
         } else {
-          $this->output()->writeln("- No summary content");
+          if (!empty($parsed_metadata)) {
+            $this->output()->writeln("✓ Already current");
+          } else {
+            $this->output()->writeln("- No updates needed");
+          }
         }
         
         $processed_count++;

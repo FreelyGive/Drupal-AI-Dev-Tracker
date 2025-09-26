@@ -317,19 +317,27 @@ class RoadmapController extends ControllerBase {
     }
 
     $completed = 0;
+    $total = 0; // Count non-meta issues only
     $nodeStorage = $this->entityTypeManager()->getStorage('node');
 
     foreach ($sub_issue_nids as $issue_nid) {
       $issue = $nodeStorage->load($issue_nid);
-      if ($issue && $issue->hasField('field_issue_status') && !$issue->get('field_issue_status')->isEmpty()) {
-        $status = $issue->get('field_issue_status')->value;
-        if ($this->isStatusCompleted($status)) {
-          $completed++;
+      if ($issue) {
+        // Skip meta issues in counts
+        if ($issue->hasField('field_is_meta_issue') && !$issue->get('field_is_meta_issue')->isEmpty() && $issue->get('field_is_meta_issue')->value) {
+          continue;
+        }
+
+        $total++; // Count this non-meta issue
+
+        if ($issue->hasField('field_issue_status') && !$issue->get('field_issue_status')->isEmpty()) {
+          $status = $issue->get('field_issue_status')->value;
+          if ($this->isStatusCompleted($status)) {
+            $completed++;
+          }
         }
       }
     }
-
-    $total = count($sub_issue_nids);
     $percentage = $total > 0 ? round(($completed / $total) * 100) : 0;
 
     return [

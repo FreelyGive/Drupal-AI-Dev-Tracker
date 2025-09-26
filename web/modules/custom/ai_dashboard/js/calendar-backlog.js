@@ -291,6 +291,33 @@
         applyFilters();
       });
 
+      // Handle advanced filters toggle with localStorage persistence
+      const advancedBtn = document.getElementById('calendar-advanced-btn');
+      const advancedSection = document.getElementById('calendar-advanced-filters');
+
+      if (advancedBtn && advancedSection) {
+        // Load saved state from localStorage
+        const savedState = localStorage.getItem('aiDashboard.calendar.advancedVisible');
+        const isVisible = savedState === 'true'; // Default to hidden
+
+        // Apply saved state
+        advancedSection.style.display = isVisible ? 'flex' : 'none';
+        advancedBtn.classList.toggle('active', isVisible);
+
+        // Handle toggle click
+        advancedBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          const isCurrentlyVisible = advancedSection.style.display !== 'none';
+          const newState = !isCurrentlyVisible;
+
+          advancedSection.style.display = newState ? 'flex' : 'none';
+          advancedBtn.classList.toggle('active', newState);
+
+          // Save state to localStorage
+          localStorage.setItem('aiDashboard.calendar.advancedVisible', newState);
+        });
+      }
+
       // Initialize calendar filters
       self.initCalendarFilters();
     },
@@ -299,83 +326,209 @@
      * Initialize calendar filtering functionality.
      */
     initCalendarFilters: function() {
-      var $calendarPriorityFilter = $('#calendar-priority-filter');
-      var $calendarStatusFilter = $('#calendar-status-filter');
       var $calendarTrackFilter = $('#calendar-track-filter');
-      var $calendarWorkstreamFilter = $('#calendar-workstream-filter');
+      var $showMetaIssues = $('#show-meta-issues');
       var $clearCalendarFilters = $('#clear-calendar-filters');
-      
+
+      // Multi-select filters in advanced section
+      var $tagsMulti = $('#calendar-tags-multi');
+      var $priorityMulti = $('#calendar-priority-multi');
+      var $statusMulti = $('#calendar-status-multi');
+      var $workstreamMulti = $('#calendar-workstream-filter');
+
+      // Load saved selections from localStorage
+      function loadFilterState(filterId) {
+        try {
+          const saved = localStorage.getItem(`aiDashboard.calendar.${filterId}`);
+          return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      // Save selections to localStorage
+      function saveFilterState(filterId, values) {
+        try {
+          localStorage.setItem(`aiDashboard.calendar.${filterId}`, JSON.stringify(values));
+        } catch (e) {}
+      }
+
+      // Load saved states for multi-selects
+      if ($tagsMulti.length) {
+        const saved = loadFilterState('tagsMulti');
+        $tagsMulti.find('option').each(function() {
+          this.selected = saved.includes(this.value);
+        });
+      }
+      if ($priorityMulti.length) {
+        const saved = loadFilterState('priority');
+        $priorityMulti.find('option').each(function() {
+          this.selected = saved.includes(this.value);
+        });
+      }
+      if ($statusMulti.length) {
+        const saved = loadFilterState('status');
+        $statusMulti.find('option').each(function() {
+          this.selected = saved.includes(this.value);
+        });
+      }
+      if ($workstreamMulti.length) {
+        const saved = loadFilterState('workstream');
+        $workstreamMulti.find('option').each(function() {
+          this.selected = saved.includes(this.value);
+        });
+      }
+
       // Apply calendar filters when changed
       function applyCalendarFilters() {
-        var priorityFilter = $calendarPriorityFilter.val();
-        var statusFilter = $calendarStatusFilter.val();
         var trackFilter = $calendarTrackFilter.val();
-        var workstreamFilter = $calendarWorkstreamFilter.val();
-        
+        var showMeta = $showMetaIssues.is(':checked');
+
+        // Multi-select values
+        var selectedTags = $tagsMulti.length ? Array.from($tagsMulti[0].selectedOptions).map(o => o.value) : [];
+        var selectedPriorities = $priorityMulti.length ? Array.from($priorityMulti[0].selectedOptions).map(o => o.value) : [];
+        var selectedStatuses = $statusMulti.length ? Array.from($statusMulti[0].selectedOptions).map(o => o.value) : [];
+        var selectedWorkstreams = $workstreamMulti.length ? Array.from($workstreamMulti[0].selectedOptions).map(o => o.value) : [];
+
         $('.issue-card').each(function() {
           var $issue = $(this);
           var show = true;
-          
-          // Priority filter
-          if (priorityFilter && !$issue.hasClass('priority-' + priorityFilter)) {
-            show = false;
-          }
-          
-          // Status filter
-          if (statusFilter && !$issue.hasClass(statusFilter.replace('_', '-'))) {
-            show = false;
-          }
-          
-          // Track filter
+
+          // Track filter (single-select, always visible)
           if (trackFilter) {
             var issueTrack = $issue.find('.issue-track').attr('data-track');
             if (!issueTrack || issueTrack !== trackFilter) {
               show = false;
             }
           }
-          
-          // Workstream filter  
-          if (workstreamFilter) {
-            var issueWorkstream = $issue.find('.issue-workstream').attr('data-workstream');
-            if (!issueWorkstream || issueWorkstream !== workstreamFilter) {
+
+          // Tags filter (multi-select)
+          if (show && selectedTags.length > 0) {
+            // Check if card has any of the selected tags
+            var hasTag = false;
+            var cardTags = [];
+            // Look for tag data in various places
+            if ($issue.data('tags')) {
+              cardTags = $issue.data('tags').toString().split(',').map(t => t.trim());
+            }
+            // Also check for tag elements
+            $issue.find('.issue-tag, .tag').each(function() {
+              cardTags.push($(this).text().trim());
+            });
+
+            hasTag = selectedTags.some(tag => cardTags.includes(tag));
+            if (!hasTag) {
               show = false;
             }
           }
-          
+
+          // Priority filter (multi-select)
+          if (show && selectedPriorities.length > 0) {
+            var hasPriority = selectedPriorities.some(priority => $issue.hasClass('priority-' + priority));
+            if (!hasPriority) {
+              show = false;
+            }
+          }
+
+          // Status filter (multi-select)
+          if (show && selectedStatuses.length > 0) {
+            var hasStatus = selectedStatuses.some(status => $issue.hasClass(status.replace('_', '-')));
+            if (!hasStatus) {
+              show = false;
+            }
+          }
+
+          // Workstream filter (multi-select)
+          if (show && selectedWorkstreams.length > 0) {
+            var issueWorkstream = $issue.find('.issue-workstream').attr('data-workstream');
+            if (!issueWorkstream || !selectedWorkstreams.includes(issueWorkstream)) {
+              show = false;
+            }
+          }
+
+          // Meta filter
+          if (!showMeta && $issue.data('is-meta')) {
+            show = false;
+          }
+
           $issue.toggleClass('calendar-filtered', !show);
         });
-        
+
         // Hide developers with no visible issues
         $('.developer-row').each(function() {
           var $row = $(this);
           var hasVisibleIssues = $row.find('.issue-card:not(.calendar-filtered)').length > 0;
           var hasAvailable = $row.find('.no-issues').length > 0;
-          
+
           $row.toggleClass('developer-filtered', !hasVisibleIssues && !hasAvailable);
         });
-        
+
         // Hide companies with no visible developers
         $('.company-group').each(function() {
           var $group = $(this);
           var hasVisibleDevelopers = $group.find('.developer-row:not(.developer-filtered)').length > 0;
-          
+
           $group.toggleClass('company-filtered', !hasVisibleDevelopers);
         });
       }
-      
-      $calendarPriorityFilter.on('change', applyCalendarFilters);
-      $calendarStatusFilter.on('change', applyCalendarFilters);
+
+      // Bind change events
       $calendarTrackFilter.on('change', applyCalendarFilters);
-      $calendarWorkstreamFilter.on('change', applyCalendarFilters);
-      
-      // Clear calendar filters
-      $clearCalendarFilters.on('click', function() {
-        $calendarPriorityFilter.val('');
-        $calendarStatusFilter.val('');
-        $calendarTrackFilter.val('');
-        $calendarWorkstreamFilter.val('');
+      $showMetaIssues.on('change', applyCalendarFilters);
+
+      // Multi-select change handlers with localStorage
+      $tagsMulti.on('change', function() {
+        const selected = Array.from(this.selectedOptions).map(o => o.value);
+        saveFilterState('tagsMulti', selected);
         applyCalendarFilters();
       });
+
+      $priorityMulti.on('change', function() {
+        const selected = Array.from(this.selectedOptions).map(o => o.value);
+        saveFilterState('priority', selected);
+        applyCalendarFilters();
+      });
+
+      $statusMulti.on('change', function() {
+        const selected = Array.from(this.selectedOptions).map(o => o.value);
+        saveFilterState('status', selected);
+        applyCalendarFilters();
+      });
+
+      $workstreamMulti.on('change', function() {
+        const selected = Array.from(this.selectedOptions).map(o => o.value);
+        saveFilterState('workstream', selected);
+        applyCalendarFilters();
+      });
+
+      // Clear calendar filters
+      $clearCalendarFilters.on('click', function() {
+        $calendarTrackFilter.val('');
+        $showMetaIssues.prop('checked', true); // Reset to showing meta issues
+
+        // Clear multi-selects
+        if ($tagsMulti.length) {
+          $tagsMulti.val([]).trigger('change');
+          localStorage.removeItem('aiDashboard.calendar.tagsMulti');
+        }
+        if ($priorityMulti.length) {
+          $priorityMulti.val([]).trigger('change');
+          localStorage.removeItem('aiDashboard.calendar.priority');
+        }
+        if ($statusMulti.length) {
+          $statusMulti.val([]).trigger('change');
+          localStorage.removeItem('aiDashboard.calendar.status');
+        }
+        if ($workstreamMulti.length) {
+          $workstreamMulti.val([]).trigger('change');
+          localStorage.removeItem('aiDashboard.calendar.workstream');
+        }
+
+        applyCalendarFilters();
+      });
+
+      // Initial filter application
+      applyCalendarFilters();
     },
 
     /**

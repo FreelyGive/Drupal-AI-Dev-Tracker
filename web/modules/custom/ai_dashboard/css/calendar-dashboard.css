@@ -1505,7 +1505,64 @@ body.path-ai-dashboard {
   display: none;
 }
 
-/* Calendar Filters */
+/* Main Filters (always visible) */
+.calendar-main-filters {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Advanced Filters Button */
+.advanced-filters-btn {
+  margin-left: auto;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.advanced-filters-btn:hover {
+  background: #e5e7eb;
+}
+
+.advanced-filters-btn .toggle-arrow {
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.advanced-filters-btn.active .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+/* Advanced Filters Section */
+.calendar-advanced-filters {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0 1rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  transition: all 0.3s ease;
+}
+
+/* Calendar Filters Section (legacy) */
 .calendar-filters {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -1518,6 +1575,8 @@ body.path-ai-dashboard {
   flex-wrap: wrap;
 }
 
+.calendar-main-filters .filter-group,
+.calendar-advanced-filters .filter-group,
 .calendar-filters .filter-group {
   display: flex;
   align-items: center;
@@ -1623,7 +1682,9 @@ body.path-ai-dashboard {
     align-items: flex-start;
   }
   
-  .calendar-filters .filter-group {
+  .calendar-main-filters .filter-group,
+.calendar-advanced-filters .filter-group,
+.calendar-filters .filter-group {
     width: 100%;
     justify-content: space-between;
   }
@@ -1874,4 +1935,33 @@ body.path-ai-dashboard {
     font-size: 0.625rem;
     padding: 0.1875rem 0.25rem;
   }
+}
+
+/* Multi-select styles for calendar advanced filters */
+.calendar-advanced-filters .multi-select {
+  min-height: 60px;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+}
+
+.calendar-advanced-filters .multi-select option {
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.calendar-advanced-filters .multi-select option:hover {
+  background-color: #f3f4f6;
+}
+
+.calendar-advanced-filters .multi-select option:checked {
+  background-color: #e5e7eb;
+  font-weight: 500;
+}
+
+.calendar-advanced-filters .filter-help {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 1rem;
+  font-style: italic;
 }

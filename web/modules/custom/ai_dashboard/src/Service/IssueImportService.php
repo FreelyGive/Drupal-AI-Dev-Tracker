@@ -1228,6 +1228,33 @@ class IssueImportService {
   }
 
   /**
+   * Detect if an issue should be marked as meta.
+   *
+   * @param string $title
+   *   The issue title.
+   * @param array $tags
+   *   The issue tags.
+   *
+   * @return bool
+   *   TRUE if the issue should be marked as meta.
+   */
+  protected function detectMetaIssue(string $title, array $tags = []): bool {
+    // Check if title contains [META] or [Meta] or [meta] (case-insensitive)
+    if (preg_match('/\[meta\]/i', $title)) {
+      return TRUE;
+    }
+
+    // Check if tags contain 'meta' or 'Meta issue' (case-insensitive)
+    foreach ($tags as $tag) {
+      if (is_string($tag) && preg_match('/^meta(\s+issue)?$/i', $tag)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Create new issue.
    */
   protected function createIssue(array $mapped_data): Node {
@@ -1258,6 +1285,12 @@ class IssueImportService {
     }
     if (!empty($mapped_data['assignee_id'])) {
       $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
+
+    // Detect and set meta issue flag
+    if ($issue->hasField('field_is_meta_issue')) {
+      $is_meta = $this->detectMetaIssue($mapped_data['title'], $mapped_data['tags'] ?? []);
+      $issue->set('field_is_meta_issue', $is_meta ? 1 : 0);
     }
 
     // Set dashboard category from import config audiences or mapped flag.
@@ -1366,6 +1399,12 @@ class IssueImportService {
     }
     if (!empty($mapped_data['assignee_id'])) {
       $issue->set('field_issue_assignees', $mapped_data['assignee_id']);
+    }
+
+    // Detect and update meta issue flag
+    if ($issue->hasField('field_is_meta_issue')) {
+      $is_meta = $this->detectMetaIssue($mapped_data['title'], $mapped_data['tags'] ?? []);
+      $issue->set('field_is_meta_issue', $is_meta ? 1 : 0);
     }
 
     // Update dashboard category as well.

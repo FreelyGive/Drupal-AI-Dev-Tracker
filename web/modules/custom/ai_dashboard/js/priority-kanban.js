@@ -15,6 +15,32 @@
       const kanbanBoard = once('ai-priority-kanban', '.ai-priority-kanban', context);
 
       if (kanbanBoard.length) {
+        // Handle advanced filters toggle with localStorage persistence
+        const advancedBtn = document.getElementById('advanced-filters-btn');
+        const advancedSection = document.getElementById('kanban-advanced-filters');
+
+        if (advancedBtn && advancedSection) {
+          // Load saved state from localStorage
+          const savedState = localStorage.getItem('aiDashboard.kanban.advancedVisible');
+          const isVisible = savedState === 'true'; // Default to hidden
+
+          // Apply saved state
+          advancedSection.style.display = isVisible ? 'flex' : 'none';
+          advancedBtn.classList.toggle('active', isVisible);
+
+          // Handle toggle click
+          advancedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isCurrentlyVisible = advancedSection.style.display !== 'none';
+            const newState = !isCurrentlyVisible;
+
+            advancedSection.style.display = newState ? 'flex' : 'none';
+            advancedBtn.classList.toggle('active', newState);
+
+            // Save state to localStorage
+            localStorage.setItem('aiDashboard.kanban.advancedVisible', newState);
+          });
+        }
         // Auto-apply tag filter on change
         const tagForm = document.querySelector('.tag-filter-form');
         const tagSelect = document.getElementById('kanban-tag-filter');
@@ -97,12 +123,225 @@
               localStorage.removeItem('aiDashboard.kanban.mainColumnsHidden');
               localStorage.removeItem('aiDashboard.kanban.selectedTag');
               localStorage.removeItem('aiDashboard.kanban.selectedProject');
+              localStorage.removeItem('aiDashboard.kanban.showMetaIssues');
+              // Clear multi-select filters
+              localStorage.removeItem('aiDashboard.kanban.tagsMulti');
+              localStorage.removeItem('aiDashboard.kanban.priority');
+              localStorage.removeItem('aiDashboard.kanban.status');
+              localStorage.removeItem('aiDashboard.kanban.track');
+              localStorage.removeItem('aiDashboard.kanban.workstream');
             } catch (err) {}
             // Navigate without parameters - server will apply defaults
             window.location.href = '/ai-dashboard/priority-kanban';
           });
         }
         // Tags filter handled server-side via GET params.
+
+        // Initialize advanced multi-select filters
+        function initAdvancedFilters() {
+          const tagsMulti = document.getElementById('kanban-tags-multi');
+          const priorityFilter = document.getElementById('kanban-priority-filter');
+          const statusFilter = document.getElementById('kanban-status-filter');
+          const trackFilter = document.getElementById('kanban-track-filter');
+          const workstreamFilter = document.getElementById('kanban-workstream-filter');
+
+          // Load saved selections from localStorage
+          function loadFilterState(filterId) {
+            try {
+              const saved = localStorage.getItem(`aiDashboard.kanban.${filterId}`);
+              return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+              return [];
+            }
+          }
+
+          // Save selections to localStorage
+          function saveFilterState(filterId, values) {
+            try {
+              localStorage.setItem(`aiDashboard.kanban.${filterId}`, JSON.stringify(values));
+            } catch (e) {}
+          }
+
+          // Apply saved selections
+          if (tagsMulti) {
+            const saved = loadFilterState('tagsMulti');
+            Array.from(tagsMulti.options).forEach(opt => {
+              opt.selected = saved.includes(opt.value);
+            });
+          }
+          if (priorityFilter) {
+            const saved = loadFilterState('priority');
+            Array.from(priorityFilter.options).forEach(opt => {
+              opt.selected = saved.includes(opt.value);
+            });
+          }
+          if (statusFilter) {
+            const saved = loadFilterState('status');
+            Array.from(statusFilter.options).forEach(opt => {
+              opt.selected = saved.includes(opt.value);
+            });
+          }
+          if (trackFilter) {
+            const saved = loadFilterState('track');
+            Array.from(trackFilter.options).forEach(opt => {
+              opt.selected = saved.includes(opt.value);
+            });
+          }
+          if (workstreamFilter) {
+            const saved = loadFilterState('workstream');
+            Array.from(workstreamFilter.options).forEach(opt => {
+              opt.selected = saved.includes(opt.value);
+            });
+          }
+
+          // Apply all filters
+          function applyFilters() {
+            const selectedTags = tagsMulti ? Array.from(tagsMulti.selectedOptions).map(o => o.value) : [];
+            const selectedPriorities = priorityFilter ? Array.from(priorityFilter.selectedOptions).map(o => o.value) : [];
+            const selectedStatuses = statusFilter ? Array.from(statusFilter.selectedOptions).map(o => o.value) : [];
+            const selectedTracks = trackFilter ? Array.from(trackFilter.selectedOptions).map(o => o.value) : [];
+            const selectedWorkstreams = workstreamFilter ? Array.from(workstreamFilter.selectedOptions).map(o => o.value) : [];
+            const showMeta = document.getElementById('show-meta-issues').checked;
+
+            const issueCards = document.querySelectorAll('.issue-card');
+
+            issueCards.forEach(card => {
+              let shouldShow = true;
+
+              // Meta filter
+              const isMeta = card.dataset.isMeta === '1';
+              if (!showMeta && isMeta) {
+                shouldShow = false;
+              }
+
+              // Tags filter (match ANY selected tag)
+              if (shouldShow && selectedTags.length > 0) {
+                // Extract tags from the card - look for tag elements or data attributes
+                const cardTags = [];
+                // Check if card has tags stored in dataset or find tag elements
+                const tagElements = card.querySelectorAll('.issue-tag, .tag');
+                tagElements.forEach(tagEl => {
+                  cardTags.push(tagEl.textContent.trim());
+                });
+                // Also check data attributes if present
+                if (card.dataset.tags) {
+                  cardTags.push(...card.dataset.tags.split(',').map(t => t.trim()));
+                }
+
+                if (!selectedTags.some(tag => cardTags.includes(tag))) {
+                  shouldShow = false;
+                }
+              }
+
+              // Priority filter
+              if (shouldShow && selectedPriorities.length > 0) {
+                const cardPriority = card.querySelector('.issue-priority')?.textContent.toLowerCase();
+                if (!selectedPriorities.includes(cardPriority)) {
+                  shouldShow = false;
+                }
+              }
+
+              // Status filter
+              if (shouldShow && selectedStatuses.length > 0) {
+                const cardStatus = card.querySelector('.issue-status')?.textContent.toLowerCase().replace(/ /g, '-');
+                if (!selectedStatuses.includes(cardStatus)) {
+                  shouldShow = false;
+                }
+              }
+
+              // Track filter
+              if (shouldShow && selectedTracks.length > 0) {
+                const trackEl = card.querySelector('.issue-track');
+                const cardTrack = trackEl ? trackEl.dataset.track : null;
+                if (!cardTrack || !selectedTracks.includes(cardTrack)) {
+                  shouldShow = false;
+                }
+              }
+
+              // Workstream filter
+              if (shouldShow && selectedWorkstreams.length > 0) {
+                const workstreamEl = card.querySelector('.issue-workstream');
+                const cardWorkstream = workstreamEl ? workstreamEl.dataset.workstream : null;
+                if (!cardWorkstream || !selectedWorkstreams.includes(cardWorkstream)) {
+                  shouldShow = false;
+                }
+              }
+
+              card.style.display = shouldShow ? '' : 'none';
+            });
+
+            // Update column counts
+            document.querySelectorAll('.kanban-column').forEach(column => {
+              const visibleIssues = column.querySelectorAll('.issue-card:not([style*="display: none"])').length;
+              const countSpan = column.querySelector('.column-count');
+              if (countSpan) {
+                countSpan.textContent = `(${visibleIssues})`;
+              }
+            });
+          }
+
+          // Add change listeners
+          if (tagsMulti) {
+            tagsMulti.addEventListener('change', () => {
+              const selected = Array.from(tagsMulti.selectedOptions).map(o => o.value);
+              saveFilterState('tagsMulti', selected);
+              applyFilters();
+            });
+          }
+          if (priorityFilter) {
+            priorityFilter.addEventListener('change', () => {
+              const selected = Array.from(priorityFilter.selectedOptions).map(o => o.value);
+              saveFilterState('priority', selected);
+              applyFilters();
+            });
+          }
+          if (statusFilter) {
+            statusFilter.addEventListener('change', () => {
+              const selected = Array.from(statusFilter.selectedOptions).map(o => o.value);
+              saveFilterState('status', selected);
+              applyFilters();
+            });
+          }
+          if (trackFilter) {
+            trackFilter.addEventListener('change', () => {
+              const selected = Array.from(trackFilter.selectedOptions).map(o => o.value);
+              saveFilterState('track', selected);
+              applyFilters();
+            });
+          }
+          if (workstreamFilter) {
+            workstreamFilter.addEventListener('change', () => {
+              const selected = Array.from(workstreamFilter.selectedOptions).map(o => o.value);
+              saveFilterState('workstream', selected);
+              applyFilters();
+            });
+          }
+
+          // Initial filter application
+          applyFilters();
+        }
+
+        // Initialize meta issues filter
+        const showMetaCheckbox = document.getElementById('show-meta-issues');
+        if (showMetaCheckbox) {
+          // Load saved preference
+          const savedState = localStorage.getItem('aiDashboard.kanban.showMetaIssues');
+          if (savedState !== null) {
+            showMetaCheckbox.checked = savedState === 'true';
+          }
+
+          // Handle checkbox change
+          showMetaCheckbox.addEventListener('change', () => {
+            localStorage.setItem('aiDashboard.kanban.showMetaIssues', showMetaCheckbox.checked);
+            // Trigger the advanced filters which now handle meta filtering
+            if (document.getElementById('kanban-advanced-filters')) {
+              initAdvancedFilters();
+            }
+          });
+        }
+
+        // Initialize advanced filters
+        initAdvancedFilters();
 
         // Initialize a toggle menu for columns (optional/main)
         function initColumnMenu(menuId, storageKey, mode) {
