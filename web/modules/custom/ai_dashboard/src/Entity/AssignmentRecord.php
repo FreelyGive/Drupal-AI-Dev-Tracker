@@ -184,7 +184,7 @@ class AssignmentRecord extends ContentEntityBase implements ContentEntityInterfa
     }
 
     $week_date = self::weekIdToDate($week_id);
-    
+
     $assignment = self::create([
       'issue_id' => $issue_id,
       'assignee_id' => $assignee_id,
@@ -196,6 +196,27 @@ class AssignmentRecord extends ContentEntityBase implements ContentEntityInterfa
     ]);
 
     $assignment->save();
+
+    // Now populate username and organization if we have an assignee_id
+    if ($assignee_id) {
+      $database = \Drupal::database();
+      $contributor = \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->load($assignee_id);
+
+      if ($contributor && $contributor->hasField('field_drupal_username')) {
+        $username = $contributor->get('field_drupal_username')->value;
+
+        // Update the record with username
+        if ($username) {
+          $database->update('assignment_record')
+            ->fields(['assignee_username' => $username])
+            ->condition('id', $assignment->id())
+            ->execute();
+        }
+      }
+    }
+
     return $assignment;
   }
 

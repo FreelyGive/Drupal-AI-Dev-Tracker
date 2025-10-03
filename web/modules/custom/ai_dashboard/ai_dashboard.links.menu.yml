@@ -59,3 +59,10 @@ ai_dashboard.projects_menu:
   description: 'View AI Projects and Gantt prototypes'
   route_name: ai_dashboard.projects
   parent: ai_dashboard.admin
+
+ai_dashboard.reports_menu:
+  title: 'Reports'
+  description: 'View AI Dashboard reports and analytics'
+  route_name: ai_dashboard.reports
+  parent: ai_dashboard.admin
+  weight: 60

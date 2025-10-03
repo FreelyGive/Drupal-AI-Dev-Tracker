@@ -1455,6 +1455,76 @@ class CalendarController extends ControllerBase {
         }
       }
 
+      // Now handle untracked users - find issues with do_assignee but no local contributor
+      $untracked_query = $node_storage->getQuery()
+        ->condition('type', 'ai_issue')
+        ->exists('field_issue_do_assignee')
+        ->condition('field_issue_status', ['active', 'needs_review', 'needs_work', 'rtbc'], 'IN')
+        ->accessCheck(FALSE);
+
+      $all_assigned_issues = $untracked_query->execute();
+      $untracked_synced = 0;
+
+      if (!empty($all_assigned_issues)) {
+        $assigned_issues = $node_storage->loadMultiple($all_assigned_issues);
+        $database = \Drupal::database();
+
+        foreach ($assigned_issues as $issue) {
+          $do_assignee = $issue->get('field_issue_do_assignee')->value;
+          if (empty($do_assignee)) {
+            continue;
+          }
+
+          // Check if we have a contributor for this username
+          $contributor_query = $node_storage->getQuery()
+            ->condition('type', 'ai_contributor')
+            ->condition('field_drupal_username', $do_assignee)
+            ->accessCheck(FALSE)
+            ->range(0, 1);
+
+          $contributor_ids = $contributor_query->execute();
+
+          // If no contributor found, create assignment record with username only
+          if (empty($contributor_ids)) {
+            $week_id = \Drupal\ai_dashboard\Entity\AssignmentRecord::dateToWeekId($assignment_date);
+
+            // Check if we already have an assignment record for this issue/username/week
+            $existing = $database->select('assignment_record', 'ar')
+              ->fields('ar', ['id'])
+              ->condition('issue_id', $issue->id())
+              ->condition('assignee_username', $do_assignee)
+              ->condition('week_id', $week_id)
+              ->execute()
+              ->fetchField();
+
+            if (!$existing) {
+              // Create assignment record without assignee_id
+              $issue_status = $issue->hasField('field_issue_status') ? $issue->get('field_issue_status')->value : 'active';
+
+              // Try to get organization from drupal.org API (cached)
+              $organization = $this->getUserOrganization($do_assignee);
+
+              $database->insert('assignment_record')
+                ->fields([
+                  'issue_id' => $issue->id(),
+                  'assignee_id' => NULL,
+                  'assignee_username' => $do_assignee,
+                  'assignee_organization' => $organization,
+                  'week_id' => $week_id,
+                  'week_date' => $assignment_date_string,
+                  'issue_status_at_assignment' => $issue_status,
+                  'assigned_date' => time(),
+                  'source' => 'drupal_org_sync',
+                ])
+                ->execute();
+
+              $untracked_synced++;
+              $total_synced++;
+            }
+          }
+        }
+      }
+
       // Update tag mappings for all synced issues (remove duplicates).
       $unique_issues = [];
       foreach ($all_synced_issues as $issue) {
@@ -1467,6 +1537,9 @@ class CalendarController extends ControllerBase {
 
       // Create response with no-cache headers.
       $message = "Synced {$total_synced} issue" . ($total_synced != 1 ? 's' : '') . " from drupal.org for {$developers_synced} developer" . ($developers_synced != 1 ? 's' : '');
+      if ($untracked_synced > 0) {
+        $message .= " and {$untracked_synced} untracked user" . ($untracked_synced != 1 ? 's' : '');
+      }
       if ($mappings_updated > 0) {
         $message .= ". Updated {$mappings_updated} issue" . ($mappings_updated != 1 ? 's' : '') . " with tag mappings";
       }
@@ -1615,11 +1688,112 @@ class CalendarController extends ControllerBase {
   }
 
   /**
+   * Get user organization from drupal.org API with caching.
+   */
+  protected function getUserOrganization(string $username): ?string {
+    // Cache organizations to avoid repeated API calls
+    static $org_cache = [];
+
+    if (isset($org_cache[$username])) {
+      return $org_cache[$username];
+    }
+
+    // Use state API for persistent caching (1 week)
+    $cache_key = 'ai_dashboard.user_org.' . $username;
+    $cached = \Drupal::state()->get($cache_key);
+
+    if ($cached && isset($cached['time']) && (time() - $cached['time']) < 604800) {
+      $org_cache[$username] = $cached['org'];
+      return $cached['org'];
+    }
+
+    // Fetch from API - we need to find user by username first
+    try {
+      // Search for user by name
+      $client = \Drupal::httpClient();
+      $response = $client->get('https://www.drupal.org/api-d7/user.json?name=' . urlencode($username), [
+        'headers' => ['Accept' => 'application/json'],
+        'timeout' => 5,
+      ]);
+
+      $data = json_decode($response->getBody(), TRUE);
+
+      if (!empty($data['list']) && is_array($data['list'])) {
+        $user = reset($data['list']);
+        $organization = NULL;
+
+        // Check field_organizations - contains field_collection_item references
+        if (!empty($user['field_organizations']) && is_array($user['field_organizations'])) {
+          $org_names = [];
+          foreach ($user['field_organizations'] as $item) {
+            if (!empty($item['id'])) {
+              // Fetch the field collection item
+              try {
+                $item_response = $client->get('https://www.drupal.org/api-d7/field_collection_item/' . $item['id'] . '.json', [
+                  'headers' => ['Accept' => 'application/json'],
+                  'timeout' => 5,
+                ]);
+                $item_data = json_decode($item_response->getBody(), TRUE);
+
+                // Get organization name from field_organization_name
+                // Also check field_current to get current organization
+                if (!empty($item_data['field_organization_name'])) {
+                  $is_current = !empty($item_data['field_current']);
+                  $org_name = $item_data['field_organization_name'];
+
+                  // Prioritize current organizations
+                  if ($is_current) {
+                    array_unshift($org_names, $org_name);
+                  } else {
+                    $org_names[] = $org_name;
+                  }
+                }
+              }
+              catch (\Exception $e) {
+                // Skip if we can't fetch this item
+                continue;
+              }
+            }
+          }
+
+          if (!empty($org_names)) {
+            // Return only the first (current) organization
+            $organization = reset($org_names);
+          }
+        }
+
+        // Also check field_current_company as fallback
+        if (empty($organization) && !empty($user['field_current_company']['und'][0]['value'])) {
+          $organization = $user['field_current_company']['und'][0]['value'];
+        }
+
+        // Cache the result
+        \Drupal::state()->set($cache_key, ['org' => $organization, 'time' => time()]);
+        $org_cache[$username] = $organization;
+
+        return $organization;
+      }
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_dashboard')->warning('Failed to fetch organization for @user: @error', [
+        '@user' => $username,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
+    // Cache negative result too
+    \Drupal::state()->set($cache_key, ['org' => NULL, 'time' => time()]);
+    $org_cache[$username] = NULL;
+
+    return NULL;
+  }
+
+  /**
    * Update tag mappings for given issues.
-   * 
+   *
    * @param array $issues
    *   Array of AI Issue nodes to update.
-   * 
+   *
    * @return int
    *   Number of issues updated.
    */

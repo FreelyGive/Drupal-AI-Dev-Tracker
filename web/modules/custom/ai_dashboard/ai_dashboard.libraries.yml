@@ -179,3 +179,15 @@ roadmap:
     - core/jquery
     - ai_dashboard/shared_components
     - ai_dashboard/sortable
+
+reports:
+  version: 1.x
+  css:
+    theme:
+      css/reports.css: {}
+  js:
+    js/reports.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

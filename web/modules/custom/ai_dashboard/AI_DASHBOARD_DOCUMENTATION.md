@@ -620,7 +620,100 @@ Built using Drupal Views with exposed filters:
 
 ### Pending Items (Planning)
 - Validate check‑in date workflows end‑to‑end.
-- “Blocker issue” detection (reverse dependency) and blocker‑based sorting.
+- "Blocker issue" detection (reverse dependency) and blocker‑based sorting.
+
+## Reports System
+
+### Overview
+The AI Dashboard includes a comprehensive reporting system accessible at `/ai-dashboard/reports`. The system provides detailed insights into module contributions, untracked users, and import configurations.
+
+### Available Reports
+
+#### 1. Untracked Users Report
+**Route**: `/ai-dashboard/reports/untracked-users`
+**Purpose**: Identify users assigned to issues on drupal.org who don't have contributor profiles in the AI Dashboard
+
+**Features**:
+- **Date Filtering**: Filter by assignment periods (This Week, Last Week, This Month, Last Month, Custom Range, All Time)
+- **Organization Display**: Shows drupal.org organizations fetched from API
+- **Assignment Tracking**: Displays all assignment periods for each user/issue combination
+- **CSV Export**: Export filtered results in CSV format with copy-to-clipboard functionality
+- **Issue Links**: Direct links to both AI Tracker edit pages and drupal.org issue pages
+
+**Data Sources**:
+- Pulls from `assignment_record` table for historical assignment accuracy
+- Fetches organization data from drupal.org API with 1-week caching
+- Intelligently groups and displays assignment date ranges
+
+#### 2. Import Configurations Report
+**Route**: `/ai-dashboard/reports/import-configs`
+**Purpose**: View all API import configurations and their current settings
+
+**Features**:
+- Displays source type, project ID, status filters, and max issues
+- Shows active/inactive status for each configuration
+- Links to edit each import configuration
+
+### Technical Implementation
+
+#### Controllers
+**ReportsController** (`src/Controller/ReportsController.php`):
+- `untrackedUsers()`: Generates untracked users report with date filtering
+- `importConfigs()`: Lists all import configurations
+- Handles date range calculations and organization fetching
+
+#### Forms
+**UntrackedUsersFilterForm** (`src/Form/UntrackedUsersFilterForm.php`):
+- Provides date range filtering with GET method submission
+- JavaScript-enhanced form submission for proper parameter handling
+- Custom date range picker with show/hide logic
+
+#### Database Schema
+**assignment_record table enhancements**:
+- `assignee_username`: Stores drupal.org username (indexed)
+- `assignee_organization`: Stores organization name from drupal.org API
+- Update hook 9043 adds these fields with proper indexes
+
+#### Organization Fetching
+Organizations are fetched from drupal.org API during import operations:
+- API endpoint: `https://www.drupal.org/api-d7/user/{username}.json`
+- Handles field_collection_item references for organization data
+- Cached in Drupal State API for 1 week to optimize performance
+- Rate limited with 0.5 second delays between API calls
+
+#### JavaScript Enhancement
+**reports.js** (`js/reports.js`):
+- Handles form submission with URLSearchParams
+- Manages custom date field visibility
+- Implements copy-to-clipboard functionality for CSV export
+- Preserves filter selections across page loads
+
+#### CSS Styling
+**reports.css** (`css/reports.css`):
+- Clean, professional styling for reports
+- Responsive tables with proper hover effects
+- Button styling with success state feedback
+- Filter form styling with inline date fields
+
+### Date Filtering Logic
+The untracked users report filters based on assignment dates, not issue modification dates:
+- Queries filter on `assigned_date` field in assignment_record table
+- Supports standard date ranges (week, month) and custom date ranges
+- Date calculations use MySQL date functions for accuracy
+
+### CSV Export Format
+CSV output includes the following columns:
+1. Username (with drupal.org link)
+2. Organization (from cached API data)
+3. Issue Number (with links to AI Tracker and drupal.org)
+4. Issue Title
+5. Assignment Period (intelligently formatted date ranges)
+
+### Integration with Import System
+The organization fetching is integrated into the main import workflow:
+- `import-all` command automatically fetches organizations for new assignments
+- `--full-from` parameter clears organization cache for complete refresh
+- Organizations stored on assignment_record for historical accuracy
 
 ## API Integration Plan
 

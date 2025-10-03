@@ -3977,3 +3977,78 @@ function ai_dashboard_update_9042() {
 
   return t('Could not load AI Issue form display.');
 }
+
+/**
+ * Add username and organization fields to assignment_record table.
+ */
+function ai_dashboard_update_9043() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  // Add assignee_username field
+  if (!$schema->fieldExists('assignment_record', 'assignee_username')) {
+    $spec = [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Drupal.org username of the assignee',
+    ];
+    $schema->addField('assignment_record', 'assignee_username', $spec);
+
+    // Add index for username lookups
+    $schema->addIndex('assignment_record', 'assignee_username', ['assignee_username'], [
+      'fields' => [
+        'assignee_username' => [
+          'length' => 191,
+        ],
+      ],
+    ]);
+  }
+
+  // Add assignee_organization field
+  if (!$schema->fieldExists('assignment_record', 'assignee_organization')) {
+    $spec = [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Organization of the assignee at time of assignment',
+    ];
+    $schema->addField('assignment_record', 'assignee_organization', $spec);
+
+    // Add index for organization lookups
+    $schema->addIndex('assignment_record', 'assignee_organization', ['assignee_organization'], [
+      'fields' => [
+        'assignee_organization' => [
+          'length' => 191,
+        ],
+      ],
+    ]);
+  }
+
+  // Populate usernames for existing records that have assignee_id
+  $query = $database->select('assignment_record', 'ar')
+    ->fields('ar', ['id', 'assignee_id'])
+    ->condition('assignee_id', 0, '>')
+    ->isNull('assignee_username');
+
+  $results = $query->execute();
+
+  foreach ($results as $record) {
+    // Load the contributor node to get the username
+    $contributor = \Drupal::entityTypeManager()
+      ->getStorage('node')
+      ->load($record->assignee_id);
+
+    if ($contributor && $contributor->hasField('field_drupal_username')) {
+      $username = $contributor->get('field_drupal_username')->value;
+      if ($username) {
+        $database->update('assignment_record')
+          ->fields(['assignee_username' => $username])
+          ->condition('id', $record->id)
+          ->execute();
+      }
+    }
+  }
+
+  return t('Added username and organization fields to assignment_record table and populated existing usernames.');
+}

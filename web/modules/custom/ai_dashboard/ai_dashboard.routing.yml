@@ -425,3 +425,27 @@ ai_dashboard.deliverable_burndown_data:
     _access: 'TRUE'
     node: \d+
   methods: [GET]
+
+ai_dashboard.reports:
+  path: '/ai-dashboard/reports'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ReportsController::overview'
+    _title: 'AI Dashboard Reports'
+  requirements:
+    _permission: 'administer ai dashboard content'
+
+ai_dashboard.reports.import_configs:
+  path: '/ai-dashboard/reports/import-configs'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ReportsController::importConfigs'
+    _title: 'Import Configurations Report'
+  requirements:
+    _access: 'TRUE'
+
+ai_dashboard.reports.untracked_users:
+  path: '/ai-dashboard/reports/untracked-users'
+  defaults:
+    _controller: '\Drupal\ai_dashboard\Controller\ReportsController::untrackedUsers'
+    _title: 'Untracked Users Report'
+  requirements:
+    _permission: 'administer ai dashboard content'

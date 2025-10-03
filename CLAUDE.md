@@ -37,7 +37,9 @@ This project uses **DDEV** for local development with deployment to **Drupal For
   - Use developer's name and email for commits
   - Include mention of Claude/AI assistance in commit descriptions when applicable
   - **NEVER stage changes (`git add`) until user has tested and explicitly asked for commit**
+  - **NEVER commit changes until user explicitly confirms with phrases like "yes commit" or "go ahead and commit"**
   - Always let user verify functionality before staging files
+  - Wait for explicit confirmation before committing
 
 ## Common Commands
 
@@ -323,6 +325,42 @@ An issue is considered "in a project" if ANY of these conditions are met:
 - Progress bar (if project has sub-issues)
 - Assignees (for Now/Next columns)
 
+### Reports System
+
+#### Reports Overview
+- **URL**: `/ai-dashboard/reports` - Main reports listing page
+- **Menu Location**: Under "Reports" in main navigation
+- **Available Reports**: Import configurations status, untracked users analysis
+
+#### Untracked Users Report
+- **URL**: `/ai-dashboard/reports/untracked-users`
+- **Purpose**: Identifies drupal.org users assigned to issues but not in the contributor database
+- **Data Source**: `assignment_record` table entries where `assignee_id` is NULL but `assignee_username` exists
+
+**Features**:
+- **Date Filtering**: Filter by assignment date (This Week, Last Week, This Month, Last Month, Custom Range)
+- **Organization Display**: Shows organization from drupal.org API (cached for 1 week)
+- **Assignment Period**:
+  - Single date shown as "Oct 3, 2025"
+  - Two dates shown as "Sep 30, Oct 3, 2025" (indicates non-continuous)
+  - Multiple dates listed up to 4, then shows range with day count for sparse assignments
+- **CSV Export**: Copy-to-clipboard functionality for data export
+- **Issue Links**: Each issue number links to both AI Tracker edit page and drupal.org
+
+**Technical Details**:
+- **Organization Fetching**:
+  - Retrieves from drupal.org API `field_organizations` field collection items
+  - Stores in `assignee_organization` field on assignment_record
+  - Rate limited to 0.5s between API calls
+  - Prioritizes current organizations from API response
+- **Assignment Tracking**:
+  - `assignee_username` and `assignee_organization` fields added to assignment_record entity
+  - Organization captured at time of assignment for historical accuracy
+  - Automatically populated during drupal.org sync operations
+- **Performance**:
+  - Organizations cached using Drupal State API with 1-week TTL
+  - Database indexes on username and organization fields for query performance
+
 ### Database Update Hooks
 - `ai_dashboard_update_9037()` - **Production update**: Adds project kanban features including:
   - Project issue ordering table (`ai_dashboard_project_issue`)
@@ -346,7 +384,13 @@ An issue is considered "in a project" if ANY of these conditions are met:
   - Drops and recreates table with correct column names
   - Ensures proper primary key and indexes
 
-**Note**: Earlier update hooks (8001-9036, 9038) were development iterations and are not needed for production deployment.
+- `ai_dashboard_update_9043()` - **Production update**: Adds untracked user organization tracking:
+  - Adds `assignee_username` field to assignment_record table
+  - Adds `assignee_organization` field to assignment_record table
+  - Creates database indexes for efficient querying
+  - Populates usernames for existing tracked contributors
+
+**Note**: Earlier update hooks (8001-9036, 9038, 9042) were development iterations and are not needed for production deployment.
 
 ### Permissions
 - **View**: Public access to dashboard views
@@ -415,31 +459,72 @@ SIMPLETEST_BASE_URL=https://drupalcmsaitest1.ddev.site SIMPLETEST_DB=mysql://db:
 
 ### Current AI Dashboard Drush Commands
 
+#### Import & Sync Commands (Run Hourly)
 ```bash
-# Import all active issue configurations (with automatic metadata + tag processing)
+# Import all active issue configurations with automatic processing
+# - Imports new/updated issues from drupal.org
+# - Automatically processes metadata and tag mappings
+# - Syncs assignments from drupal.org
+# - Fetches organizations for new untracked users
 drush ai-dashboard:import-all
 
-# Import single configuration (with automatic metadata + tag processing) 
+# Import with full refresh from specific date
+# - Reprocesses ALL issues changed since the date
+# - Refreshes organization data for all users
+drush ai-dashboard:import-all --full-from=2025-01-01
+
+# Import single configuration
 drush ai-dashboard:import all_open_active_issues
 drush ai-dashboard:import openai_provider
 drush ai-dashboard:import ai_agents
 
-# Import with date filter (issues changed since specific date)
+# Import single config with date filter
 drush ai-dashboard:import all_open_active_issues --full-from=2025-01-01
+```
 
-# Manual reprocessing of metadata for ALL existing issues (debugging)
+#### Maintenance & Cleanup Commands (Manual)
+```bash
+# Process AI Tracker metadata for ALL existing issues
+# - Extracts metadata from issue summaries
+# - Updates due dates, check-in dates, collaborators, etc.
 drush ai-dashboard:process-metadata
 
-# Manual reapplication of tag mappings to ALL existing issues  
+# Update tag mappings for ALL existing issues
+# - Reapplies current tag mapping configuration
 drush ai-dashboard:update-tag-mappings
+
+# Update organization data for untracked users
+# - Fetches from drupal.org API for users without organizations
+drush ai-dashboard:update-organizations
+
+# Refresh all organization data from specific date
+drush ai-dashboard:update-organizations --full-from=2025-01-01
 
 # Sync drupal.org assignments for current week
 drush ai-dashboard:sync-assignments
 ```
 
-### Command Integration Notes
+### Command Philosophy & Integration
 
-- **Metadata processing** - Automatic during every import via MetadataParserService
-- **Tag mapping** - Automatic during every import via TagMappingService
-- **Manual commands** - Use `process-metadata` and `update-tag-mappings` for bulk updates to existing issues
-- **Import commands** - Handle metadata and tag processing automatically for new/updated issues
+- **`import-all` (Hourly Cron)**: Primary command for keeping data fresh
+  - Handles new issues and updates automatically
+  - Includes all processing (metadata, tags, assignments)
+  - Fetches organizations for untracked users without existing data
+  - Use `--full-from` to reprocess historical data and refresh organizations
+
+- **Manual Commands**: For specific maintenance tasks
+  - `process-metadata`: Reprocess AI Tracker metadata across all issues
+  - `update-tag-mappings`: Reapply tag configurations to all issues
+  - `update-organizations`: Fetch missing organization data
+
+- **Data Processing Flow**:
+  1. Issues imported from drupal.org
+  2. Metadata automatically extracted from issue summaries
+  3. Tag mappings applied based on configuration
+  4. Assignments synced from drupal.org
+  5. Organizations fetched for new untracked users
+
+- **Performance Notes**:
+  - Organization fetching includes API rate limiting (0.5s delay)
+  - Cache used to avoid repeated API calls (1 week TTL)
+  - `--full-from` clears cache for complete refresh

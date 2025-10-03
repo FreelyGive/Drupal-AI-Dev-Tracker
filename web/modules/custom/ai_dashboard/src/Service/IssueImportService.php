@@ -949,10 +949,17 @@ class IssueImportService {
                 $contributors[$user_id]->set('field_drupal_userid', $user_id);
                 $contributors[$user_id]->save();
               }
+              else {
+                // Contributor not found, but we have the username from API
+                // Store it so the untracked users report can find it
+                $do_assignee = $userData['name'];
+                // Mark as not found in our system
+                $contributors[$user_id] = FALSE;
+              }
             }
           }
         }
-        if (!empty($contributors[$user_id])) {
+        if (!empty($contributors[$user_id]) && $contributors[$user_id] !== FALSE) {
           $do_assignee = $contributors[$user_id]->get('field_drupal_username')
             ->getString();
           $assignee_id = $contributors[$user_id]->id();

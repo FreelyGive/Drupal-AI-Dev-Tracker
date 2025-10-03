@@ -60,6 +60,38 @@ class AssignmentRecordForm extends ContentEntityForm {
     // Add a note about assignment sources.
     $form['source']['widget']['#description'] = $this->t('How this assignment was created. Use "manual" for assignments created through this form.');
 
+    // Add username and organization fields (read-only display)
+    if (!$entity->isNew()) {
+      $database = \Drupal::database();
+      $record = $database->select('assignment_record', 'ar')
+        ->fields('ar', ['assignee_username', 'assignee_organization'])
+        ->condition('id', $entity->id())
+        ->execute()
+        ->fetchAssoc();
+
+      if ($record) {
+        // Display username if available
+        if (!empty($record['assignee_username'])) {
+          $form['assignee_username_display'] = [
+            '#type' => 'item',
+            '#title' => $this->t('Drupal.org Username'),
+            '#markup' => $record['assignee_username'],
+            '#weight' => 5,
+          ];
+        }
+
+        // Display organization if available
+        if (!empty($record['assignee_organization'])) {
+          $form['assignee_organization_display'] = [
+            '#type' => 'item',
+            '#title' => $this->t('Organization (at time of assignment)'),
+            '#markup' => $record['assignee_organization'],
+            '#weight' => 6,
+          ];
+        }
+      }
+    }
+
     return $form;
   }
 

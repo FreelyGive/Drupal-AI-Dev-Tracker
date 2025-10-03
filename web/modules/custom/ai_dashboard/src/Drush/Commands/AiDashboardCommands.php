@@ -168,6 +168,11 @@ class AiDashboardCommands extends DrushCommands {
     // Sync drupal.org assignments after importing all issues
     $this->output()->writeln("\n📋 Starting assignment sync from drupal.org...");
     $this->syncAllAssignments();
+
+    // Update organizations for any new untracked users
+    $this->output()->writeln("\n🏢 Updating organizations for untracked users...");
+    $this->updateNewOrganizations($options);
+
     $this->output()->writeln("✅ Import and sync complete!");
   }
 
@@ -227,6 +232,186 @@ class AiDashboardCommands extends DrushCommands {
     catch (\Exception $e) {
       $this->output()->writeln("❌ Error during sync: " . $e->getMessage());
       \Drupal::logger('ai_dashboard')->error('Drush sync error: @message', ['@message' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Fetch and update organization data for untracked users.
+   *
+   * @command ai-dashboard:update-organizations
+   * @aliases aid-orgs
+   * @option full-from Reprocess all users from specified date (YYYY-MM-DD) to refresh organization data
+   * @usage ai-dashboard:update-organizations
+   *   Fetch organization data from drupal.org for all untracked users without organizations
+   * @usage ai-dashboard:update-organizations --full-from=2025-01-01
+   *   Refresh organization data for all untracked users from specified date
+   */
+  public function updateOrganizations(array $options = ['full-from' => NULL]) {
+    $this->output()->writeln("Fetching organization data for untracked users...");
+    $this->output()->writeln("Note: This will make multiple API calls to drupal.org and may take a while.");
+    $this->output()->writeln("");
+
+    $database = \Drupal::database();
+    $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
+      \Drupal::entityTypeManager(),
+      \Drupal::service('ai_dashboard.tag_mapping')
+    );
+
+    // Get all unique untracked usernames
+    $query = $database->select('assignment_record', 'ar')
+      ->fields('ar', ['assignee_username'])
+      ->isNull('ar.assignee_id')
+      ->isNotNull('ar.assignee_username')
+      ->groupBy('ar.assignee_username');
+
+    // If full-from is specified, include all users (even those with organizations)
+    // Otherwise, only get users without organizations
+    if (empty($options['full-from'])) {
+      $query->isNull('ar.assignee_organization');
+      $this->output()->writeln("Processing users without organizations...");
+    } else {
+      // Clear cache for all users if doing full refresh
+      $timestamp = strtotime($options['full-from']);
+      if ($timestamp) {
+        $query->condition('ar.assigned_date', $timestamp, '>=');
+        $this->output()->writeln("Refreshing all users from " . $options['full-from'] . "...");
+      }
+    }
+
+    $usernames = $query->execute()->fetchCol();
+
+    if (empty($usernames)) {
+      $this->output()->writeln("No untracked users found.");
+      return;
+    }
+
+    $this->output()->writeln("Found " . count($usernames) . " untracked users to process.");
+    $this->output()->writeln("");
+
+    $updated = 0;
+    $processed = 0;
+    $reflection = new \ReflectionClass($calendar_controller);
+    $method = $reflection->getMethod('getUserOrganization');
+    $method->setAccessible(true);
+
+    foreach ($usernames as $username) {
+      $processed++;
+      $this->output()->write("[{$processed}/" . count($usernames) . "] Fetching organization for $username... ");
+
+      // Clear cache if doing full refresh
+      if (!empty($options['full-from'])) {
+        \Drupal::state()->delete('ai_dashboard.user_org.' . $username);
+      }
+
+      $organization = $method->invoke($calendar_controller, $username);
+
+      if ($organization) {
+        // Update all assignment records for this user
+        $count = $database->update('assignment_record')
+          ->fields(['assignee_organization' => $organization])
+          ->condition('assignee_username', $username)
+          ->execute();
+
+        $this->output()->writeln("✅ $organization ({$count} records updated)");
+        $updated++;
+      } else {
+        $this->output()->writeln("(no organization found)");
+      }
+
+      // Small delay to avoid hitting API rate limits - increase delay after first few requests
+      if ($processed > 1) {
+        usleep(500000); // 0.5 seconds between requests
+      }
+    }
+
+    $this->output()->writeln("");
+    $this->output()->writeln(str_repeat('=', 60));
+    $this->output()->writeln("Summary:");
+    $this->output()->writeln("  Total users processed: {$processed}");
+    $this->output()->writeln("  Users with organizations: {$updated}");
+    $this->output()->writeln("  Users without organizations: " . ($processed - $updated));
+    $this->output()->writeln("");
+    $this->output()->writeln("✅ Organization update complete!");
+
+    // Clear cache to ensure fresh data in reports
+    \Drupal::cache('data')->invalidateAll();
+  }
+
+  /**
+   * Update organizations for new untracked users during import.
+   *
+   * This is a lightweight version that only fetches organizations for users
+   * that don't already have them.
+   */
+  protected function updateNewOrganizations(array $options = []) {
+    $database = \Drupal::database();
+
+    // Only get users without organizations
+    $query = $database->select('assignment_record', 'ar')
+      ->fields('ar', ['assignee_username'])
+      ->isNull('ar.assignee_id')
+      ->isNotNull('ar.assignee_username')
+      ->isNull('ar.assignee_organization')
+      ->groupBy('ar.assignee_username');
+
+    // If full-from is specified, process all users from that date
+    if (!empty($options['full-from'])) {
+      $timestamp = strtotime($options['full-from']);
+      if ($timestamp) {
+        // For full-from, get ALL users (even with organizations) from that date
+        $query = $database->select('assignment_record', 'ar')
+          ->fields('ar', ['assignee_username'])
+          ->isNull('ar.assignee_id')
+          ->isNotNull('ar.assignee_username')
+          ->condition('ar.assigned_date', $timestamp, '>=')
+          ->groupBy('ar.assignee_username');
+      }
+    }
+
+    $usernames = $query->execute()->fetchCol();
+
+    if (empty($usernames)) {
+      $this->output()->writeln("No new untracked users need organization data.");
+      return;
+    }
+
+    $this->output()->writeln("Found " . count($usernames) . " users needing organization data.");
+
+    $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
+      \Drupal::entityTypeManager(),
+      \Drupal::service('ai_dashboard.tag_mapping')
+    );
+
+    $reflection = new \ReflectionClass($calendar_controller);
+    $method = $reflection->getMethod('getUserOrganization');
+    $method->setAccessible(true);
+
+    $updated = 0;
+    foreach ($usernames as $username) {
+      // Clear cache if doing full refresh
+      if (!empty($options['full-from'])) {
+        \Drupal::state()->delete('ai_dashboard.user_org.' . $username);
+      }
+
+      $organization = $method->invoke($calendar_controller, $username);
+
+      if ($organization) {
+        // Update all assignment records for this user
+        $database->update('assignment_record')
+          ->fields(['assignee_organization' => $organization])
+          ->condition('assignee_username', $username)
+          ->execute();
+
+        $this->output()->writeln("  ✓ {$username}: {$organization}");
+        $updated++;
+      }
+
+      // Small delay to avoid hitting API rate limits
+      usleep(500000); // 0.5 seconds
+    }
+
+    if ($updated > 0) {
+      $this->output()->writeln("Updated {$updated} users with organization data.");
     }
   }
 
