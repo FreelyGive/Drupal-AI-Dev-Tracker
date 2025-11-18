@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **Drupal CMS** - a ready-to-use platform built on Drupal 11 core with smart defaults and enterprise-grade tools for marketers, designers, and content creators. The project uses a recipe-based architecture for modular content types and features.
 
+## Branch-Specific Documentation
+
+**If a `CLAUDE-BRANCH.md` file exists in this repository**, it contains documentation specific to the current development branch. Branch-specific files supplement this main CLAUDE.md with:
+- Branch purpose and goals
+- Specific problems being solved in this branch
+- Implementation plans and tasks
+- Branch-specific workflows or considerations
+
+**Check for `CLAUDE-BRANCH.md`** to understand what's different or special about the current branch you're working on.
+
 ## Development Environment
 
 This project uses **DDEV** for local development with deployment to **Drupal Forge** via **DevPanel**:
