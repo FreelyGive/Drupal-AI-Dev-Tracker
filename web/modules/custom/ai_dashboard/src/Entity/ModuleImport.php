@@ -40,7 +40,6 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *     "max_issues",
  *     "date_filter",
  *     "active",
- *     "last_run",
  *     "import_audiences"
    *   },
  *   links = {
