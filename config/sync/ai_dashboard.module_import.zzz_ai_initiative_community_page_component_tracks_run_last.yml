@@ -1,14 +1,14 @@
-uuid: 023ffc79-5db8-4cea-addf-900a3fb01ded
+uuid: 501f1e5e-0013-4226-8e5e-0f8da113ae04
 langcode: en
 status: true
 dependencies: {  }
-id: ai_initiative_community_page
-label: 'AI Initiative Community Page - Organisational Tasks'
+id: zzz_ai_initiative_community_page_component_tracks_run_last
+label: 'zzz  AI Initiative Community Page - Component Tracks (Run Last)'
 source_type: drupal_org
 project_id: '3528462'
 project_name: ai_initiative
 filter_tags: ''
-filter_component: ''
+filter_component: Tracks
 status_filter:
   - '1'
   - '8'
@@ -16,11 +16,9 @@ status_filter:
   - '14'
   - '15'
   - '2'
-  - '4'
-  - '16'
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625430
+last_run: null
 import_audiences:
-  - non_dev
+  - dev

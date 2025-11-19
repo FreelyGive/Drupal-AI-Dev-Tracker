@@ -1,12 +1,12 @@
-uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+uuid: e313381a-a79e-4d90-8ffc-d8f485f1dd9c
 langcode: en
 status: true
 dependencies: {  }
-id: ai_integration_eca
-label: 'AI Integration ECA'
+id: provider_hugging_face
+label: 'Provider Hugging Face'
 source_type: drupal_org
-project_id: '3505615'
-project_name: ai_integration_eca
+project_id: '3481143'
+project_name: ai_provider_huggingface
 filter_tags: ''
 filter_component: ''
 status_filter:
@@ -19,5 +19,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev

@@ -1,12 +1,12 @@
-uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+uuid: f09b94e5-de15-41d5-8419-5e09679be753
 langcode: en
 status: true
 dependencies: {  }
-id: ai_integration_eca
-label: 'AI Integration ECA'
+id: minikanban
+label: MiniKanban
 source_type: drupal_org
-project_id: '3505615'
-project_name: ai_integration_eca
+project_id: '3427529'
+project_name: minikanban
 filter_tags: ''
 filter_component: ''
 status_filter:
@@ -19,5 +19,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev

@@ -1,12 +1,12 @@
-uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+uuid: a48dbebd-f8b5-4191-a07e-2ab3ce0e70ce
 langcode: en
 status: true
 dependencies: {  }
-id: ai_integration_eca
-label: 'AI Integration ECA'
+id: vector_provider_postgres
+label: 'Vector Provider PostGres'
 source_type: drupal_org
-project_id: '3505615'
-project_name: ai_integration_eca
+project_id: '3480871'
+project_name: ai_vdb_provider_postgres
 filter_tags: ''
 filter_component: ''
 status_filter:
@@ -19,5 +19,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev

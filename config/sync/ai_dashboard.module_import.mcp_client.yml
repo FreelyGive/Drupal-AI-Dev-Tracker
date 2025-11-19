@@ -1,12 +1,12 @@
-uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+uuid: e5c7b1a3-3205-42f7-bc64-e67a14b39a79
 langcode: en
 status: true
 dependencies: {  }
-id: ai_integration_eca
-label: 'AI Integration ECA'
+id: mcp_client
+label: 'MCP Client'
 source_type: drupal_org
-project_id: '3505615'
-project_name: ai_integration_eca
+project_id: '3515997'
+project_name: mcp_client
 filter_tags: ''
 filter_component: ''
 status_filter:
@@ -19,5 +19,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev

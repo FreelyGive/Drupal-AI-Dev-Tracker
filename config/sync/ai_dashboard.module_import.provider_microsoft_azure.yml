@@ -1,12 +1,12 @@
-uuid: a214b1e9-948d-4c56-85f2-845c3812f664
+uuid: 458acc69-fb22-4748-b306-d2d83c329851
 langcode: en
 status: true
 dependencies: {  }
-id: ai_integration_eca
-label: 'AI Integration ECA'
+id: provider_microsoft_azure
+label: 'Provider Microsoft Azure'
 source_type: drupal_org
-project_id: '3505615'
-project_name: ai_integration_eca
+project_id: '3479695'
+project_name: ai_provider_azure
 filter_tags: ''
 filter_component: ''
 status_filter:
@@ -19,5 +19,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev

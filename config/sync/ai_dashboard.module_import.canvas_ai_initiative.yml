@@ -1,13 +1,13 @@
-uuid: 8e7ff87a-a97b-4ce5-8703-46beed8904be
+uuid: 99c36dbe-a7e4-4631-9bd1-7f62b6049fbe
 langcode: en
 status: true
 dependencies: {  }
-id: all_open_active_issues
-label: 'AI Module'
+id: canvas_ai_initiative
+label: 'Canvas AI Initiative'
 source_type: drupal_org
-project_id: '3346420'
-project_name: ai
-filter_tags: ''
+project_id: '2431121'
+project_name: canvas
+filter_tags: 'AI Initiative'
 filter_component: ''
 status_filter:
   - '1'
@@ -21,5 +21,6 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1756334049
-import_audiences: {  }
+last_run: null
+import_audiences:
+  - dev
