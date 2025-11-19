@@ -68,7 +68,49 @@ Make it easier to rebuild a complete copy of the live AI Dashboard site on a loc
 
 ## What's Still TODO
 
-### 🔴 1. CSV Download Feature
+### 🔴 1. Tag Mappings Import
+
+**Problem**: Tag mappings exist on live but not on local.
+
+**What They Are**: Content entities that map drupal.org issue tags to track/workstream values.
+
+**TODO**:
+- Create export/import functionality for tag mapping content
+- Either drush command or admin UI
+- Sync from live to local
+
+### 🔴 2. Roadmap Page Crash
+
+**Problem**: Roadmap page (`/ai-dashboard/roadmap`) is crashing on local.
+
+**TODO**:
+- Investigate the error
+- Determine if it's missing data or code issue
+- Fix the crash
+
+### 🔴 3. AI Projects Content Import
+
+**Problem**: AI Project nodes exist on live but not on local.
+
+**What's Needed**:
+- Export project data from live (title, description, tags, deliverable references)
+- Import to local
+- Custom drush command or admin UI
+
+**Note**: These are content (not config), should NOT be in git.
+
+### 🔴 4. Project-Issue Relationships Import
+
+**Problem**: The `ai_dashboard_project_issue` table stores which issues belong to which projects and their ordering.
+
+**What's Needed**:
+- Export relationship data from live
+- Import to local
+- Maintains issue ordering within projects
+
+**Note**: Critical for project pages to display correctly.
+
+### 🔴 5. CSV Download Feature (Nice to Have)
 
 **Current State**: Contributor CSV is in a private Google Sheet. Admins download and upload to import page.
 
@@ -76,25 +118,6 @@ Make it easier to rebuild a complete copy of the live AI Dashboard site on a loc
 - Must be secure (private files)
 - Should be latest version from live
 - Noted in README.md as TODO
-
-### 🔴 2. Content Export/Import Strategies
-
-**Still Needs Documentation**:
-- AI Project nodes export/import strategy
-- Project-Issue relationships export/import
-- Tag mapping content export/import
-- Roadmap ordering export/import
-
-**Note**: These are content (not config), so they need custom drush commands or admin UI tools, not git.
-
-### 🔴 3. Documentation Pages
-
-**Current State**: Unknown
-- Are they Drupal nodes? What content type?
-- How many exist?
-- Do they need to sync to local?
-
-**TODO**: Investigate and document strategy if needed.
 
 ## Technical Notes
 
