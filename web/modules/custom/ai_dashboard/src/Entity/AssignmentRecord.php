@@ -268,6 +268,36 @@ class AssignmentRecord extends ContentEntityBase implements ContentEntityInterfa
         ],
       ]);
 
+    $fields['assignee_username'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Assignee Username'))
+      ->setDescription(t('Drupal.org username of the assignee.'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'string',
+        'weight' => 3,
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'textfield',
+        'weight' => 3,
+      ]);
+
+    $fields['assignee_organization'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Assignee Organization'))
+      ->setDescription(t('Organization of the assignee at time of assignment.'))
+      ->setRequired(FALSE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'string',
+        'weight' => 4,
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'textfield',
+        'weight' => 4,
+      ]);
+
     $fields['week_id'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Week ID'))
       ->setDescription(t('Week identifier in YYYYWW format (e.g., 202401 for first week of 2024).'))
