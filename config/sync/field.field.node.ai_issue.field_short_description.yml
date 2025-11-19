@@ -1,0 +1,19 @@
+uuid: 80b986b1-ad75-4dd3-8e70-501e0129abbb
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_short_description
+    - node.type.ai_issue
+id: node.ai_issue.field_short_description
+field_name: field_short_description
+entity_type: node
+bundle: ai_issue
+label: 'Short Description'
+description: 'Brief description of the deliverable for roadmap display (255 chars max)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

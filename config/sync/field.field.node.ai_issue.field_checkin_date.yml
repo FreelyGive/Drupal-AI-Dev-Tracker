@@ -1,18 +1,18 @@
-uuid: 39f86b43-a131-426d-ba00-13c832a979b6
+uuid: 31baed9d-7734-4ab9-b588-ca01b12c5da6
 langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.node.field_issue_deadline
+    - field.storage.node.field_checkin_date
     - node.type.ai_issue
   module:
     - datetime
-id: node.ai_issue.field_issue_deadline
-field_name: field_issue_deadline
+id: node.ai_issue.field_checkin_date
+field_name: field_checkin_date
 entity_type: node
 bundle: ai_issue
-label: 'Issue Deadline'
-description: ''
+label: 'Check-in Date'
+description: 'When team leads should follow up for progress updates'
 required: false
 translatable: true
 default_value: {  }

@@ -1,22 +1,18 @@
-uuid: null
+uuid: f44e52b9-5c6a-4869-aaad-032ea7c683fd
 langcode: en
 status: true
 dependencies:
   config:
-    - field.field.node.ai_company.field_company_ai_maker
-    - field.field.node.ai_company.field_company_audience
-    - field.field.node.ai_company.field_company_color
-    - field.field.node.ai_company.field_company_drupal_profile
-    - field.field.node.ai_company.field_company_logo
-    - field.field.node.ai_company.field_company_size
-    - field.field.node.ai_company.field_company_website
-    - node.type.ai_company
+    - field.field.node.ai_project.field_is_default_kanban_project
+    - field.field.node.ai_project.field_project_deliverable
+    - field.field.node.ai_project.field_project_tags
+    - node.type.ai_project
   module:
     - content_moderation
     - path
-id: node.ai_company.default
+id: node.ai_project.default
 targetEntityType: node
-bundle: ai_company
+bundle: ai_project
 mode: default
 content:
   created:
@@ -25,20 +21,30 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_company_ai_maker:
+  field_is_default_kanban_project:
     type: boolean_checkbox
-    weight: 4
+    weight: 10
     region: content
     settings:
       display_label: true
     third_party_settings: {  }
-  field_company_drupal_profile:
+  field_project_deliverable:
+    type: entity_reference_autocomplete
+    weight: 15
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: 'Search for a deliverable issue...'
+    third_party_settings: {  }
+  field_project_tags:
     type: string_textfield
-    weight: 3
+    weight: 1
     region: content
     settings:
       size: 60
-      placeholder: 'e.g., acquia'
+      placeholder: 'Enter comma-separated tags'
     third_party_settings: {  }
   moderation_state:
     type: moderation_state_default
@@ -75,7 +81,7 @@ content:
     third_party_settings: {  }
   title:
     type: string_textfield
-    weight: -5
+    weight: 0
     region: content
     settings:
       size: 60
@@ -96,17 +102,7 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_company_audience:
-    type: options_buttons
-    weight: 7
-    region: content
-    settings: {  }
-    third_party_settings: {  }
 hidden:
-  field_company_color: true
-  field_company_logo: true
-  field_company_size: true
-  field_company_website: true
   publish_on: true
   publish_state: true
   unpublish_on: true

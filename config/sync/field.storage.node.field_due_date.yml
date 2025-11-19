@@ -1,16 +1,17 @@
+uuid: d6ece9d7-aa92-47f4-b826-502f7a5d24c7
 langcode: en
 status: true
 dependencies:
   module:
+    - datetime
     - node
-id: node.field_company_drupal_profile
-field_name: field_company_drupal_profile
+id: node.field_due_date
+field_name: field_due_date
 entity_type: node
-type: string
+type: datetime
 settings:
-  max_length: 255
-  case_sensitive: false
-module: core
+  datetime_type: date
+module: datetime
 locked: false
 cardinality: 1
 translatable: true

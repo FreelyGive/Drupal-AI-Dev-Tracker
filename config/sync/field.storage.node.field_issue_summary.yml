@@ -1,16 +1,16 @@
+uuid: 78af7726-9773-46d2-a001-68f43c2a5625
 langcode: en
 status: true
 dependencies:
   module:
     - node
-id: node.field_company_drupal_profile
-field_name: field_company_drupal_profile
+    - text
+id: node.field_issue_summary
+field_name: field_issue_summary
 entity_type: node
-type: string
-settings:
-  max_length: 255
-  case_sensitive: false
-module: core
+type: text_long
+settings: {  }
+module: text
 locked: false
 cardinality: 1
 translatable: true

@@ -1,0 +1,48 @@
+uuid: 8efea272-46af-4b3b-95c7-70c195b14df1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ai_project.field_is_default_kanban_project
+    - field.field.node.ai_project.field_project_deliverable
+    - field.field.node.ai_project.field_project_tags
+    - node.type.ai_project
+  module:
+    - user
+id: node.ai_project.default
+targetEntityType: node
+bundle: ai_project
+mode: default
+content:
+  field_is_default_kanban_project:
+    type: boolean
+    label: above
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  field_project_deliverable:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 15
+    region: content
+  field_project_tags:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
+hidden: {  }

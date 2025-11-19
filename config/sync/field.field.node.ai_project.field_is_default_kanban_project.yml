@@ -1,0 +1,23 @@
+uuid: b149ddb6-87ed-4952-8752-786aa8ff5935
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_is_default_kanban_project
+    - node.type.ai_project
+id: node.ai_project.field_is_default_kanban_project
+field_name: field_is_default_kanban_project
+entity_type: node
+bundle: ai_project
+label: 'Default Kanban Project'
+description: 'When checked, this project will be the default filter for the kanban board.'
+required: false
+translatable: true
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

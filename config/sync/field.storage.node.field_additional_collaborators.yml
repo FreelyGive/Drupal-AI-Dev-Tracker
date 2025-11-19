@@ -1,15 +1,17 @@
+uuid: 9ddd6fb9-3a5b-4d89-b69a-760d5956ace9
 langcode: en
 status: true
 dependencies:
   module:
     - node
-id: node.field_company_drupal_profile
-field_name: field_company_drupal_profile
+id: node.field_additional_collaborators
+field_name: field_additional_collaborators
 entity_type: node
 type: string
 settings:
   max_length: 255
   case_sensitive: false
+  is_ascii: false
 module: core
 locked: false
 cardinality: 1

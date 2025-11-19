@@ -16,7 +16,7 @@ settings:
       label: Developer
     -
       value: non_dev
-      label: Organisational
+      label: Organizational
   allowed_values_function: ''
 module: options
 locked: false

@@ -1,15 +1,15 @@
+uuid: 77ebe60a-5c84-4fd4-a1a5-5bb7dbcdb1b6
 langcode: en
 status: true
 dependencies:
   module:
     - node
-id: node.field_company_drupal_profile
-field_name: field_company_drupal_profile
+id: node.field_project_deliverable
+field_name: field_project_deliverable
 entity_type: node
-type: string
+type: entity_reference
 settings:
-  max_length: 255
-  case_sensitive: false
+  target_type: node
 module: core
 locked: false
 cardinality: 1

@@ -1,0 +1,19 @@
+uuid: fecea28e-bf62-4c22-b994-145d31ba6109
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_project_tags
+    - node.type.ai_project
+id: node.ai_project.field_project_tags
+field_name: field_project_tags
+entity_type: node
+bundle: ai_project
+label: 'Project Tags'
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

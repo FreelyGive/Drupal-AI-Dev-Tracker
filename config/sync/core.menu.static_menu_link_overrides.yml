@@ -8,8 +8,8 @@ definitions:
     expanded: false
     enabled: false
   filter__tips_all:
+    enabled: true
     menu_name: tools
     parent: ''
-    weight: 0
     expanded: false
-    enabled: true
+    weight: 0

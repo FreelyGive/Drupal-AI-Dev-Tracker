@@ -1,0 +1,22 @@
+uuid: c925c33d-09db-4e1c-9c52-91e8c6d7c504
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_update_summary
+    - node.type.ai_issue
+  module:
+    - text
+id: node.ai_issue.field_update_summary
+field_name: field_update_summary
+entity_type: node
+bundle: ai_issue
+label: 'Update Summary'
+description: 'Status update for stakeholders'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

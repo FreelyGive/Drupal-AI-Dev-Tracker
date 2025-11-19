@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Drupal CMS** - a ready-to-use platform built on Drupal 11 core with smart defaults and enterprise-grade tools for marketers, designers, and content creators. The project uses a recipe-based architecture for modular content types and features.
+This is **AI Dashboard** - a Drupal 11 application for tracking AI module development on Drupal.org. It provides calendar views, project management, issue tracking, and progress reporting for the Drupal AI initiative.
 
 ## Branch-Specific Documentation
 
@@ -160,10 +160,50 @@ Key recipe components:
 - Uses Layout Builder for flexible page layouts
 - Editorial workflow with content moderation
 
+## Getting Started
+
+**For initial setup instructions**, see [README.md](README.md) which provides complete step-by-step setup from cloning to running the site.
+
+This section covers Claude-specific development workflows after initial setup.
+
 ## Configuration Management
-- Configuration is managed via recipes and exported to `config/` directories
-- Use `drush cex/cim` for configuration import/export
-- Recipe configuration uses YAML actions for programmatic updates
+
+### Config vs Content: Critical Distinction
+
+**Configuration** (in git via `config/sync/`):
+- Content types, fields, views, roles, permissions
+- Module settings and import configurations
+- Managed via: `drush cex` (export), `drush cim` (import)
+
+**Content** (in database, NOT in git):
+- AI Issues, Contributors, Companies, Projects
+- Managed via: CSV import, drush commands, content migration
+
+**Key principle:** Configuration goes in git and deploys automatically. Content requires separate import/export.
+
+### Daily Development Workflow
+
+```bash
+# Pull latest changes and sync
+git pull origin main
+ddev drush cim -y      # Import config changes
+ddev drush updb -y     # Run database updates
+ddev drush cr          # Clear cache
+```
+
+### Making Configuration Changes
+
+After modifying content types, fields, or views in the UI:
+
+```bash
+ddev drush cex -y      # Export config to files
+git status             # Review what changed
+git diff config/sync/  # See the actual changes
+```
+
+**Important:** Only commit configs you intentionally changed. If `drush cex` exports unintended changes (like cache settings), don't commit them.
+
+**Avoid exporting runtime data:** Remove fields like `last_run` from `config_export` arrays in config entity definitions to prevent git noise.
 
 ## AI Dashboard Module
 

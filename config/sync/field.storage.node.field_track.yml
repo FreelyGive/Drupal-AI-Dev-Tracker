@@ -1,19 +1,21 @@
+uuid: b488d1aa-4c82-420e-a188-f70263a30277
 langcode: en
 status: true
 dependencies:
   module:
     - node
-id: node.field_company_drupal_profile
-field_name: field_company_drupal_profile
+id: node.field_track
+field_name: field_track
 entity_type: node
 type: string
 settings:
   max_length: 255
   case_sensitive: false
+  is_ascii: false
 module: core
 locked: false
 cardinality: 1
-translatable: true
+translatable: false
 indexes: {  }
 persist_with_no_fields: false
 custom_storage: false
