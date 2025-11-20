@@ -123,6 +123,31 @@ Make it easier to rebuild a complete copy of the live AI Dashboard site on a loc
 - Should be latest version from live
 - Noted in README.md as TODO
 
+### 🔴 6. Additional Gaps Identified by Codex
+
+**Documentation Pages**: Check if any documentation pages exist on live that need syncing.
+
+**Files/Media**: Audit if `ai_project` or related content uses managed files/media that need syncing.
+
+## Next Steps & Implementation Plan
+
+**Ready for Testing**: Fresh install baseline should work now (`drush site:install --existing-config`).
+
+**Codex's Staged Plan** (see `Codex_Branch.md` for full details):
+1. **Stage 1**: Test fresh install - verify schema, tables, and ModuleImport configs exist
+2. **Stage 2-3**: Implement export/import Drush commands for:
+   - AI Projects (`aid-export-projects`, `aid-import-projects`)
+   - Project-Issue relationships (`aid-export-project-issues`, `aid-import-project-issues`)
+   - Roadmap ordering (`aid-export-roadmap-order`, `aid-import-roadmap-order`)
+3. **Stage 4**: Files/media audit and sync plan if needed
+4. **Stage 5**: Update README with complete rebuild workflow
+
+**Technical Approach Notes from Codex**:
+- Use **portable identifiers** (project titles, issue numbers) not NIDs in export/import
+- Make commands **idempotent** with `--replace` flags for safety
+- **De-prioritize** fixing historical update hooks (live has them; focus on fresh installs)
+- Pause for human validation after each stage
+
 ## Technical Notes
 
 ### Update Hooks vs Fresh Installs
