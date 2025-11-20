@@ -1,0 +1,23 @@
+uuid: 7c92a85e-d7e7-40d0-8f00-5f940dc83909
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_is_meta_issue
+    - node.type.ai_issue
+id: node.ai_issue.field_is_meta_issue
+field_name: field_is_meta_issue
+entity_type: node
+bundle: ai_issue
+label: 'Meta Issue'
+description: 'Check if this is a meta/epic issue containing child issues'
+required: false
+translatable: true
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

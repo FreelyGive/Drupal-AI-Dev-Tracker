@@ -1,0 +1,23 @@
+uuid: 8fb07ca1-d46b-4318-9f11-bfe592079add
+langcode: en
+status: true
+dependencies: {  }
+id: fireworks_provider
+label: 'Provider FireworksAI'
+source_type: drupal_org
+project_id: '3445354'
+project_name: fireworksai
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

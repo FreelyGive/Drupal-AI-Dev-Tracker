@@ -1,0 +1,23 @@
+uuid: 40a62d7e-f95b-43c1-be7b-abf2c77dcb58
+langcode: en
+status: true
+dependencies: {  }
+id: ai_initiative_community_page_developer_tasks
+label: 'zzz  AI Initiative Community Page - Developer Tasks (Run Last)'
+source_type: drupal_org
+project_id: '3528462'
+project_name: ai_initiative
+filter_tags: ''
+filter_component: Code
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

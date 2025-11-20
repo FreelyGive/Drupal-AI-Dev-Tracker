@@ -1,0 +1,25 @@
+uuid: 66c1e299-83bc-4f3b-aee9-19f166a98973
+langcode: en
+status: true
+dependencies: {  }
+id: ai_agents
+label: 'AI Agents'
+source_type: drupal_org
+project_id: '3471208'
+project_name: ai_agents
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

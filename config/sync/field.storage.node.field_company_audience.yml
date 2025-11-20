@@ -1,4 +1,4 @@
-uuid: 7eed9044-903e-49f4-9672-9a6ef32e3349
+uuid: 8108bd34-ef71-4292-ab1e-6acc9a79244c
 langcode: en
 status: true
 dependencies:
@@ -16,7 +16,7 @@ settings:
       label: Developer
     -
       value: non_dev
-      label: Organisational
+      label: Organizational
   allowed_values_function: ''
 module: options
 locked: false

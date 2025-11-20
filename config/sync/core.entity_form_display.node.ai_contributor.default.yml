@@ -24,6 +24,7 @@ dependencies:
     - content_moderation
     - path
     - svg_image
+    - text
 id: node.ai_contributor.default
 targetEntityType: node
 bundle: ai_contributor
@@ -53,11 +54,17 @@ content:
     third_party_settings: {  }
   field_contributor_skills:
     type: string_textfield
-    weight: 5
+    weight: 4
     region: content
     settings:
       size: 60
       placeholder: 'e.g. PHP, JavaScript, AI/ML'
+    third_party_settings: {  }
+  field_contributor_type:
+    type: options_buttons
+    weight: 3
+    region: content
+    settings: {  }
     third_party_settings: {  }
   field_current_focus:
     type: text_textarea
@@ -67,11 +74,13 @@ content:
       rows: 3
       placeholder: 'Brief description of current focus and priorities'
     third_party_settings: {  }
-  field_contributor_type:
-    type: options_buttons
-    weight: 3
+  field_drupal_slack_username:
+    type: string_textfield
+    weight: 7
     region: content
-    settings: {  }
+    settings:
+      size: 60
+      placeholder: 'e.g. john_doe'
     third_party_settings: {  }
   field_drupal_userid:
     type: string_textfield
@@ -84,14 +93,6 @@ content:
   field_drupal_username:
     type: string_textfield
     weight: 1
-    region: content
-    settings:
-      size: 60
-      placeholder: 'e.g. john_doe'
-    third_party_settings: {  }
-  field_drupal_slack_username:
-    type: string_textfield
-    weight: 7
     region: content
     settings:
       size: 60
@@ -123,7 +124,7 @@ content:
     third_party_settings: {  }
   field_weekly_commitment:
     type: number
-    weight: 6
+    weight: 5
     region: content
     settings:
       placeholder: 'Days per week (e.g. 2.5)'

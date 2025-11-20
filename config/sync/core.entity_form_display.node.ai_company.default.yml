@@ -1,4 +1,4 @@
-uuid: 845b252b-31a6-4c7c-9abb-28c95a45c5f3
+uuid: a7f99504-90e5-4b00-921a-45fcabc5b2e8
 langcode: en
 status: true
 dependencies:
@@ -31,6 +31,12 @@ content:
     region: content
     settings:
       display_label: true
+    third_party_settings: {  }
+  field_company_audience:
+    type: options_buttons
+    weight: 7
+    region: content
+    settings: {  }
     third_party_settings: {  }
   field_company_drupal_profile:
     type: string_textfield
@@ -96,14 +102,7 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_company_audience:
-    type: options_buttons
-    weight: 7
-    region: content
-    settings: {  }
-    third_party_settings: {  }
 hidden:
-  field_company_audience: true
   field_company_color: true
   field_company_logo: true
   field_company_size: true

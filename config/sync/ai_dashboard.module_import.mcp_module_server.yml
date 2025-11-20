@@ -1,0 +1,23 @@
+uuid: c39d9cd5-e64a-41f8-8569-c7a76766f240
+langcode: en
+status: true
+dependencies: {  }
+id: mcp_module_server
+label: 'MCP Module (Server)'
+source_type: drupal_org
+project_id: '3490035'
+project_name: mcp
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

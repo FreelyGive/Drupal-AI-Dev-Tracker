@@ -1,0 +1,11 @@
+uuid: 7067cbda-a2a2-4d6e-ba60-8bab3ccf4ca4
+langcode: en
+status: true
+dependencies: {  }
+name: 'AI Project'
+type: ai_project
+description: 'Project for grouping and organizing AI issues'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

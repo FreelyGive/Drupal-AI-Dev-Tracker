@@ -58,6 +58,34 @@ function ai_dashboard_schema() {
     ],
   ];
 
+  $schema['ai_dashboard_roadmap_order'] = [
+    'description' => 'Stores custom ordering for deliverables on the roadmap page.',
+    'fields' => [
+      'issue_nid' => [
+        'description' => 'The node ID of the AI Issue/Deliverable.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'column_name' => [
+        'description' => 'The roadmap column (complete, now, next, later).',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'weight' => [
+        'description' => 'Weight for ordering within the column.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['issue_nid'],
+    'indexes' => [
+      'column_weight' => ['column_name', 'weight'],
+    ],
+  ];
+
   return $schema;
 }
 

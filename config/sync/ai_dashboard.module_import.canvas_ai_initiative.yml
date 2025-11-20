@@ -1,0 +1,25 @@
+uuid: 99c36dbe-a7e4-4631-9bd1-7f62b6049fbe
+langcode: en
+status: true
+dependencies: {  }
+id: canvas_ai_initiative
+label: 'Canvas AI Initiative'
+source_type: drupal_org
+project_id: '2431121'
+project_name: canvas
+filter_tags: 'AI Initiative'
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

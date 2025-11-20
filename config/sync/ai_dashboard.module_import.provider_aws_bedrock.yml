@@ -1,0 +1,23 @@
+uuid: 9b2ce277-3ab6-4759-95d4-589a7bb69a48
+langcode: en
+status: true
+dependencies: {  }
+id: provider_aws_bedrock
+label: 'Provider AWS Bedrock'
+source_type: drupal_org
+project_id: '3474887'
+project_name: ai_provider_aws_bedrock
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

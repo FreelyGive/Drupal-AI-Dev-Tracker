@@ -3,28 +3,74 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.ai_issue.field_additional_collaborators
+    - field.field.node.ai_issue.field_checkin_date
+    - field.field.node.ai_issue.field_due_date
+    - field.field.node.ai_issue.field_is_meta_issue
     - field.field.node.ai_issue.field_issue_assignees
-    - field.field.node.ai_issue.field_issue_assignment_date
+    - field.field.node.ai_issue.field_issue_blocked_by
     - field.field.node.ai_issue.field_issue_category
-    - field.field.node.ai_issue.field_issue_deadline
+    - field.field.node.ai_issue.field_issue_dashboard_category
     - field.field.node.ai_issue.field_issue_do_assignee
     - field.field.node.ai_issue.field_issue_module
     - field.field.node.ai_issue.field_issue_number
     - field.field.node.ai_issue.field_issue_priority
     - field.field.node.ai_issue.field_issue_status
+    - field.field.node.ai_issue.field_issue_summary
     - field.field.node.ai_issue.field_issue_tags
     - field.field.node.ai_issue.field_issue_url
+    - field.field.node.ai_issue.field_short_description
+    - field.field.node.ai_issue.field_track
+    - field.field.node.ai_issue.field_update_summary
+    - field.field.node.ai_issue.field_workstream
     - node.type.ai_issue
   module:
     - datetime
     - link
     - options
+    - text
     - user
 id: node.ai_issue.default
 targetEntityType: node
 bundle: ai_issue
 mode: default
 content:
+  field_additional_collaborators:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 15
+    region: content
+  field_checkin_date:
+    type: datetime_default
+    label: above
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+    weight: 14
+    region: content
+  field_due_date:
+    type: datetime_default
+    label: above
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+    weight: 15
+    region: content
+  field_is_meta_issue:
+    type: boolean
+    label: above
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: {  }
+    weight: 16
+    region: content
   field_issue_assignees:
     type: entity_reference_label
     label: above
@@ -33,21 +79,20 @@ content:
     third_party_settings: {  }
     weight: 6
     region: content
+  field_issue_blocked_by:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 9
+    region: content
   field_issue_category:
     type: list_default
     label: above
     settings: {  }
     third_party_settings: {  }
     weight: 5
-    region: content
-  field_issue_deadline:
-    type: datetime_default
-    label: above
-    settings:
-      timezone_override: ''
-      format_type: medium
-    third_party_settings: {  }
-    weight: 7
     region: content
   field_issue_module:
     type: entity_reference_label
@@ -80,6 +125,13 @@ content:
     third_party_settings: {  }
     weight: 3
     region: content
+  field_issue_summary:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 10
+    region: content
   field_issue_tags:
     type: string
     label: above
@@ -100,7 +152,40 @@ content:
     third_party_settings: {  }
     weight: 1
     region: content
+  field_short_description:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 6
+    region: content
+  field_track:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 10
+    region: content
+  field_update_summary:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 13
+    region: content
+  field_workstream:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 11
+    region: content
 hidden:
+  field_historical_assignees: true
   field_issue_assignment_date: true
+  field_issue_dashboard_category: true
   field_issue_do_assignee: true
   links: true

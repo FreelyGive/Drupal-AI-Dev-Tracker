@@ -1,0 +1,23 @@
+uuid: e313381a-a79e-4d90-8ffc-d8f485f1dd9c
+langcode: en
+status: true
+dependencies: {  }
+id: provider_hugging_face
+label: 'Provider Hugging Face'
+source_type: drupal_org
+project_id: '3481143'
+project_name: ai_provider_huggingface
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

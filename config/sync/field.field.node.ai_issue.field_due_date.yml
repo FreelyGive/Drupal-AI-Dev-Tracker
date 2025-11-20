@@ -1,0 +1,21 @@
+uuid: 2ca3ff8d-ae58-4a1f-96a0-68abd0b9fb50
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_due_date
+    - node.type.ai_issue
+  module:
+    - datetime
+id: node.ai_issue.field_due_date
+field_name: field_due_date
+entity_type: node
+bundle: ai_issue
+label: 'Due Date'
+description: 'Date when issue should be completed from AI Tracker metadata'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

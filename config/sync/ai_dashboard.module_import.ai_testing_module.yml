@@ -1,0 +1,23 @@
+uuid: 25acce5f-6e3c-40a0-97f9-3e69ca180078
+langcode: en
+status: true
+dependencies: {  }
+id: ai_testing_module
+label: 'AI Testing Module'
+source_type: drupal_org
+project_id: '3527995'
+project_name: ai_agents_test
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

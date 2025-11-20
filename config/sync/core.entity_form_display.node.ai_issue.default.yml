@@ -1,4 +1,4 @@
-uuid: null
+uuid: 8c386b0f-f49f-415d-af35-4c5a8b6d8724
 langcode: en
 status: true
 dependencies:
@@ -8,10 +8,9 @@ dependencies:
     - field.field.node.ai_issue.field_due_date
     - field.field.node.ai_issue.field_is_meta_issue
     - field.field.node.ai_issue.field_issue_assignees
-    - field.field.node.ai_issue.field_issue_assignment_date
     - field.field.node.ai_issue.field_issue_blocked_by
     - field.field.node.ai_issue.field_issue_category
-    - field.field.node.ai_issue.field_issue_deadline
+    - field.field.node.ai_issue.field_issue_dashboard_category
     - field.field.node.ai_issue.field_issue_do_assignee
     - field.field.node.ai_issue.field_issue_module
     - field.field.node.ai_issue.field_issue_number
@@ -20,6 +19,7 @@ dependencies:
     - field.field.node.ai_issue.field_issue_summary
     - field.field.node.ai_issue.field_issue_tags
     - field.field.node.ai_issue.field_issue_url
+    - field.field.node.ai_issue.field_short_description
     - field.field.node.ai_issue.field_track
     - field.field.node.ai_issue.field_update_summary
     - field.field.node.ai_issue.field_workstream
@@ -37,7 +37,7 @@ mode: default
 content:
   field_additional_collaborators:
     type: string_textfield
-    weight: 18
+    weight: 15
     region: content
     settings:
       size: 60
@@ -45,15 +45,22 @@ content:
     third_party_settings: {  }
   field_checkin_date:
     type: datetime_default
-    weight: 16
+    weight: 9
     region: content
     settings: {  }
     third_party_settings: {  }
   field_due_date:
     type: datetime_default
-    weight: 17
+    weight: 15
     region: content
     settings: {  }
+    third_party_settings: {  }
+  field_is_meta_issue:
+    type: boolean_checkbox
+    weight: 11
+    region: content
+    settings:
+      display_label: true
     third_party_settings: {  }
   field_issue_assignees:
     type: options_buttons
@@ -75,9 +82,9 @@ content:
     region: content
     settings: {  }
     third_party_settings: {  }
-  field_issue_deadline:
-    type: datetime_default
-    weight: 9
+  field_issue_dashboard_category:
+    type: options_buttons
+    weight: 6
     region: content
     settings: {  }
     third_party_settings: {  }
@@ -128,7 +135,6 @@ content:
     region: content
     settings:
       size: 60
-      placeholder: 'e.g. AI Logging, June, Critical (comma separated)'
     third_party_settings: {  }
   field_issue_url:
     type: link_default
@@ -137,6 +143,14 @@ content:
     settings:
       placeholder_url: 'https://drupal.org/project/ai/issues/3412340'
       placeholder_title: 'Issue #3412340'
+    third_party_settings: {  }
+  field_short_description:
+    type: string_textfield
+    weight: 6
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Brief one-line description for roadmap display'
     third_party_settings: {  }
   field_track:
     type: string_textfield
@@ -147,12 +161,12 @@ content:
       placeholder: 'e.g. AI Views, AI Core, AI Integration'
     third_party_settings: {  }
   field_update_summary:
-    type: string_textfield
-    weight: 15
+    type: text_textarea
+    weight: 8
     region: content
     settings:
-      size: 60
-      placeholder: ''
+      rows: 3
+      placeholder: 'Status update for stakeholders'
     third_party_settings: {  }
   field_workstream:
     type: string_textfield
@@ -170,7 +184,7 @@ content:
     third_party_settings: {  }
   path:
     type: path
-    weight: 12
+    weight: 11
     region: content
     settings: {  }
     third_party_settings: {  }
@@ -189,7 +203,7 @@ content:
     third_party_settings: {  }
 hidden:
   created: true
-  field_is_meta_issue: true
+  field_historical_assignees: true
   field_issue_assignment_date: true
   promote: true
   publish_on: true

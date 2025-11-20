@@ -1,0 +1,23 @@
+uuid: 501f1e5e-0013-4226-8e5e-0f8da113ae04
+langcode: en
+status: true
+dependencies: {  }
+id: zzz_ai_initiative_community_page_component_tracks_run_last
+label: 'zzz  AI Initiative Community Page - Component Tracks (Run Last)'
+source_type: drupal_org
+project_id: '3528462'
+project_name: ai_initiative
+filter_tags: ''
+filter_component: Tracks
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

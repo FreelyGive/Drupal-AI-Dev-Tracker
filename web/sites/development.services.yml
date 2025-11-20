@@ -14,10 +14,6 @@
 # sites/default/default.services.yml or from core/core.services.yml file.
 parameters:
   http.response.debug_cacheability_headers: true
-  twig.config:
-    debug: true
-    auto_reload: true
-    cache: false
 services:
   cache.backend.null:
     class: Drupal\Core\Cache\NullBackendFactory

@@ -6,7 +6,9 @@ id: experience_builder
 label: 'Experience Builder'
 source_type: drupal_org
 project_id: '3437806'
-filter_tags: ''
+project_name: experience_builder
+filter_tags: 'AI Initiative'
+filter_component: AI
 status_filter:
   - '1'
   - '8'
@@ -19,4 +21,4 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-project_name: experience_builder
+import_audiences: {  }

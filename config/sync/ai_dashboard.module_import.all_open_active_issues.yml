@@ -3,10 +3,12 @@ langcode: en
 status: true
 dependencies: {  }
 id: all_open_active_issues
-label: 'All open Active Issues, AI Module'
+label: 'AI Module'
 source_type: drupal_org
 project_id: '3346420'
+project_name: ai
 filter_tags: ''
+filter_component: ''
 status_filter:
   - '1'
   - '8'
@@ -19,4 +21,4 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-project_name: ai
+import_audiences: {  }

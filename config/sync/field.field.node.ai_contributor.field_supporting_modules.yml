@@ -1,4 +1,4 @@
-uuid: 00000000-0000-0000-0000-000000000014
+uuid: 893aea44-6b63-4227-8949-ab4561ed7de5
 langcode: en
 status: true
 dependencies:
@@ -10,7 +10,7 @@ field_name: field_supporting_modules
 entity_type: node
 bundle: ai_contributor
 label: 'Supporting Modules'
-description: ''
+description: 'Module machine names this contributor supports'
 required: false
 translatable: true
 default_value: {  }

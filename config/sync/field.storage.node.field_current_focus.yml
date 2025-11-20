@@ -1,9 +1,10 @@
-uuid: 00000000-0000-0000-0000-000000000001
+uuid: 76f3b3b9-fba2-496c-88da-d854c0a8c6b8
 langcode: en
 status: true
 dependencies:
   module:
     - node
+    - text
 id: node.field_current_focus
 field_name: field_current_focus
 entity_type: node

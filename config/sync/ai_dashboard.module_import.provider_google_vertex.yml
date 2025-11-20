@@ -1,0 +1,23 @@
+uuid: 2395822c-92f8-4fdb-880d-4428a42b5a96
+langcode: en
+status: true
+dependencies: {  }
+id: provider_google_vertex
+label: 'Provider Google Vertex'
+source_type: drupal_org
+project_id: '3485429'
+project_name: ai_provider_google_vertex
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

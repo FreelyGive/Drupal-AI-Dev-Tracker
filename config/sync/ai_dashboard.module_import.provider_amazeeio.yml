@@ -1,0 +1,23 @@
+uuid: b0d0dfef-1f5b-4d12-b0f9-9ad9a1e5f154
+langcode: en
+status: true
+dependencies: {  }
+id: provider_amazeeio
+label: 'Provider AmazeeIO'
+source_type: drupal_org
+project_id: '3506736'
+project_name: ai_provider_amazeeio
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

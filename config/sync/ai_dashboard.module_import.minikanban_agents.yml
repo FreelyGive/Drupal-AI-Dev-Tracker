@@ -1,0 +1,23 @@
+uuid: 48f6e705-759d-403b-9373-9fc74b11071d
+langcode: en
+status: true
+dependencies: {  }
+id: minikanban_agents
+label: 'MiniKanban Agents'
+source_type: drupal_org
+project_id: '3432111'
+project_name: minikanban_agent
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

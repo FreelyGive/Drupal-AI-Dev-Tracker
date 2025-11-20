@@ -1,0 +1,19 @@
+uuid: 2a7c94ad-a569-4b67-9068-9036e627c08a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_track
+    - node.type.ai_issue
+id: node.ai_issue.field_track
+field_name: field_track
+entity_type: node
+bundle: ai_issue
+label: Track
+description: 'The AI module track this issue belongs to (from tags)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

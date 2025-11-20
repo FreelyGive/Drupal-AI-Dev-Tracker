@@ -18,6 +18,9 @@
 /web/sites/*/files/
 /web/sites/*/private/
 
+# Ignore AI Dashboard content exports (public files, not tracked in git)
+/web/sites/default/files/ai-exports/
+
 # Ignore SimpleTest multi-site environment
 /web/sites/simpletest
 

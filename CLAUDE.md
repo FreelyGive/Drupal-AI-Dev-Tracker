@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Drupal CMS** - a ready-to-use platform built on Drupal 11 core with smart defaults and enterprise-grade tools for marketers, designers, and content creators. The project uses a recipe-based architecture for modular content types and features.
+This is **AI Dashboard** - a Drupal 11 application for tracking AI module development on Drupal.org. It provides calendar views, project management, issue tracking, and progress reporting for the Drupal AI initiative.
 
 ## Branch-Specific Documentation
 
@@ -160,10 +160,50 @@ Key recipe components:
 - Uses Layout Builder for flexible page layouts
 - Editorial workflow with content moderation
 
+## Getting Started
+
+**For initial setup instructions**, see [README.md](README.md) which provides complete step-by-step setup from cloning to running the site.
+
+This section covers Claude-specific development workflows after initial setup.
+
 ## Configuration Management
-- Configuration is managed via recipes and exported to `config/` directories
-- Use `drush cex/cim` for configuration import/export
-- Recipe configuration uses YAML actions for programmatic updates
+
+### Config vs Content: Critical Distinction
+
+**Configuration** (in git via `config/sync/`):
+- Content types, fields, views, roles, permissions
+- Module settings and import configurations
+- Managed via: `drush cex` (export), `drush cim` (import)
+
+**Content** (in database, NOT in git):
+- AI Issues, Contributors, Companies, Projects
+- Managed via: CSV import, drush commands, content migration
+
+**Key principle:** Configuration goes in git and deploys automatically. Content requires separate import/export.
+
+### Daily Development Workflow
+
+```bash
+# Pull latest changes and sync
+git pull origin main
+ddev drush cim -y      # Import config changes
+ddev drush updb -y     # Run database updates
+ddev drush cr          # Clear cache
+```
+
+### Making Configuration Changes
+
+After modifying content types, fields, or views in the UI:
+
+```bash
+ddev drush cex -y      # Export config to files
+git status             # Review what changed
+git diff config/sync/  # See the actual changes
+```
+
+**Important:** Only commit configs you intentionally changed. If `drush cex` exports unintended changes (like cache settings), don't commit them.
+
+**Avoid exporting runtime data:** Remove fields like `last_run` from `config_export` arrays in config entity definitions to prevent git noise.
 
 ## AI Dashboard Module
 
@@ -513,6 +553,55 @@ drush ai-dashboard:update-organizations --full-from=2025-01-01
 # Sync drupal.org assignments for current week
 drush ai-dashboard:sync-assignments
 ```
+
+#### Content Export/Import Commands
+```bash
+# Export configuration and content to public files
+# - Runs drush cex to export configuration
+# - Exports tag mappings, AI projects, assignment history
+# - Exports project-issue relationships and roadmap ordering
+# - Files saved to public://ai-exports/ (NOT in git)
+drush ai-dashboard:content-export
+# Alias: drush aid-cexport
+
+# Import configuration and content from live site
+# - Downloads content files from live site (default: https://www.drupalstarforge.ai)
+# - Imports all content with NID resolution (issue numbers → local NIDs)
+# - Runs drush cim to import configuration
+# - Clears caches
+drush ai-dashboard:content-import
+# Alias: drush aid-cimport
+
+# Import with options
+drush aid-cimport --replace              # Replace existing content instead of skipping
+drush aid-cimport --source=local         # Use local files instead of downloading
+drush aid-cimport --live-url=https://... # Override live site URL
+```
+
+**Content Syncing Workflow:**
+```bash
+# On live site (or ask admin to run)
+ddev drush aid-cexport
+
+# On local site
+git pull                  # Get config changes first
+ddev drush aid-cimport    # Auto-downloads and imports everything
+```
+
+**What Gets Synced:**
+- Drupal configuration (content types, views, fields)
+- Tag mappings (drupal.org tag → track/workstream mappings)
+- AI Projects (project nodes with deliverables)
+- Assignment History (historical issue assignment data)
+- Project-Issue relationships (which issues belong to which projects, with ordering)
+- Roadmap ordering (manual drag-drop ordering on roadmap page)
+
+**Important Notes:**
+- AI Issues are NOT exported (re-import fresh from drupal.org via `aid-import-all`)
+- Contributors and Companies continue to use CSV import workflow
+- Export files use portable identifiers (issue numbers, usernames, project titles)
+- Import automatically resolves portable identifiers to local NIDs
+- NIDs differ between live and local - never assume they match
 
 ### Command Philosophy & Integration
 

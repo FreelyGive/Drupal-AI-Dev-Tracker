@@ -1,0 +1,23 @@
+uuid: 458acc69-fb22-4748-b306-d2d83c329851
+langcode: en
+status: true
+dependencies: {  }
+id: provider_microsoft_azure
+label: 'Provider Microsoft Azure'
+source_type: drupal_org
+project_id: '3479695'
+project_name: ai_provider_azure
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

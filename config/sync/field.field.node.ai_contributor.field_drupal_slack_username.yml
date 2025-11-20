@@ -1,4 +1,4 @@
-uuid: 00000000-0000-0000-0000-000000000012
+uuid: 2f86f535-c9e8-414e-aa51-00ac0e258aa5
 langcode: en
 status: true
 dependencies:
@@ -10,7 +10,7 @@ field_name: field_drupal_slack_username
 entity_type: node
 bundle: ai_contributor
 label: 'Drupal Slack Username'
-description: ''
+description: 'Username on Drupal Slack'
 required: false
 translatable: true
 default_value: {  }

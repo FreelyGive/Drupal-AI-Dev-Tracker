@@ -1,0 +1,23 @@
+uuid: f5da8b17-e27b-411f-a1b2-b87bb627326f
+langcode: en
+status: true
+dependencies: {  }
+id: vector_provider_milvus
+label: 'Vector Provider Milvus'
+source_type: drupal_org
+project_id: '3483419'
+project_name: ai_vdb_provider_milvus
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

@@ -1,0 +1,23 @@
+uuid: a655f39e-b377-4f32-8149-1f5252d61d97
+langcode: en
+status: true
+dependencies: {  }
+id: unstructured_for_files
+label: 'Unstructured for Files'
+source_type: drupal_org
+project_id: '3442341'
+project_name: unstructured
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

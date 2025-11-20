@@ -3,10 +3,12 @@ langcode: en
 status: true
 dependencies: {  }
 id: ai_initiative_community_page
-label: 'AI Initiative Community Page'
+label: 'AI Initiative Community Page - Organisational Tasks'
 source_type: drupal_org
 project_id: '3528462'
+project_name: ai_initiative
 filter_tags: ''
+filter_component: ''
 status_filter:
   - '1'
   - '8'
@@ -19,4 +21,5 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-project_name: ai_initiative
+import_audiences:
+  - non_dev

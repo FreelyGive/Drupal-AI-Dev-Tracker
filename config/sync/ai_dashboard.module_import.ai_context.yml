@@ -1,0 +1,25 @@
+uuid: 4d8a909e-bc92-4347-a572-71eab7b59c21
+langcode: en
+status: true
+dependencies: {  }
+id: ai_context
+label: 'AI Context'
+source_type: drupal_org
+project_id: '3546505'
+project_name: ai_context
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

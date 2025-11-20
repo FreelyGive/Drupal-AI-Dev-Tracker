@@ -1,4 +1,4 @@
-uuid: 00000000-0000-0000-0000-000000000013
+uuid: 451ee108-fc73-4af4-9f5b-6cf2fdbfb260
 langcode: en
 status: true
 dependencies:
@@ -10,7 +10,7 @@ field_name: field_time_zone
 entity_type: node
 bundle: ai_contributor
 label: 'Time Zone'
-description: ''
+description: 'Time zone (e.g., UTC, EST, PST)'
 required: false
 translatable: true
 default_value: {  }

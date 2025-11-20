@@ -1,0 +1,19 @@
+uuid: 434ed1e8-342a-406b-b411-2f4b9e497708
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_additional_collaborators
+    - node.type.ai_issue
+id: node.ai_issue.field_additional_collaborators
+field_name: field_additional_collaborators
+entity_type: node
+bundle: ai_issue
+label: 'Additional Collaborators'
+description: 'Additional collaborators beyond d.o assignee from AI Tracker metadata'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

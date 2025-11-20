@@ -1,0 +1,27 @@
+uuid: 2004f97e-bbc8-4924-b72e-761c175818d0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_project_deliverable
+    - node.type.ai_issue
+    - node.type.ai_project
+id: node.ai_project.field_project_deliverable
+field_name: field_project_deliverable
+entity_type: node
+bundle: ai_project
+label: 'Primary Deliverable'
+description: 'The main deliverable issue this project is working toward (optional).'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      ai_issue: ai_issue
+    sort:
+      field: title
+      direction: ASC
+field_type: entity_reference

@@ -1,0 +1,23 @@
+uuid: 66074eda-cf4c-413d-8c59-a6aad8fd6cce
+langcode: en
+status: true
+dependencies: {  }
+id: ai_provider_anthropic
+label: 'Provider Anthropic'
+source_type: drupal_org
+project_id: '3481155'
+project_name: ai_provider_anthropic
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev
