@@ -1,4 +1,4 @@
-name: drupal-ai-dev-tracker-config-export
+name: drupal-ai-dev-tracker
 type: drupal11
 docroot: web
 php_version: "8.3"
