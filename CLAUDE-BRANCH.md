@@ -8,6 +8,115 @@ This file documents what has been accomplished in this branch. It will be overwr
 
 ---
 
+## Fresh Install from This Branch
+
+### Step 1: Complete Cleanup (Start Fresh)
+
+```bash
+# Stop and delete the current DDEV environment
+ddev stop
+ddev delete -O
+
+# Optional: Delete the entire directory and clone fresh
+cd ..
+rm -rf Drupal-AI-Dev-Tracker
+```
+
+### Step 2: Clone Repository and Checkout Branch
+
+```bash
+# Clone the repository
+git clone https://github.com/FreelyGive/Drupal-AI-Dev-Tracker.git
+cd Drupal-AI-Dev-Tracker
+
+# Checkout this branch
+git checkout improved-site-wide-config-export
+
+# Pull latest changes (if already cloned)
+git pull origin improved-site-wide-config-export
+```
+
+### Step 3: Start DDEV and Install Dependencies
+
+```bash
+# Start DDEV
+ddev start
+
+# Install PHP dependencies
+ddev composer install
+```
+
+### Step 4: Fresh Drupal Install
+
+```bash
+# Install Drupal with all configuration from this branch
+ddev drush site:install --existing-config --account-pass=admin
+```
+
+**What this creates:**
+- All content types, fields, and views from config
+- All 29 ModuleImport configurations
+- `assignment_record` table with `assignee_username` and `assignee_organization` fields
+- `ai_dashboard_project_issue` table (for project-issue relationships)
+- `ai_dashboard_roadmap_order` table (for roadmap drag-drop ordering)
+
+### Step 5: Import Issues from Drupal.org
+
+```bash
+# Import all issues from configured sources
+ddev drush ai-dashboard:import-all
+```
+
+This will:
+- Import issues from drupal.org
+- Process AI Tracker metadata
+- Apply tag mappings
+- Sync assignments for current week
+- Fetch organizations for untracked users
+
+### Step 6: Import Contributors (Manual CSV Upload)
+
+1. Obtain the latest contributor CSV file
+2. Visit: `https://drupal-ai-dev-tracker.ddev.site/ai-dashboard/admin/contributor-import`
+3. Upload the CSV file
+4. This creates AI Company and AI Contributor nodes
+
+### Step 7: Verify Installation
+
+**Login:**
+- URL: `https://drupal-ai-dev-tracker.ddev.site`
+- Username: `admin`
+- Password: `admin`
+
+**Test Pages:**
+- Calendar: `/ai-dashboard/calendar` (should show companies/contributors/issues)
+- Priority Kanban: `/ai-dashboard/priority-kanban` (should show issues by status)
+- Projects: `/ai-dashboard/projects` (will be empty until Stage 2-3 import commands)
+- Roadmap: `/ai-dashboard/roadmap` (will be empty until Stage 2-3 import commands)
+- Reports: `/ai-dashboard/reports` (should work)
+- Untracked Users: `/ai-dashboard/reports/untracked-users` (should show data)
+
+**Verify Database Tables:**
+```bash
+ddev mysql -e "SHOW TABLES LIKE 'ai_dashboard%';"
+```
+
+Should show:
+- `ai_dashboard_project_issue`
+- `ai_dashboard_roadmap_order`
+
+```bash
+ddev mysql -e "SHOW TABLES LIKE 'assignment_record';"
+```
+
+Should show:
+- `assignment_record`
+
+**Verify ModuleImport Configs:**
+Visit `/admin/config/ai-dashboard/module-import` - should list ~29 configurations.
+
+---
+
 ## Branch Goal
 
 Make it easier to rebuild a complete copy of the live AI Dashboard site on a local environment by improving configuration and content management workflows.
