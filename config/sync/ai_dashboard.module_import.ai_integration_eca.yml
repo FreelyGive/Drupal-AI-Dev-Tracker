@@ -19,5 +19,4 @@ status_filter:
 max_issues: null
 date_filter: null
 active: true
-last_run: 1755625520
 import_audiences: {  }

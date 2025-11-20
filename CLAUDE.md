@@ -554,6 +554,55 @@ drush ai-dashboard:update-organizations --full-from=2025-01-01
 drush ai-dashboard:sync-assignments
 ```
 
+#### Content Export/Import Commands
+```bash
+# Export configuration and content to public files
+# - Runs drush cex to export configuration
+# - Exports tag mappings, AI projects, assignment history
+# - Exports project-issue relationships and roadmap ordering
+# - Files saved to public://ai-exports/ (NOT in git)
+drush ai-dashboard:content-export
+# Alias: drush aid-cexport
+
+# Import configuration and content from live site
+# - Downloads content files from live site (default: https://www.drupalstarforge.ai)
+# - Imports all content with NID resolution (issue numbers → local NIDs)
+# - Runs drush cim to import configuration
+# - Clears caches
+drush ai-dashboard:content-import
+# Alias: drush aid-cimport
+
+# Import with options
+drush aid-cimport --replace              # Replace existing content instead of skipping
+drush aid-cimport --source=local         # Use local files instead of downloading
+drush aid-cimport --live-url=https://... # Override live site URL
+```
+
+**Content Syncing Workflow:**
+```bash
+# On live site (or ask admin to run)
+ddev drush aid-cexport
+
+# On local site
+git pull                  # Get config changes first
+ddev drush aid-cimport    # Auto-downloads and imports everything
+```
+
+**What Gets Synced:**
+- Drupal configuration (content types, views, fields)
+- Tag mappings (drupal.org tag → track/workstream mappings)
+- AI Projects (project nodes with deliverables)
+- Assignment History (historical issue assignment data)
+- Project-Issue relationships (which issues belong to which projects, with ordering)
+- Roadmap ordering (manual drag-drop ordering on roadmap page)
+
+**Important Notes:**
+- AI Issues are NOT exported (re-import fresh from drupal.org via `aid-import-all`)
+- Contributors and Companies continue to use CSV import workflow
+- Export files use portable identifiers (issue numbers, usernames, project titles)
+- Import automatically resolves portable identifiers to local NIDs
+- NIDs differ between live and local - never assume they match
+
 ### Command Philosophy & Integration
 
 - **`import-all` (Hourly Cron)**: Primary command for keeping data fresh

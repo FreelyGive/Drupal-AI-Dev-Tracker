@@ -1,4 +1,4 @@
-uuid: null
+uuid: a7f99504-90e5-4b00-921a-45fcabc5b2e8
 langcode: en
 status: true
 dependencies:
@@ -31,6 +31,12 @@ content:
     region: content
     settings:
       display_label: true
+    third_party_settings: {  }
+  field_company_audience:
+    type: options_buttons
+    weight: 7
+    region: content
+    settings: {  }
     third_party_settings: {  }
   field_company_drupal_profile:
     type: string_textfield
@@ -93,12 +99,6 @@ content:
     third_party_settings: {  }
   url_redirects:
     weight: 50
-    region: content
-    settings: {  }
-    third_party_settings: {  }
-  field_company_audience:
-    type: options_buttons
-    weight: 7
     region: content
     settings: {  }
     third_party_settings: {  }

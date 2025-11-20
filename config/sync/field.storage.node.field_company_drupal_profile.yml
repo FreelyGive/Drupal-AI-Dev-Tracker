@@ -1,3 +1,4 @@
+uuid: c20928bf-4f3d-46a1-8363-8a4247ab8255
 langcode: en
 status: true
 dependencies:
@@ -10,6 +11,7 @@ type: string
 settings:
   max_length: 255
   case_sensitive: false
+  is_ascii: false
 module: core
 locked: false
 cardinality: 1

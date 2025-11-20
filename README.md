@@ -167,10 +167,58 @@ git commit -m "Description of config changes"
 git push
 ```
 
-### Running Imports
+### Syncing Content from Live Site
+
+The AI Dashboard includes `aid-cexport` and `aid-cimport` commands to sync content between live and local environments. This is useful when you want a complete copy of the live site on your local environment.
+
+**What Gets Synced:**
+- Drupal configuration (content types, views, fields)
+- Tag mappings (drupal.org tag → track/workstream mappings)
+- AI Projects (project nodes with deliverables)
+- Assignment History (historical issue assignment data)
+- Project-Issue relationships (which issues belong to which projects, with ordering and hierarchy)
+- Roadmap ordering (manual drag-drop ordering on roadmap page)
+
+**Note:** AI Issues are NOT exported (they're re-imported fresh from drupal.org). Contributors and Companies continue to use the CSV import workflow.
+
+#### Syncing Workflow
 
 ```bash
-# Import from all active configurations
+# On live site (or ask admin to run)
+ddev drush aid-cexport
+# Exports everything to public files at:
+# https://www.drupalstarforge.ai/sites/default/files/ai-exports/
+
+# On local site
+git pull  # Get any config changes first
+ddev drush aid-cimport
+# Automatically downloads from live site and imports everything
+```
+
+**Import Options:**
+
+```bash
+# Import from local files only (skip download)
+ddev drush aid-cimport --source=local
+
+# Replace existing content instead of skipping
+ddev drush aid-cimport --replace
+
+# Import from a different live site
+ddev drush aid-cimport --live-url=https://staging-site.com
+```
+
+**How It Works:**
+- Export creates 5 JSON files with **portable identifiers** (issue numbers, usernames, project titles - NOT database IDs)
+- Import automatically resolves these to local database IDs
+- This ensures content syncs correctly even though database IDs differ between environments
+
+**Example:** An assignment record on live might reference issue #3492439 as database ID 123, but on local that same issue is database ID 789. The import command automatically resolves the issue number to the correct local ID.
+
+### Running Issue Imports
+
+```bash
+# Import issues from all active configurations
 ddev drush ai-dashboard:import-all
 
 # Import from specific configuration
