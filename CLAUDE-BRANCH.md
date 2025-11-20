@@ -79,14 +79,18 @@ Make it easier to rebuild a complete copy of the live AI Dashboard site on a loc
 - Either drush command or admin UI
 - Sync from live to local
 
-### 🔴 2. Roadmap Page Crash
+### ✅ 2. Roadmap Page Crash *(Fixed for Fresh Installs)*
 
-**Problem**: Roadmap page (`/ai-dashboard/roadmap`) is crashing on local.
+**Problem**: Roadmap page (`/ai-dashboard/roadmap`) crashes on current local database.
 
-**TODO**:
-- Investigate the error
-- Determine if it's missing data or code issue
-- Fix the crash
+**Root Cause**: Missing `ai_dashboard_roadmap_order` table (was only in update hooks, not in hook_schema).
+
+**Solution**:
+- ✅ Added table definition to `hook_schema()` in `ai_dashboard.install`
+- Fresh installs will have this table automatically
+- Current database will be fixed by doing fresh rebuild
+
+**Status**: Will be resolved after fresh `drush site:install --existing-config`
 
 ### 🔴 3. AI Projects Content Import
 
