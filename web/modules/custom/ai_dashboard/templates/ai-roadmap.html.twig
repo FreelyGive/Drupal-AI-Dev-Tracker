@@ -6,6 +6,9 @@
  * Available variables:
  * - columns: Array of deliverables grouped by status (complete, now, next, later)
  * - summary: Summary counts for each status
+ * - filter_options: Array with 'tracks' and 'workstreams' arrays for filter dropdowns
+ * - selected_track: Currently selected track filter value
+ * - selected_workstream: Currently selected workstream filter value
  * - user_has_admin: Whether the current user has admin permissions
  *
  * Cards display only:
@@ -41,6 +44,39 @@
         {% endif %}
       </div>
     </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="roadmap-filters">
+    <form method="get" action="/ai-dashboard/roadmap" class="roadmap-filter-form" id="roadmap-filter-form">
+      {% if filter_options.tracks|length > 0 %}
+        <div class="filter-group">
+          <label for="roadmap-track-filter">Track:</label>
+          <select id="roadmap-track-filter" name="track" class="filter-select">
+            <option value="">All Tracks</option>
+            {% for track in filter_options.tracks %}
+              <option value="{{ track }}" {{ track == selected_track ? 'selected="selected"' : '' }}>{{ track }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if filter_options.workstreams|length > 0 %}
+        <div class="filter-group">
+          <label for="roadmap-workstream-filter">Workstream:</label>
+          <select id="roadmap-workstream-filter" name="workstream" class="filter-select">
+            <option value="">All Workstreams</option>
+            {% for workstream in filter_options.workstreams %}
+              <option value="{{ workstream }}" {{ workstream == selected_workstream ? 'selected="selected"' : '' }}>{{ workstream }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if selected_track or selected_workstream %}
+        <a href="/ai-dashboard/roadmap" class="clear-filters-link">Clear Filters</a>
+      {% endif %}
+    </form>
   </div>
 
   <!-- Roadmap Columns -->

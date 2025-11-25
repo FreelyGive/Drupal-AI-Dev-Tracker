@@ -47,6 +47,73 @@ body[class*="path-ai-dashboard/roadmap"] {
   min-height: 100vh;
 }
 
+/* Filter styles */
+.roadmap-filters {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 2rem;
+}
+
+.roadmap-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.roadmap-filters .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roadmap-filters .filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.roadmap-filters .filter-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  font-size: 0.875rem;
+  color: #111827;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  min-width: 150px;
+}
+
+.roadmap-filters .filter-select:hover {
+  border-color: #9ca3af;
+}
+
+.roadmap-filters .filter-select:focus {
+  outline: none;
+  border-color: #0073bb;
+  box-shadow: 0 0 0 2px rgba(0, 115, 187, 0.2);
+}
+
+.roadmap-filters .clear-filters-link {
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease;
+}
+
+.roadmap-filters .clear-filters-link:hover {
+  color: #111827;
+  background: #f3f4f6;
+  text-decoration: none;
+}
+
 /* Header styles */
 .roadmap-header {
   background: white;

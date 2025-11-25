@@ -233,7 +233,7 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 
 1. ✅ **Phase 1** - Short Title field and sync - COMPLETE
 2. ✅ **Phase 2** - Simplified roadmap display - COMPLETE
-3. ⏳ **Phase 3** - Track/Workstream filters - PENDING (future work)
+3. ✅ **Phase 3** - Track/Workstream filters - COMPLETE
 4. ✅ **Phase 4** - Cleanup and documentation - COMPLETE
 
 ## Completed Changes Summary
@@ -253,3 +253,72 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 - Removed from cards: Project links, progress bars, due dates, assignees, status notes
 - Simplified CSS (~240 lines, reduced from ~480 lines)
 - Simplified JS (removed project click handling, kept drag-drop for admins)
+
+### Phase 3: Track/Workstream Filters
+- Updated RoadmapController to:
+  - Accept Request parameter and read `track` and `workstream` query params
+  - Collect unique tracks/workstreams from all deliverables for filter options
+  - Filter deliverables server-side before grouping into columns
+  - Pass filter_options, selected_track, selected_workstream to template
+  - Add cache contexts for URL query args
+- Updated ai-roadmap.html.twig with filter dropdowns:
+  - Track dropdown (only shows if tracks exist in data)
+  - Workstream dropdown (only shows if workstreams exist in data)
+  - "Clear Filters" link when filters are active
+- Updated roadmap.css with filter bar styling matching kanban pattern
+- Updated roadmap.js with auto-submit on filter change
+- Updated ai_dashboard.module theme hook with new variables
+- Updated docs page with Short Title in Advanced Format template
+
+---
+
+## Pull Request Description
+
+**Title:** Simplify roadmap with stakeholder-friendly display and Track/Workstream filters
+
+**Body:**
+
+## Summary
+
+- **Simplified roadmap cards** to show only Short Title and Short Description, removing Drupal jargon for stakeholder readability
+- **Added new Short Title field** (100 chars) that syncs from `[Tracker]` metadata blocks on drupal.org issues
+- **Added Track/Workstream filters** to help stakeholders find relevant deliverables quickly
+
+## Changes
+
+### New Short Title Field
+- Created `field_short_title` on AI Issue content type (update hook 9044)
+- Updated MetadataParserService to parse `Short Title:` from issue summaries
+- Updated IssueImportService to store short_title during import/sync
+- Added to Advanced Format template on docs page
+
+### Simplified Roadmap Display
+- Cards now show only: Short Title (with fallback to regular title) and Short Description
+- Removed from cards: Project links, progress bars, due dates, assignees
+- Clickable title links to drupal.org issue
+- Icons in top-right corner: blue arrow (↗) to drupal.org, cog (⚙) to edit (admin only)
+- Styling matches calendar view for consistency
+
+### Track/Workstream Filters
+- Dropdown filters in header below navigation
+- Auto-submit on selection (no button needed)
+- "Clear Filters" link when filters are active
+- Filters persist in URL for shareable links
+- Empty columns show "No deliverables" state
+
+## Test Plan
+
+- [ ] Visit `/ai-dashboard/roadmap` and verify simplified card display
+- [ ] Click card title - should open drupal.org issue in new tab
+- [ ] Click arrow icon (↗) - should open drupal.org issue in new tab
+- [ ] As admin, click cog icon (⚙) - should go to local edit page
+- [ ] Select a Track filter - only matching deliverables should show
+- [ ] Select a Workstream filter - only matching deliverables should show
+- [ ] Click "Clear Filters" - all deliverables should show
+- [ ] Verify URL updates with filter params (shareable links)
+- [ ] Run `drush updb` on fresh install - should create field_short_title
+- [ ] Import an issue with Short Title in [Tracker] block - should populate field
+
+## Screenshots
+
+_(Add screenshots of the new roadmap view with filters)_

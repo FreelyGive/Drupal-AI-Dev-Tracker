@@ -99,6 +99,9 @@ function ai_dashboard_theme() {
       'variables' => [
         'columns' => [],
         'summary' => [],
+        'filter_options' => [],
+        'selected_track' => '',
+        'selected_workstream' => '',
         'user_has_admin' => FALSE,
       ],
     ],

@@ -2,7 +2,7 @@
  * @file
  * AI Deliverables Roadmap JavaScript.
  *
- * Handles drag-drop ordering for admin users.
+ * Handles drag-drop ordering for admin users and filter auto-submit.
  */
 
 (function ($, Drupal) {
@@ -15,6 +15,11 @@
         return;
       }
       $('.ai-roadmap', context).addClass('roadmap-initialized');
+
+      // Auto-submit filter form when dropdown changes.
+      $('#roadmap-track-filter, #roadmap-workstream-filter', context).on('change', function() {
+        $('#roadmap-filter-form').submit();
+      });
 
       // Add drag-drop functionality for admin users.
       // Check if user has admin permission (save button will be present).

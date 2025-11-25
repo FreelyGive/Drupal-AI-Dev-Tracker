@@ -161,6 +161,12 @@ This ensures issues appear correctly regardless of how they were added.
 - Click title or arrow icon to view issue on drupal.org
 - Admin users see cog icon to edit deliverable locally
 - Drag-drop ordering between columns (admin only)
+- **Track/Workstream Filters**: Filter deliverables by Track or Workstream
+  - Dropdown filters in header below navigation
+  - Auto-submit on selection (no button needed)
+  - "Clear Filters" link when filters are active
+  - Filters persist in URL for shareable links
+  - Empty columns show "No deliverables" state when filtered
 
 ### Project Issue Pages
 - Primary deliverable as prominent subtitle
