@@ -143,3 +143,20 @@ You're absolutely right! It's better to keep Twig debug disabled by default. Dev
 - Docs updated across README, CLAUDE.md, and CLAUDE-BRANCH.md to new names; `.gitignore` includes `web/sites/default/files/ai-exports/`.
 
 Looks good from my side. No further changes requested right now.
+
+### Update: Staged Diff Review (AiDashboardCommands.php)
+
+Must Fix
+- Config import/export: switched from Drush process manager to running `drush` via Symfony Process inside Drush. This re-introduces “calling Drush from Drush” and is brittle in some environments. Prefer `\Drush\Drush::process($this->siteAliasManager()->getSelf(), 'config:export', [], ['yes' => TRUE])` and similarly for import, or use the underlying Config services.
+
+High Impact
+- File writes: good change to `$this->fileSystem->saveData(...)`; this aligns with Drupal File API usage for `public://`.
+- Attributes consistency: mixed usage of `#[CLI\Command]` and `#[Command]` remains (e.g., `import-all` uses `#[Command]` while others use `#[CLI\Command]`). Unify on one for clarity.
+
+Nice To Have
+- DI consistency: class injects `file_system` and `http_client`, but still calls `\Drupal::database()` and `\Drupal::service('ai_dashboard.tag_mapping')`. Consider injecting these services for testability and consistency.
+- Controller/reflection coupling: Drush commands instantiate controllers and use reflection to access private methods (`getUserOrganization`, `updateIssueMappings`). Extract these into dedicated services or public methods to avoid brittle reflection.
+
+Status
+- Command names for content sync remain `ai-dashboard:content-export`/`ai-dashboard:content-import` with aliases `aid-cexport`/`aid-cimport` — collision avoided.
+- JSON export/import paths and NID resolution logic look correct and resilient to missing references (warn-and-continue behavior).

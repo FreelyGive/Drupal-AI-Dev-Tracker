@@ -716,8 +716,9 @@ class AiDashboardCommands extends DrushCommands {
    */
   private function exportConfiguration() {
     try {
-      // Use Drush's process runner for safer command execution
-      $process = $this->processManager()->drush($this->siteAliasManager()->getSelf(), 'config:export', [], ['yes' => TRUE]);
+      // Use Drush's process manager with command array
+      $process = \Drush\Drush::process(['drush', 'config:export', '-y']);
+      $process->setTimeout(120);
       $process->run();
 
       if ($process->isSuccessful()) {
@@ -727,7 +728,7 @@ class AiDashboardCommands extends DrushCommands {
         $this->output()->writeln("<comment>   ⚠️  Config export had warnings: " . $process->getErrorOutput() . "</comment>");
       }
     }
-    catch (\Exception $e) {
+    catch (\Throwable $e) {
       $this->output()->writeln("<error>   ❌ Config export failed: " . $e->getMessage() . "</error>");
     }
   }
@@ -970,7 +971,7 @@ class AiDashboardCommands extends DrushCommands {
    */
   private function writeJsonFile($file_uri, array $data) {
     $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    if (file_save_data($json, $file_uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
+    if ($this->fileSystem->saveData($json, $file_uri, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
       throw new \Exception("Failed to write file: {$file_uri}");
     }
   }
@@ -1070,7 +1071,7 @@ class AiDashboardCommands extends DrushCommands {
         $content = (string) $response->getBody();
 
         // Use Drupal File API to save
-        if (file_save_data($content, $destination, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
+        if ($this->fileSystem->saveData($content, $destination, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
           throw new \Exception("Failed to save file: {$destination}");
         }
 
@@ -1514,8 +1515,9 @@ class AiDashboardCommands extends DrushCommands {
    */
   private function importConfiguration() {
     try {
-      // Use Drush's process runner for safer command execution
-      $process = $this->processManager()->drush($this->siteAliasManager()->getSelf(), 'config:import', [], ['yes' => TRUE]);
+      // Use Drush's process manager with command array
+      $process = \Drush\Drush::process(['drush', 'config:import', '-y']);
+      $process->setTimeout(120);
       $process->run();
 
       if ($process->isSuccessful()) {
@@ -1525,7 +1527,7 @@ class AiDashboardCommands extends DrushCommands {
         $this->output()->writeln("<comment>   ⚠️  Config import had warnings: " . $process->getErrorOutput() . "</comment>");
       }
     }
-    catch (\Exception $e) {
+    catch (\Throwable $e) {
       $this->output()->writeln("<error>   ❌ Config import failed: " . $e->getMessage() . "</error>");
     }
   }
