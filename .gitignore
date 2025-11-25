@@ -160,6 +160,7 @@ services.local.yml
 !/web/INSTALL.txt
 !/web/README.txt
 !/web/robots.txt.dist
+web/sites/default/settings.ddev.php
 
 # Ignore specific contrib modules that might be patched locally
 # (Uncomment and modify as needed)
@@ -194,7 +195,6 @@ run_enhanced_data.sh
 # DevPanel Ignores
 
 /.devpanel/salt.txt
-/web/sites/default/settings.php
 
 # Ignore sensitive test artifacts
 cookies.txt
