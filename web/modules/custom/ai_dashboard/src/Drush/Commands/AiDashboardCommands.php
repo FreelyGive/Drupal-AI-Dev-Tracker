@@ -741,16 +741,18 @@ class AiDashboardCommands extends DrushCommands {
    * Check for uncommitted config changes and create zip if needed.
    */
   private function exportConfigZipIfChanged($export_dir) {
-    // Patterns for sensitive config that should never be exported publicly
-    $sensitive_patterns = [
-      'key.key.',           // API keys
-      'smtp.settings',      // SMTP passwords
-      'system.mail',        // Mail settings might have credentials
-      'system.site',        // Site UUID differs per environment
-      'openai.settings',    // AI provider configs
-      'anthropic.settings', // AI provider configs
-      'secrets.',           // Obvious secrets
-      'credentials.',       // Obvious credentials
+    // ALLOWLIST: Only these config patterns are safe to sync publicly
+    // Everything else is skipped for security
+    $allowed_patterns = [
+      'field.field.',                    // Field instance configs
+      'field.storage.',                  // Field storage configs
+      'views.view.',                     // Views configs
+      'core.entity_form_display.',       // Form display configs
+      'core.entity_view_display.',       // View display configs
+      'core.menu.static_menu_link_overrides',  // Menu overrides
+      'node.type.',                      // Content type configs
+      'taxonomy.vocabulary.',            // Taxonomy vocabulary configs
+      'ai_dashboard.module_import.',     // AI Dashboard import configs
     ];
 
     try {
@@ -788,31 +790,33 @@ class AiDashboardCommands extends DrushCommands {
           $file_path = $parts[1];
           $filename = basename($file_path);
 
-          // Check if file matches sensitive patterns
-          $is_sensitive = FALSE;
-          foreach ($sensitive_patterns as $pattern) {
-            if (strpos($filename, $pattern) !== FALSE) {
-              $is_sensitive = TRUE;
-              $skipped_files[] = $filename;
+          // Check if file matches allowed patterns (allowlist approach)
+          $is_allowed = FALSE;
+          foreach ($allowed_patterns as $pattern) {
+            if (strpos($filename, $pattern) === 0) {
+              $is_allowed = TRUE;
               break;
             }
           }
 
-          if (!$is_sensitive) {
+          if ($is_allowed) {
             $changed_files[] = $file_path;
+          }
+          else {
+            $skipped_files[] = $filename;
           }
         }
       }
 
       if (empty($changed_files)) {
-        $this->output()->writeln("   ✅ No safe config changes to export (sensitive files skipped)");
+        $this->output()->writeln("   ✅ No allowed config changes to export");
         if (!empty($skipped_files)) {
-          $this->output()->writeln("   ⚠️  Skipped sensitive files: " . implode(', ', $skipped_files));
+          $this->output()->writeln("   ℹ️  Skipped (not in allowlist): " . implode(', ', $skipped_files));
         }
         return;
       }
 
-      // There are changes - create a zip of only changed files
+      // There are changes - create a zip of only allowed changed files
       $this->output()->writeln("   📦 Config changes detected, creating zip...");
 
       $config_dir = DRUPAL_ROOT . '/../config/sync';
@@ -824,7 +828,7 @@ class AiDashboardCommands extends DrushCommands {
         throw new \Exception("Cannot create zip file: {$zip_destination}");
       }
 
-      // Add only the changed files
+      // Add only the allowed changed files
       foreach ($changed_files as $file_path) {
         $full_path = DRUPAL_ROOT . '/../' . $file_path;
         if (file_exists($full_path)) {
@@ -841,7 +845,15 @@ class AiDashboardCommands extends DrushCommands {
         $this->output()->writeln("      " . basename($file));
       }
       if (!empty($skipped_files)) {
-        $this->output()->writeln("   ⚠️  Skipped sensitive files: " . implode(', ', $skipped_files));
+        $this->output()->writeln("   ℹ️  Skipped (not in allowlist): " . implode(', ', $skipped_files));
+      }
+
+      // Restore config/sync to last committed state so git stays clean
+      $restore_process = \Drush\Drush::process(['git', 'checkout', '--', 'config/sync/'], $project_root);
+      $restore_process->setTimeout(30);
+      $restore_process->run();
+      if ($restore_process->isSuccessful()) {
+        $this->output()->writeln("   🧹 Restored config/sync/ to git state");
       }
     }
     catch (\Throwable $e) {
