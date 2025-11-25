@@ -91,10 +91,11 @@ class MetadataParserService {
   protected function parseMetadataFields($metadata_block) {
     $metadata = [];
 
-    // Define the expected metadata fields and their patterns
-    // Handle both HTML line breaks and actual newlines
+    // Define the expected metadata fields and their patterns.
+    // Handle both HTML line breaks and actual newlines.
     $field_patterns = [
       'update_summary' => '/Update Summary:\s*(.+?)(?=<br|\\n|$)/i',
+      'short_title' => '/Short Title:\s*(.+?)(?=<br|\\n|$)/i',
       'short_description' => '/Short Description:\s*(.+?)(?=<br|\\n|$)/i',
       'checkin_date' => '/Check-in Date:\s*(.+?)(?=<br|\\n|$)/i',
       'due_date' => '/Due Date:\s*(.+?)(?=<br|\\n|$)/i',
@@ -235,14 +236,16 @@ class MetadataParserService {
    *   TRUE if this appears to be template data, FALSE otherwise.
    */
   protected function isTemplateData(array $metadata) {
-    // Check for common template patterns
+    // Check for common template patterns.
     $template_patterns = [
       '/\[One-line.*?\]/',
+      '/\[Simple.*?\]/',
       '/\[#XXXXXX\]/',
       '/\[@username[12]\]/',
       '/MM\/DD\/YYYY/',
       '/\[.*stakeholders.*\]/',
       '/\[.*summary.*\]/',
+      '/\[.*Drupalisms.*\]/i',
     ];
 
     foreach ($metadata as $field => $value) {

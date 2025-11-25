@@ -1007,9 +1007,10 @@ class IssueImportService {
       'changed' => $issue_data['changed'] ?? time(),
       'non_developer' => $non_dev_flag,
       'config' => $config,
-      // AI Tracker metadata fields
+      // AI Tracker metadata fields.
       'blocked_by' => $parsed_metadata['blocked_by'] ?? '',
       'update_summary' => $parsed_metadata['update_summary'] ?? '',
+      'short_title' => $parsed_metadata['short_title'] ?? '',
       'short_description' => $parsed_metadata['short_description'] ?? '',
       'checkin_date' => $parsed_metadata['checkin_date'] ?? '',
       'due_date' => $parsed_metadata['due_date'] ?? '',
@@ -1319,6 +1320,9 @@ class IssueImportService {
     if (!empty($mapped_data['update_summary']) && $issue->hasField('field_update_summary')) {
       $issue->set('field_update_summary', $mapped_data['update_summary']);
     }
+    if (!empty($mapped_data['short_title']) && $issue->hasField('field_short_title')) {
+      $issue->set('field_short_title', $mapped_data['short_title']);
+    }
     if (!empty($mapped_data['short_description']) && $issue->hasField('field_short_description')) {
       $issue->set('field_short_description', $mapped_data['short_description']);
     }
@@ -1442,6 +1446,14 @@ class IssueImportService {
       }
       else {
         $issue->set('field_update_summary', '');
+      }
+    }
+    if ($issue->hasField('field_short_title')) {
+      if (!empty($mapped_data['short_title'])) {
+        $issue->set('field_short_title', $mapped_data['short_title']);
+      }
+      else {
+        $issue->set('field_short_title', '');
       }
     }
     if ($issue->hasField('field_short_description')) {

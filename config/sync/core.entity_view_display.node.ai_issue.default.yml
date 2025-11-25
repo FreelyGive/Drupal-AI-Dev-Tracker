@@ -20,6 +20,7 @@ dependencies:
     - field.field.node.ai_issue.field_issue_tags
     - field.field.node.ai_issue.field_issue_url
     - field.field.node.ai_issue.field_short_description
+    - field.field.node.ai_issue.field_short_title
     - field.field.node.ai_issue.field_track
     - field.field.node.ai_issue.field_update_summary
     - field.field.node.ai_issue.field_workstream
@@ -159,6 +160,14 @@ content:
       link_to_entity: false
     third_party_settings: {  }
     weight: 6
+    region: content
+  field_short_title:
+    type: string
+    label: above
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 5
     region: content
   field_track:
     type: string

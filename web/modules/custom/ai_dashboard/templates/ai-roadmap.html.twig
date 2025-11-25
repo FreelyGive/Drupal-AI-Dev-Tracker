@@ -7,6 +7,11 @@
  * - columns: Array of deliverables grouped by status (complete, now, next, later)
  * - summary: Summary counts for each status
  * - user_has_admin: Whether the current user has admin permissions
+ *
+ * Cards display only:
+ * - Short Title (or fallback to regular title)
+ * - Short Description
+ * - Links: drupal.org issue link, edit link (admin only)
  */
 #}
 
@@ -48,35 +53,34 @@
       </div>
       <div class="column-content">
         {% for item in columns.complete %}
-          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+          <div class="deliverable-card"
                data-nid="{{ item.issue.id }}"
-               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+               data-issue-url="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}">
             <div class="card-header">
-              <h3>
+              <h3 class="card-title">
                 <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
                    target="_blank" rel="noopener">
-                  {{ item.issue.label }}
+                  {{ item.issue.field_short_title.value ?: item.issue.label }}
                 </a>
               </h3>
+              <div class="card-actions">
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener" class="issue-link"
+                   title="View on drupal.org">
+                  <span class="external-icon">↗</span>
+                </a>
+                {% if user_has_admin %}
+                  <a href="/node/{{ item.issue.id }}/edit" class="issue-edit-link"
+                     title="Edit deliverable">
+                    <span class="edit-icon">⚙</span>
+                  </a>
+                {% endif %}
+              </div>
             </div>
             {% if item.issue.field_short_description.value %}
-              <div class="card-description">
+              <p class="card-description">
                 {{ item.issue.field_short_description.value }}
-              </div>
-            {% endif %}
-            {% if item.project %}
-              <div class="card-project">
-                <span class="project-label">Project:</span>
-                <a href="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues">
-                  {{ item.project.label }}
-                </a>
-              </div>
-            {% endif %}
-            {% if item.progress %}
-              <div class="progress-container">
-                <progress value="{{ item.progress.percentage }}" max="100"></progress>
-                <span class="progress-text">{{ item.progress.completed }}/{{ item.progress.total }} complete</span>
-              </div>
+              </p>
             {% endif %}
           </div>
         {% endfor %}
@@ -91,35 +95,34 @@
       </div>
       <div class="column-content">
         {% for item in columns.now %}
-          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+          <div class="deliverable-card"
                data-nid="{{ item.issue.id }}"
-               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+               data-issue-url="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}">
             <div class="card-header">
-              <h3>
+              <h3 class="card-title">
                 <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
                    target="_blank" rel="noopener">
-                  {{ item.issue.label }}
+                  {{ item.issue.field_short_title.value ?: item.issue.label }}
                 </a>
               </h3>
+              <div class="card-actions">
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener" class="issue-link"
+                   title="View on drupal.org">
+                  <span class="external-icon">↗</span>
+                </a>
+                {% if user_has_admin %}
+                  <a href="/node/{{ item.issue.id }}/edit" class="issue-edit-link"
+                     title="Edit deliverable">
+                    <span class="edit-icon">⚙</span>
+                  </a>
+                {% endif %}
+              </div>
             </div>
             {% if item.issue.field_short_description.value %}
-              <div class="card-description">
+              <p class="card-description">
                 {{ item.issue.field_short_description.value }}
-              </div>
-            {% endif %}
-            {% if item.project %}
-              <div class="card-project">
-                <span class="project-label">Project:</span>
-                <a href="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues">
-                  {{ item.project.label }}
-                </a>
-              </div>
-            {% endif %}
-            {% if item.progress %}
-              <div class="progress-container">
-                <progress value="{{ item.progress.percentage }}" max="100"></progress>
-                <span class="progress-text">{{ item.progress.completed }}/{{ item.progress.total }} complete</span>
-              </div>
+              </p>
             {% endif %}
           </div>
         {% endfor %}
@@ -134,23 +137,35 @@
       </div>
       <div class="column-content">
         {% for item in columns.next %}
-          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+          <div class="deliverable-card"
                data-nid="{{ item.issue.id }}"
-               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+               data-issue-url="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}">
             <div class="card-header">
-              <h3>
+              <h3 class="card-title">
                 <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
                    target="_blank" rel="noopener">
-                  {{ item.issue.label }}
+                  {{ item.issue.field_short_title.value ?: item.issue.label }}
                 </a>
               </h3>
+              <div class="card-actions">
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener" class="issue-link"
+                   title="View on drupal.org">
+                  <span class="external-icon">↗</span>
+                </a>
+                {% if user_has_admin %}
+                  <a href="/node/{{ item.issue.id }}/edit" class="issue-edit-link"
+                     title="Edit deliverable">
+                    <span class="edit-icon">⚙</span>
+                  </a>
+                {% endif %}
+              </div>
             </div>
             {% if item.issue.field_short_description.value %}
-              <div class="card-description">
+              <p class="card-description">
                 {{ item.issue.field_short_description.value }}
-              </div>
+              </p>
             {% endif %}
-            <div class="status-note">Being worked on but not in a project</div>
           </div>
         {% endfor %}
       </div>
@@ -164,21 +179,34 @@
       </div>
       <div class="column-content">
         {% for item in columns.later %}
-          <div class="deliverable-card{% if item.project %} has-project{% endif %}"
+          <div class="deliverable-card"
                data-nid="{{ item.issue.id }}"
-               {% if item.project %}data-project-url="/ai-dashboard/project/{{ item.project.label|lower|replace({' ': '-'}) }}/issues"{% endif %}>
+               data-issue-url="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}">
             <div class="card-header">
-              <h3>
+              <h3 class="card-title">
                 <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
                    target="_blank" rel="noopener">
-                  {{ item.issue.label }}
+                  {{ item.issue.field_short_title.value ?: item.issue.label }}
                 </a>
               </h3>
+              <div class="card-actions">
+                <a href="https://www.drupal.org/node/{{ item.issue.field_issue_number.value }}"
+                   target="_blank" rel="noopener" class="issue-link"
+                   title="View on drupal.org">
+                  <span class="external-icon">↗</span>
+                </a>
+                {% if user_has_admin %}
+                  <a href="/node/{{ item.issue.id }}/edit" class="issue-edit-link"
+                     title="Edit deliverable">
+                    <span class="edit-icon">⚙</span>
+                  </a>
+                {% endif %}
+              </div>
             </div>
             {% if item.issue.field_short_description.value %}
-              <div class="card-description">
+              <p class="card-description">
                 {{ item.issue.field_short_description.value }}
-              </div>
+              </p>
             {% endif %}
           </div>
         {% endfor %}

@@ -1,7 +1,9 @@
 /**
  * @file
  * AI Deliverables Roadmap Styles.
- * Based on kanban board layout with 4-column roadmap view.
+ *
+ * Simplified card layout with 4-column roadmap view.
+ * Cards display only Short Title, Short Description, and action links.
  */
 
 /* Page layout overrides (match calendar/kanban) */
@@ -146,7 +148,7 @@ body[class*="path-ai-dashboard/roadmap"] {
   min-height: 200px;
 }
 
-/* Deliverable cards */
+/* Deliverable cards - simplified structure */
 .deliverable-card {
   background: white;
   border: 1px solid #e5e7eb;
@@ -154,7 +156,6 @@ body[class*="path-ai-dashboard/roadmap"] {
   padding: 1rem;
   margin-bottom: 1rem;
   transition: all 0.2s ease;
-  cursor: move;
 }
 
 .deliverable-card:hover {
@@ -162,157 +163,87 @@ body[class*="path-ai-dashboard/roadmap"] {
   transform: translateY(-1px);
 }
 
-.deliverable-card.has-project {
-  cursor: pointer;
-  border-color: #93c5fd;
-}
-
-.deliverable-card.has-project:hover {
-  border-color: #2563eb;
-  box-shadow: 0 4px 12px -1px rgba(37, 99, 235, 0.15);
-}
-
 .deliverable-card.dragging {
   opacity: 0.5;
 }
 
-/* Card header */
+/* Card header - title on left, actions on right (matching calendar) */
 .deliverable-card .card-header {
-  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.deliverable-card h3 {
+.deliverable-card .card-title {
   margin: 0;
   font-size: 1rem;
   line-height: 1.4;
+  font-weight: 600;
+  flex: 1;
 }
 
-.deliverable-card h3 a {
+.deliverable-card .card-title a {
   color: #1f2937;
   text-decoration: none;
-  font-weight: 600;
+  transition: color 0.15s ease;
 }
 
-.deliverable-card h3 a:hover {
-  color: #2563eb;
-  text-decoration: underline;
+.deliverable-card .card-title a:hover {
+  color: #0073bb;
 }
 
-/* Short description */
 .deliverable-card .card-description {
-  margin-bottom: 0.75rem;
+  margin: 0;
   font-size: 0.875rem;
   color: #4b5563;
   line-height: 1.4;
-  font-style: italic;
 }
 
-/* Due date */
-.deliverable-card .card-due-date {
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
+/* Card actions - top right (matching calendar view styling) */
+.deliverable-card .card-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  flex-shrink: 0;
 }
 
-.deliverable-card .due-label {
+/* Blue arrow link to drupal.org (matching calendar .issue-link) */
+.deliverable-card .issue-link {
+  color: #0073bb;
+  text-decoration: none;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  transition: color 0.15s ease;
+}
+
+.deliverable-card .issue-link:hover {
+  color: #1d4ed8;
+}
+
+.deliverable-card .external-icon {
+  font-size: 1rem;
+}
+
+/* Cog edit link for admins (matching calendar .issue-edit-link) */
+.deliverable-card .issue-edit-link {
   color: #6b7280;
-  font-weight: 500;
-}
-
-.deliverable-card .due-date {
-  color: #1f2937;
-  font-weight: 600;
-  background-color: #fef3c7;
-  padding: 0.125rem 0.5rem;
+  text-decoration: none;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  transition: all 0.15s ease;
   border-radius: 0.25rem;
 }
 
-/* Project link */
-.deliverable-card .card-project {
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
-}
-
-.deliverable-card .project-label {
-  color: #6b7280;
-  font-weight: 500;
-  margin-right: 0.25rem;
-}
-
-.deliverable-card .card-project a {
-  color: #2563eb;
+.deliverable-card .issue-edit-link:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.05);
   text-decoration: none;
 }
 
-.deliverable-card .card-project a:hover {
-  text-decoration: underline;
-}
-
-/* Progress bar */
-.deliverable-card .progress-container {
-  margin-bottom: 0.75rem;
-}
-
-.deliverable-card progress {
-  width: 100%;
-  height: 0.5rem;
-  border-radius: 9999px;
-  overflow: hidden;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.deliverable-card progress::-webkit-progress-bar {
-  background-color: #e5e7eb;
-  border-radius: 9999px;
-}
-
-.deliverable-card progress::-webkit-progress-value {
-  background-color: #10b981;
-  border-radius: 9999px;
-}
-
-.deliverable-card progress::-moz-progress-bar {
-  background-color: #10b981;
-  border-radius: 9999px;
-}
-
-.deliverable-card .progress-text {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-/* Assignees */
-.deliverable-card .assignees {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
-}
-
-.deliverable-card .assignees-label {
-  font-weight: 500;
-  margin-right: 0.25rem;
-}
-
-.deliverable-card .assignee {
-  display: inline-block;
-  background-color: #f3f4f6;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  margin-right: 0.25rem;
-  font-size: 0.75rem;
-}
-
-/* Status notes */
-.deliverable-card .status-note {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-style: italic;
-  margin-top: 0.5rem;
+.deliverable-card .edit-icon {
+  font-size: 1rem;
 }
 
 /* Empty column state */
@@ -323,20 +254,6 @@ body[class*="path-ai-dashboard/roadmap"] {
   color: #9ca3af;
   font-style: italic;
   padding: 2rem;
-}
-
-/* Admin-only elements */
-.drag-handle {
-  cursor: move;
-  color: #9ca3af;
-  margin-right: 0.5rem;
-  font-size: 1.25rem;
-  line-height: 1;
-  vertical-align: middle;
-}
-
-body:not(.user-admin) .drag-handle {
-  display: none;
 }
 
 /* Save button styling */
@@ -383,76 +300,6 @@ body:not(.user-admin) .drag-handle {
   border: 1px solid #fca5a5;
 }
 
-/* Burndown chart styles */
-.burndown-toggle {
-  margin-top: 0.75rem;
-  padding: 0.375rem 0.75rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.burndown-toggle:hover {
-  background: #f9fafb;
-  border-color: #9333ea;
-  color: #9333ea;
-}
-
-.burndown-toggle.active {
-  background: #f3e8ff;
-  border-color: #9333ea;
-  color: #7e22ce;
-}
-
-.burndown-container {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.burndown-loading {
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-  font-style: italic;
-}
-
-.burndown-chart {
-  width: 100% !important;
-  height: 250px !important;
-  margin-bottom: 1rem;
-}
-
-.burndown-stats-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  font-size: 0.8125rem;
-}
-
-.burndown-stats-content .stat-item {
-  color: #4b5563;
-}
-
-.burndown-stats-content .stat-item strong {
-  color: #1f2937;
-  font-weight: 600;
-  margin-right: 0.25rem;
-}
-
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .roadmap-columns {
@@ -476,5 +323,9 @@ body:not(.user-admin) .drag-handle {
 
   .roadmap-column {
     min-width: 100%;
+  }
+
+  .deliverable-card .card-actions {
+    flex-wrap: wrap;
   }
 }

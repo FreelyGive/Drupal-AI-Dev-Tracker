@@ -1,14 +1,17 @@
-uuid: 60d1ff8a-c0b1-4311-abce-cbc1c8e35069
+uuid: 5a07c51c-3947-4772-a674-55cf0f33107f
 langcode: en
 status: true
 dependencies:
   module:
     - node
-id: node.field_company_ai_maker
-field_name: field_company_ai_maker
+id: node.field_short_title
+field_name: field_short_title
 entity_type: node
-type: boolean
-settings: {  }
+type: string
+settings:
+  max_length: 100
+  case_sensitive: false
+  is_ascii: false
 module: core
 locked: false
 cardinality: 1
