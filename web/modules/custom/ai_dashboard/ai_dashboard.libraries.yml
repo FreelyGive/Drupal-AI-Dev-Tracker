@@ -172,7 +172,10 @@ roadmap:
   css:
     theme:
       css/roadmap.css: {}
+      css/focus-tooltips.css: {}
   js:
+    https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js: { type: external, minified: true, weight: -10 }
+    js/focus-tooltips.js: { weight: -5 }
     js/roadmap.js: {}
   dependencies:
     - core/drupal

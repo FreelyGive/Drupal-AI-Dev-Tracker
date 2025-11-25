@@ -270,6 +270,16 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 - Updated ai_dashboard.module theme hook with new variables
 - Updated docs page with Short Title in Advanced Format template
 
+### Column Header Tooltips
+- Added info icon (ⓘ) to each column header
+- PopperJS tooltips show on hover explaining column rules:
+  - **Complete**: Issues with status Fixed, Closed (Fixed), Closed (Duplicate), or Closed (Works as designed)
+  - **Now**: Issues with an assignee AND linked to a project (priority work)
+  - **Next**: Issues with an assignee but NOT linked to a project (being worked on but not priority)
+  - **Later**: Issues with no assignee (not yet being worked on)
+- Extended focus-tooltips.js to handle `.column-title` class
+- Added PopperJS and focus-tooltips to roadmap library
+
 ---
 
 ## Pull Request Description
@@ -283,6 +293,7 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 - **Simplified roadmap cards** to show only Short Title and Short Description, removing Drupal jargon for stakeholder readability
 - **Added new Short Title field** (100 chars) that syncs from `[Tracker]` metadata blocks on drupal.org issues
 - **Added Track/Workstream filters** to help stakeholders find relevant deliverables quickly
+- **Added column header tooltips** explaining the rules for each status column
 
 ## Changes
 
@@ -306,6 +317,11 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 - Filters persist in URL for shareable links
 - Empty columns show "No deliverables" state
 
+### Column Header Tooltips
+- Info icon (ⓘ) on each column header with hover tooltip
+- Uses PopperJS via existing focus-tooltips library
+- Explains the status rules for each column
+
 ## Test Plan
 
 - [ ] Visit `/ai-dashboard/roadmap` and verify simplified card display
@@ -316,6 +332,7 @@ This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal 
 - [ ] Select a Workstream filter - only matching deliverables should show
 - [ ] Click "Clear Filters" - all deliverables should show
 - [ ] Verify URL updates with filter params (shareable links)
+- [ ] Hover over column header info icon - tooltip should appear explaining column rules
 - [ ] Run `drush updb` on fresh install - should create field_short_title
 - [ ] Import an issue with Short Title in [Tracker] block - should populate field
 

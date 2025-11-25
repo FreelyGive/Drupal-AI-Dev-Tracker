@@ -200,6 +200,24 @@ body[class*="path-ai-dashboard/roadmap"] {
   color: #111827;
 }
 
+/* Column title with tooltip */
+.roadmap-column .column-title {
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.roadmap-column .column-title .info-icon {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  transition: color 0.15s ease;
+}
+
+.roadmap-column .column-title:hover .info-icon {
+  color: #6b7280;
+}
+
 .roadmap-column .column-header .count {
   background-color: rgba(0, 0, 0, 0.1);
   color: #374151;

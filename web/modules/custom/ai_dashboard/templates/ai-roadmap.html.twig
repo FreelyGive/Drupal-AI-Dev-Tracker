@@ -84,7 +84,7 @@
     <!-- Complete Column -->
     <div class="roadmap-column complete" data-status="complete">
       <div class="column-header">
-        <h2>Complete</h2>
+        <h2 class="column-title" title="Issues with status: Fixed, Closed (Fixed), Closed (Duplicate), or Closed (Works as designed)">Complete <span class="info-icon">ⓘ</span></h2>
         <span class="count">{{ summary.complete }}</span>
       </div>
       <div class="column-content">
@@ -126,7 +126,7 @@
     <!-- Now Column -->
     <div class="roadmap-column now" data-status="now">
       <div class="column-header">
-        <h2>Now</h2>
+        <h2 class="column-title" title="Issues with an assignee AND linked to a project (priority work)">Now <span class="info-icon">ⓘ</span></h2>
         <span class="count">{{ summary.now }}</span>
       </div>
       <div class="column-content">
@@ -168,7 +168,7 @@
     <!-- Next Column -->
     <div class="roadmap-column next" data-status="next">
       <div class="column-header">
-        <h2>Next</h2>
+        <h2 class="column-title" title="Issues with an assignee but NOT linked to a project (being worked on but not priority)">Next <span class="info-icon">ⓘ</span></h2>
         <span class="count">{{ summary.next }}</span>
       </div>
       <div class="column-content">
@@ -210,7 +210,7 @@
     <!-- Later Column -->
     <div class="roadmap-column later" data-status="later">
       <div class="column-header">
-        <h2>Later</h2>
+        <h2 class="column-title" title="Issues with no assignee (not yet being worked on)">Later <span class="info-icon">ⓘ</span></h2>
         <span class="count">{{ summary.later }}</span>
       </div>
       <div class="column-content">

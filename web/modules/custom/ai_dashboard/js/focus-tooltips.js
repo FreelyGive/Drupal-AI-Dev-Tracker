@@ -26,7 +26,7 @@
     initPopperTooltips: function() {
       var tooltipInstances = [];
 
-      $(document).on('mouseenter', '.developer-focus, .issue-blocked', function(e) {
+      $(document).on('mouseenter', '.developer-focus, .issue-blocked, .column-title', function(e) {
         var $element = $(this);
         var tooltipText = $element.attr('title');
         
@@ -75,7 +75,7 @@
         tooltip.addClass('show');
       });
 
-      $(document).on('mouseleave', '.developer-focus, .issue-blocked', function(e) {
+      $(document).on('mouseleave', '.developer-focus, .issue-blocked, .column-title', function(e) {
         var $element = $(this);
         
         // Restore original title
