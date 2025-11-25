@@ -746,17 +746,18 @@ class AiDashboardCommands extends DrushCommands {
       'key.key.',           // API keys
       'smtp.settings',      // SMTP passwords
       'system.mail',        // Mail settings might have credentials
-      '.settings',          // General settings files often have secrets
-      'openai.',            // AI provider configs
-      'anthropic.',         // AI provider configs
-      'ai_provider.',       // AI provider configs
+      'system.site',        // Site UUID differs per environment
+      'openai.settings',    // AI provider configs
+      'anthropic.settings', // AI provider configs
       'secrets.',           // Obvious secrets
       'credentials.',       // Obvious credentials
     ];
 
     try {
       // Check if there are uncommitted changes in config/sync
-      $process = \Drush\Drush::process(['git', 'status', '--porcelain', 'config/sync/']);
+      // Run from project root to ensure git finds the repo
+      $project_root = DRUPAL_ROOT . '/..';
+      $process = \Drush\Drush::process(['git', 'status', '--porcelain', 'config/sync/'], $project_root);
       $process->setTimeout(30);
       $process->run();
 
