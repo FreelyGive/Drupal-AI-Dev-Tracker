@@ -675,7 +675,7 @@ class AiDashboardCommands extends DrushCommands {
     $this->output()->writeln("🚀 Starting AI Dashboard export...\n");
 
     // Step 1: Export Drupal configuration
-    $this->output()->writeln("📋 Step 1/6: Exporting Drupal configuration...");
+    $this->output()->writeln("📋 Step 1/7: Exporting Drupal configuration...");
     $this->exportConfiguration();
 
     // Step 2: Create export directory using Drupal File API
@@ -686,20 +686,24 @@ class AiDashboardCommands extends DrushCommands {
     }
 
     // Export all content types
-    $this->output()->writeln("\n📦 Step 2/6: Exporting Tag Mappings...");
+    $this->output()->writeln("\n📦 Step 2/7: Exporting Tag Mappings...");
     $this->exportTagMappings($export_dir);
 
-    $this->output()->writeln("\n📦 Step 3/6: Exporting AI Projects...");
+    $this->output()->writeln("\n📦 Step 3/7: Exporting AI Projects...");
     $this->exportProjects($export_dir);
 
-    $this->output()->writeln("\n📦 Step 4/6: Exporting Assignment History...");
+    $this->output()->writeln("\n📦 Step 4/7: Exporting Assignment History...");
     $this->exportAssignmentHistory($export_dir);
 
-    $this->output()->writeln("\n📦 Step 5/6: Exporting Project-Issue Relationships...");
+    $this->output()->writeln("\n📦 Step 5/7: Exporting Project-Issue Relationships...");
     $this->exportProjectIssues($export_dir);
 
-    $this->output()->writeln("\n📦 Step 6/6: Exporting Roadmap Ordering...");
+    $this->output()->writeln("\n📦 Step 6/7: Exporting Roadmap Ordering...");
     $this->exportRoadmapOrder($export_dir);
+
+    // Step 7: Check for config changes and create zip if needed
+    $this->output()->writeln("\n📦 Step 7/7: Checking for config changes...");
+    $this->exportConfigZipIfChanged($export_dir);
 
     // Output public URLs
     $base_url = \Drupal::request()->getSchemeAndHttpHost();
@@ -730,6 +734,117 @@ class AiDashboardCommands extends DrushCommands {
     }
     catch (\Throwable $e) {
       $this->output()->writeln("<error>   ❌ Config export failed: " . $e->getMessage() . "</error>");
+    }
+  }
+
+  /**
+   * Check for uncommitted config changes and create zip if needed.
+   */
+  private function exportConfigZipIfChanged($export_dir) {
+    // Patterns for sensitive config that should never be exported publicly
+    $sensitive_patterns = [
+      'key.key.',           // API keys
+      'smtp.settings',      // SMTP passwords
+      'system.mail',        // Mail settings might have credentials
+      '.settings',          // General settings files often have secrets
+      'openai.',            // AI provider configs
+      'anthropic.',         // AI provider configs
+      'ai_provider.',       // AI provider configs
+      'secrets.',           // Obvious secrets
+      'credentials.',       // Obvious credentials
+    ];
+
+    try {
+      // Check if there are uncommitted changes in config/sync
+      $process = \Drush\Drush::process(['git', 'status', '--porcelain', 'config/sync/']);
+      $process->setTimeout(30);
+      $process->run();
+
+      $changes = trim($process->getOutput());
+
+      if (empty($changes)) {
+        $this->output()->writeln("   ✅ No config changes to export");
+        // Remove old zip if it exists
+        $zip_path = $export_dir . '/config-sync.zip';
+        $real_path = $this->fileSystem->realpath($zip_path);
+        if ($real_path && file_exists($real_path)) {
+          unlink($real_path);
+        }
+        return;
+      }
+
+      // Parse changed files from git status output
+      $changed_files = [];
+      $skipped_files = [];
+      foreach (explode("\n", $changes) as $line) {
+        $line = trim($line);
+        if (empty($line)) {
+          continue;
+        }
+        // Git status format: " M config/sync/file.yml" or "?? config/sync/file.yml"
+        $parts = preg_split('/\s+/', $line, 2);
+        if (count($parts) === 2) {
+          $file_path = $parts[1];
+          $filename = basename($file_path);
+
+          // Check if file matches sensitive patterns
+          $is_sensitive = FALSE;
+          foreach ($sensitive_patterns as $pattern) {
+            if (strpos($filename, $pattern) !== FALSE) {
+              $is_sensitive = TRUE;
+              $skipped_files[] = $filename;
+              break;
+            }
+          }
+
+          if (!$is_sensitive) {
+            $changed_files[] = $file_path;
+          }
+        }
+      }
+
+      if (empty($changed_files)) {
+        $this->output()->writeln("   ✅ No safe config changes to export (sensitive files skipped)");
+        if (!empty($skipped_files)) {
+          $this->output()->writeln("   ⚠️  Skipped sensitive files: " . implode(', ', $skipped_files));
+        }
+        return;
+      }
+
+      // There are changes - create a zip of only changed files
+      $this->output()->writeln("   📦 Config changes detected, creating zip...");
+
+      $config_dir = DRUPAL_ROOT . '/../config/sync';
+      $zip_destination = $this->fileSystem->realpath($export_dir) . '/config-sync.zip';
+
+      // Create zip file
+      $zip = new \ZipArchive();
+      if ($zip->open($zip_destination, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+        throw new \Exception("Cannot create zip file: {$zip_destination}");
+      }
+
+      // Add only the changed files
+      foreach ($changed_files as $file_path) {
+        $full_path = DRUPAL_ROOT . '/../' . $file_path;
+        if (file_exists($full_path)) {
+          $zip->addFile($full_path, basename($file_path));
+        }
+      }
+
+      $zip->close();
+
+      $base_url = \Drupal::request()->getSchemeAndHttpHost();
+      $this->output()->writeln("   ✅ Config zip created: {$base_url}/sites/default/files/ai-exports/config-sync.zip");
+      $this->output()->writeln("   📋 Included files:");
+      foreach ($changed_files as $file) {
+        $this->output()->writeln("      " . basename($file));
+      }
+      if (!empty($skipped_files)) {
+        $this->output()->writeln("   ⚠️  Skipped sensitive files: " . implode(', ', $skipped_files));
+      }
+    }
+    catch (\Throwable $e) {
+      $this->output()->writeln("<error>   ❌ Config zip failed: " . $e->getMessage() . "</error>");
     }
   }
 
@@ -1096,7 +1211,57 @@ class AiDashboardCommands extends DrushCommands {
       }
     }
 
+    // Try to download config zip if it exists
+    $this->downloadAndExtractConfigZip($live_url, $export_dir);
+
     return $this->fileSystem->realpath($export_dir);
+  }
+
+  /**
+   * Download and extract config zip if it exists on live.
+   */
+  private function downloadAndExtractConfigZip($live_url, $export_dir) {
+    $zip_url = "{$live_url}/sites/default/files/ai-exports/config-sync.zip";
+    $zip_destination = $export_dir . '/config-sync.zip';
+
+    try {
+      $response = $this->httpClient->get($zip_url, ['timeout' => 30]);
+      $content = (string) $response->getBody();
+
+      // Save the zip file
+      if ($this->fileSystem->saveData($content, $zip_destination, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
+        throw new \Exception("Failed to save zip file");
+      }
+
+      $this->output()->writeln("      ✅ Downloaded: config-sync.zip");
+
+      // Extract to config/sync
+      $zip_path = $this->fileSystem->realpath($zip_destination);
+      $config_dir = DRUPAL_ROOT . '/../config/sync';
+
+      $zip = new \ZipArchive();
+      if ($zip->open($zip_path) === TRUE) {
+        $zip->extractTo($config_dir);
+        $zip->close();
+        $this->output()->writeln("      ✅ Extracted config to: config/sync/");
+        $this->output()->writeln("      📋 Remember to commit these config changes!");
+      }
+      else {
+        throw new \Exception("Failed to open zip file");
+      }
+    }
+    catch (\GuzzleHttp\Exception\ClientException $e) {
+      // 404 is expected if there are no config changes
+      if ($e->getResponse()->getStatusCode() === 404) {
+        $this->output()->writeln("      ℹ️  No config changes to download (config-sync.zip not found)");
+      }
+      else {
+        $this->output()->writeln("<comment>      ⚠️  Failed to download config zip: " . $e->getMessage() . "</comment>");
+      }
+    }
+    catch (\Exception $e) {
+      $this->output()->writeln("<comment>      ⚠️  Failed to download config zip: " . $e->getMessage() . "</comment>");
+    }
   }
 
   /**
