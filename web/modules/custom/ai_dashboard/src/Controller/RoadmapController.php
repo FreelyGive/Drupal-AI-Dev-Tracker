@@ -4,6 +4,7 @@ namespace Drupal\ai_dashboard\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\node\Entity\Node;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,13 +24,23 @@ class RoadmapController extends ControllerBase {
   protected $database;
 
   /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManagerService;
+
+  /**
    * Constructs a RoadmapController object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    */
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, EntityTypeManagerInterface $entity_type_manager) {
     $this->database = $database;
+    $this->entityTypeManagerService = $entity_type_manager;
   }
 
   /**
@@ -37,15 +48,26 @@ class RoadmapController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('database')
+      $container->get('database'),
+      $container->get('entity_type.manager')
     );
   }
 
   /**
    * Display the roadmap view.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return array
+   *   The render array.
    */
-  public function view() {
+  public function view(Request $request) {
     $nodeStorage = $this->entityTypeManager()->getStorage('node');
+
+    // Get filter values from query parameters.
+    $selected_track = $request->query->get('track', '');
+    $selected_workstream = $request->query->get('workstream', '');
 
     // 1. Get all issues with "AI Deliverable" tag
     $query = $nodeStorage->getQuery()
@@ -76,9 +98,41 @@ class RoadmapController extends ControllerBase {
       'later' => [],
     ];
 
+    // Collect unique tracks and workstreams for filter options.
+    $all_tracks = [];
+    $all_workstreams = [];
+
     foreach ($deliverable_nids as $nid) {
       $issue = Node::load($nid);
       if (!$issue) {
+        continue;
+      }
+
+      // Get track and workstream values for filter options and filtering.
+      $issue_track = '';
+      $issue_workstream = '';
+
+      if ($issue->hasField('field_track') && !$issue->get('field_track')->isEmpty()) {
+        $issue_track = $issue->get('field_track')->value;
+        if (!empty($issue_track) && !in_array($issue_track, $all_tracks)) {
+          $all_tracks[] = $issue_track;
+        }
+      }
+
+      if ($issue->hasField('field_workstream') && !$issue->get('field_workstream')->isEmpty()) {
+        $issue_workstream = $issue->get('field_workstream')->value;
+        if (!empty($issue_workstream) && !in_array($issue_workstream, $all_workstreams)) {
+          $all_workstreams[] = $issue_workstream;
+        }
+      }
+
+      // Apply track filter if selected.
+      if (!empty($selected_track) && $issue_track !== $selected_track) {
+        continue;
+      }
+
+      // Apply workstream filter if selected.
+      if (!empty($selected_workstream) && $issue_workstream !== $selected_workstream) {
         continue;
       }
 
@@ -107,6 +161,10 @@ class RoadmapController extends ControllerBase {
       ];
     }
 
+    // Sort filter options alphabetically.
+    sort($all_tracks, SORT_NATURAL | SORT_FLAG_CASE);
+    sort($all_workstreams, SORT_NATURAL | SORT_FLAG_CASE);
+
     // 4. Sort within columns by weight, then by changed date
     foreach ($columns as &$column) {
       usort($column, function($a, $b) {
@@ -119,8 +177,8 @@ class RoadmapController extends ControllerBase {
       });
     }
 
-    // Count totals for summary
-    $total_count = count($deliverable_nids);
+    // Count totals for summary (after filtering).
+    $filtered_count = count($columns['complete']) + count($columns['now']) + count($columns['next']) + count($columns['later']);
     $complete_count = count($columns['complete']);
     $now_count = count($columns['now']);
     $next_count = count($columns['next']);
@@ -130,12 +188,18 @@ class RoadmapController extends ControllerBase {
       '#theme' => 'ai_roadmap',
       '#columns' => $columns,
       '#summary' => [
-        'total' => $total_count,
+        'total' => $filtered_count,
         'complete' => $complete_count,
         'now' => $now_count,
         'next' => $next_count,
         'later' => $later_count,
       ],
+      '#filter_options' => [
+        'tracks' => $all_tracks,
+        'workstreams' => $all_workstreams,
+      ],
+      '#selected_track' => $selected_track,
+      '#selected_workstream' => $selected_workstream,
       '#user_has_admin' => $this->currentUser()->hasPermission('administer ai dashboard content'),
       '#cache' => [
         'tags' => [
@@ -145,6 +209,8 @@ class RoadmapController extends ControllerBase {
         ],
         'contexts' => [
           'user.permissions',
+          'url.query_args:track',
+          'url.query_args:workstream',
         ],
       ],
       '#attached' => [

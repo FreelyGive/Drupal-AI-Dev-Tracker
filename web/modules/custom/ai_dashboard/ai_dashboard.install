@@ -4080,3 +4080,78 @@ function ai_dashboard_update_9043() {
 
   return t('Added username and organization fields to assignment_record table and populated existing usernames.');
 }
+
+/**
+ * Add Short Title field to AI Issue content type.
+ */
+function ai_dashboard_update_9044() {
+  $messages = [];
+
+  // Check if field storage already exists.
+  $field_storage = FieldStorageConfig::loadByName('node', 'field_short_title');
+
+  if (!$field_storage) {
+    // Create field storage for short title.
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_short_title',
+      'entity_type' => 'node',
+      'type' => 'string',
+      'settings' => [
+        'max_length' => 100,
+      ],
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_short_title storage.';
+  }
+
+  // Check if field instance exists.
+  $field = FieldConfig::loadByName('node', 'ai_issue', 'field_short_title');
+
+  if (!$field) {
+    // Create field instance for AI Issue.
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_issue',
+      'label' => 'Short Title',
+      'description' => 'Simple issue title for stakeholders without Drupalisms (100 chars max)',
+      'required' => FALSE,
+      'default_value' => [],
+    ]);
+    $field->save();
+    $messages[] = 'Created Short Title field on AI Issue.';
+  }
+
+  // Add to form display.
+  $form_display = EntityFormDisplay::load('node.ai_issue.default');
+  if ($form_display && !$form_display->getComponent('field_short_title')) {
+    $form_display->setComponent('field_short_title', [
+      'type' => 'string_textfield',
+      'weight' => 5,
+      'settings' => [
+        'size' => 60,
+        'placeholder' => 'Stakeholder-friendly title without [Meta], module names, etc.',
+      ],
+      'region' => 'content',
+    ]);
+    $form_display->save();
+    $messages[] = 'Added Short Title to form display.';
+  }
+
+  // Add to view display.
+  $view_display = EntityViewDisplay::load('node.ai_issue.default');
+  if ($view_display && !$view_display->getComponent('field_short_title')) {
+    $view_display->setComponent('field_short_title', [
+      'type' => 'string',
+      'weight' => 5,
+      'label' => 'above',
+      'region' => 'content',
+    ]);
+    $view_display->save();
+    $messages[] = 'Added Short Title to view display.';
+  }
+
+  return t('Added Short Title field to AI Issues: @messages', [
+    '@messages' => implode(' ', $messages),
+  ]);
+}

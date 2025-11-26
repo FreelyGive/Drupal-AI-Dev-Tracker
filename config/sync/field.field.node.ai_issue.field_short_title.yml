@@ -1,0 +1,19 @@
+uuid: eb1d2faf-d9c9-4afc-b4e9-c2897050e4f2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_short_title
+    - node.type.ai_issue
+id: node.ai_issue.field_short_title
+field_name: field_short_title
+entity_type: node
+bundle: ai_issue
+label: 'Short Title'
+description: 'Simple issue title for stakeholders without Drupalisms (100 chars max)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

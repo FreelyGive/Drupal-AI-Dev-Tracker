@@ -14,8 +14,8 @@ The Deliverables feature provides comprehensive tracking and visualization of AI
 
 ### Field Additions
 - **AI Issue Content Type**:
-  - `field_short_description` (text_long): Brief summary for roadmap display
-  - Added via update hook 9039
+  - `field_short_description` (string, 255 chars): Brief summary for roadmap display (update hook 9039)
+  - `field_short_title` (string, 100 chars): Stakeholder-friendly title without Drupalisms (update hook 9044)
 
 ### Controllers
 - **RoadmapController** (`/ai-dashboard/roadmap`):
@@ -33,10 +33,11 @@ The Deliverables feature provides comprehensive tracking and visualization of AI
 
 ### Templates
 - **ai-roadmap.html.twig**:
-  - Clean 4-column layout
-  - Simplified cards showing title, description, project
-  - Progress bars for deliverables with child issues
-  - Admin-only save button for ordering
+  - Clean 4-column layout (Complete, Now, Next, Later)
+  - Simplified cards showing Short Title (or fallback) and Short Description
+  - Clickable title links to drupal.org issue
+  - Icons in top-right: arrow (↗) to drupal.org, cog (⚙) to edit (admin only)
+  - Admin-only save button for drag-drop ordering
 
 - **ai-project-issues.html.twig**:
   - Primary deliverable as subtitle
@@ -95,9 +96,10 @@ The Deliverables feature provides comprehensive tracking and visualization of AI
 - **9039**: Adds field_short_description to AI Issues
 - **9040**: Creates ai_dashboard_roadmap_order table
 - **9041**: Fixes table structure with correct column names
+- **9044**: Adds field_short_title to AI Issues
 
 ### Cleanup Notes
-- Hooks 9039-9041 are required for production
+- Hooks 9039-9041, 9044 are required for production
 - Earlier hooks (8001-9038) were development iterations
 - All hooks use proper Drupal database API
 - No test/dummy data in update hooks
@@ -134,8 +136,8 @@ This ensures issues appear correctly regardless of how they were added.
 
 ### Drupal.org Integration
 - Issue data imported via existing import system
-- Metadata extraction from issue summaries
-- Short descriptions manually added for roadmap display
+- Metadata extraction from issue summaries using `[Tracker]...[/Tracker]` blocks
+- Short Title and Short Description auto-populated from metadata during import
 - Issue numbers link directly to drupal.org
 
 ## Performance Considerations
@@ -154,10 +156,17 @@ This ensures issues appear correctly regardless of how they were added.
 ## User Experience
 
 ### Roadmap View
-- Clean, distraction-free interface
-- No filters or complex controls
-- Focus on deliverable status and progress
-- Click cards to navigate to project details
+- Clean, stakeholder-focused interface
+- Cards show Short Title and Short Description only
+- Click title or arrow icon to view issue on drupal.org
+- Admin users see cog icon to edit deliverable locally
+- Drag-drop ordering between columns (admin only)
+- **Track/Workstream Filters**: Filter deliverables by Track or Workstream
+  - Dropdown filters in header below navigation
+  - Auto-submit on selection (no button needed)
+  - "Clear Filters" link when filters are active
+  - Filters persist in URL for shareable links
+  - Empty columns show "No deliverables" state when filtered
 
 ### Project Issue Pages
 - Primary deliverable as prominent subtitle
@@ -200,12 +209,13 @@ This ensures issues appear correctly regardless of how they were added.
 
 ## Deployment Checklist
 
-1. ✅ Run update hooks (9039, 9040, 9041) via `drush updb`
+1. ✅ Run update hooks (9039, 9040, 9041, 9044) via `drush updb`
 2. ✅ Clear cache after deployment
 3. ✅ Verify permissions for admin users
 4. ✅ Test drag-drop on production environment
-5. ✅ Confirm burndown charts load correctly
+5. ✅ Confirm burndown charts load correctly on project pages
 6. ✅ Check responsive layout on mobile devices
+7. ✅ Verify roadmap cards display Short Title when available
 
 ## Summary
 

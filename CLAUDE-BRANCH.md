@@ -5,397 +5,337 @@
 **⚠️ IMPORTANT FOR FUTURE AGENTS**: This file documents the current branch's purpose, progress, and implementation plans.
 
 - **DO NOT REMOVE THIS SECTION** - it helps orient future agents to the branch context
-- **Current Branch**: `improved-site-wide-config-export`
-- **Branch Goal**: Make it easier to rebuild a complete copy of the live AI Dashboard site on a local environment by improving configuration and content management workflows
+- **Current Branch**: `improved-roadmap`
+- **Branch Goal**: Make the Roadmap simpler and more stakeholder-focused
 - **Update the branch name above** when working on a different branch
 - **See Also**: `Codex_Branch.md` - Contains feedback from ChatGPT Codex on the work done in this branch
 
 ---
 
-## CURRENT STATUS & NEXT STEPS
+### USER PLAN ###
+(Claude can put its planning in Claude Plan)
 
-### ✅ Completed (Stage 1)
-- Fresh install baseline working with proper schema
-- Config sync fixed (all 29 ModuleImport configs in git)
-- `settings.php` config sync directory configured
-- Documentation updated (README, CLAUDE.md)
+Changes:
 
-### ✅ Completed (Stage 2)
-**Content Export/Import System**: `aid-cexport` and `aid-cimport` commands **FULLY IMPLEMENTED AND TESTED**
+- Make the Roadmap Visually simpler:
+- Create a new Field "Short Title" with the Helper Text "Simple Issue title for stakeholders without Drupalisms" on Issues.
+(We need this because the issue titles on Drupal.org are usually written to look good on Drupal.org with things like [Meta] in the name. This is a place where we can write a shorter title for stakeholders to see.)
+- Add the below to the advanced tracker template in the docs.
+- Add the new field to the sync command that runs during normal import and the command that reruns all syncing so that the data from the tracker will sync with the new field.
+- Change the Roadmap so it only Short Title and Short Description on the roadmap. There should be a button to click it and it will take you to the issue on Drupal.org or if you have logged in with Admin permissions the edit page of the deliverable.
+- Create filters near the top for filtering by track or workstream (but for now don't show that information on the issues themselves).
+- Make sure we handle configuration management. We need to push these changes to live from local but also do what we need to do so that this functionality will work when the whole site is rebuilt locally.
+- Do correct drupal code review, clean up and documentation.
+- Remember that Codex will review code.
+- 
 
-**Implemented:**
-1. ✅ `aid-cexport` command - exports config + all content to public files
-2. ✅ `aid-cimport` command - downloads from live site + imports with NID resolution
-3. ✅ All 5 content types exported/imported with portable identifiers
-4. ✅ Critical NID resolution working (issue numbers → local NIDs, usernames → local contributor NIDs)
-5. ✅ Tested locally with real data - 61 project-issue relationships, 9 roadmap orderings imported successfully
-6. ✅ Error handling: graceful warnings for missing references, continues processing
-7. ✅ Export directory added to `.gitignore`
 
-**Commands Ready for Production:**
-```bash
-# On live site
-ddev drush aid-cexport
+[Tracker]
+<strong>Update Summary: </strong>[One-line status update for stakeholders]
+<strong>Short Title: </strong>[Simple Issue title for stakeholders without Drupalisms]
+<strong>Short Description: </strong>[One-line issue summary for stakeholders]
+<strong>Check-in Date: </strong>MM/DD/YYYY
+<strong>Due Date:</strong> MM/DD/YYYY
+<strong>Blocked by:</strong> [#XXXXXX] (New issues on new lines)
+<strong>Additional Collaborators:</strong> @username1, @username2
+<em>Metadata is used by the <a href="https://www.drupalstarforge.ai/" title="AI Tracker">AI Tracker.</a> Docs and additional fields <a href="https://www.drupalstarforge.ai/ai-dashboard/docs" title="AI Issue Tracker Documentation">here</a>.</em>
+[/Tracker]
 
-# On local site
-git pull  # Get config changes
-ddev drush aid-cimport  # Auto-downloads from live
-```
 
-### 📋 Todo (Stage 3)
-- ✅ Update documentation (README.md, CLAUDE.md) with new workflow
-- Test full round-trip from live to local
-- Optional: Execute remaining test plan scenarios
-- Optional: Handle edge cases (files/media if projects use them)
+### CLAUDE PLAN ###
 
----
-
-## CONTENT EXPORT/IMPORT SYSTEM (Current Work)
+## Implementation Plan: Improved Roadmap
 
 ### Overview
 
-Two unified commands to sync complete site from live to local:
+This plan implements a cleaner, stakeholder-focused roadmap that removes Drupal jargon and provides better filtering capabilities.
 
-```bash
-# On live site
-ddev drush aid-cexport
-
-# On local site
-git pull  # Get config changes
-ddev drush aid-cimport  # Auto-downloads content from live
-```
-
-### What Gets Exported/Imported
-
-**Content Entities (nodes)**:
-1. **Tag Mappings** - `ai_tag_mapping` nodes
-2. **AI Projects** - `ai_project` nodes
-
-**Content Entities (custom tables)**:
-3. **Assignment History** - `assignment_record` table (historical issue assignments)
-
-**Relationship/Metadata (custom tables)**:
-4. **Project-Issue Relationships** - `ai_dashboard_project_issue` table (ordering + hierarchy)
-5. **Roadmap Ordering** - `ai_dashboard_roadmap_order` table
-
-### Export Files
-
-**Location**: `sites/default/files/ai-exports/` (public, NOT in git)
-
-**Files** (all use portable identifiers, not NIDs):
-- `tag-mappings.json` - {source_tag, mapping_type, mapped_value, title}
-- `projects.json` - {title, body, field_project_tags, field_project_deliverable_issue_number}
-- `assignment-history.json` - {issue_number, assignee_username, assignee_organization, week_id, week_date, issue_status_at_assignment, assigned_date, source}
-- `project-issues.json` - {project_title, issue_number, weight, indent_level, parent_issue_number}
-- `roadmap-order.json` - {issue_number, column, weight}
-
-### Key Design Decisions
-
-✅ **Unified commands**: Just 2 commands handle both config and content
-✅ **Public files**: No authentication needed (all data is public anyway)
-✅ **Auto-download**: Import fetches from live site URL automatically
-✅ **Portable identifiers**: Issue numbers, usernames, project titles (never NIDs)
-✅ **NID resolution**: Always resolves to local NIDs during import
-⚠️ **Contributors/Companies**: Keep separate CSV upload workflow
-⚠️ **AI Issues**: NOT exported (re-import from drupal.org via `ai-dashboard:import-all`)
-
-### Implementation Plan
-
-#### Phase 1: `aid-cexport` Command
-
-**File**: `web/modules/custom/ai_dashboard/src/Drush/Commands/AiDashboardCommands.php`
-
-**Command**: `ai-dashboard:content-export` (alias: `aid-cexport`)
-
-**Steps**:
-1. Create export directory: `sites/default/files/ai-exports/`
-2. Export configuration: Run `drush cex` via shell
-3. Export tag mappings → `tag-mappings.json`
-4. Export AI Projects (resolve deliverable NID → issue number) → `projects.json`
-5. Export Assignment History (resolve issue/assignee NIDs → numbers/usernames) → `assignment-history.json`
-6. Export Project-Issue relationships (resolve all NIDs → portable identifiers) → `project-issues.json`
-7. Export Roadmap ordering (resolve issue NID → issue number) → `roadmap-order.json`
-8. Output success message with public URLs
-
-**Error handling**: Continue on partial failures, log errors
-
-#### Phase 2: `aid-cimport` Command
-
-**Command**: `ai-dashboard:content-import` (alias: `aid-cimport`)
-**Options**: `--replace`, `--source=live|local`, `--live-url=https://...`
-
-**Steps**:
-1. **Download** (if `--source=live`):
-   - Get live site URL from config (default: https://www.drupalstarforge.ai)
-   - Override with `--live-url` if provided
-   - Download all 5 JSON files
-   - Fallback to local files if download fails, else error
-
-2. **Import tag mappings**: Create/update nodes, clear cache
-
-3. **Import AI Projects**:
-   - Resolve deliverable_issue_number → local issue NID
-   - Create/update nodes
-
-4. **Import Assignment History** (**CRITICAL NID RESOLUTION**):
-   - `issue_number` → Query local `ai_issue` by `field_issue_number` to get local NID
-   - `assignee_username` → Query local `ai_contributor` by `field_drupal_username` to get local NID
-   - Create/update `assignment_record` entities using **local NIDs**
-   - **Never assume NIDs match between live and local**
-
-5. **Import Project-Issue relationships**:
-   - Resolve project_title → local NID, issue_number → local NID, parent_issue_number → local NID
-   - Insert into `ai_dashboard_project_issue` table with hierarchy
-
-6. **Import Roadmap ordering**:
-   - Resolve issue_number → local NID
-   - Insert into `ai_dashboard_roadmap_order` table
-
-7. **Import configuration**: Run `drush cim` via shell
-
-8. **Clear caches** and output summary
-
-**Error handling**: Validate JSON, handle missing references gracefully, log warnings, continue processing
-
-#### Phase 3: Configuration
-
-**Add to `.gitignore`**:
-```
-web/sites/default/files/ai-exports/
-```
-
-**Create config setting**: `ai_dashboard.settings.live_site_url`
-
-### Test Plan (11 Tests)
-
-1. **Fresh Export** - Verify files created with valid JSON
-2. **Local Import** - Restore from local files
-3. **Replace Flag** - Test update vs skip behavior
-4. **Export Relationships** - Verify portable identifiers used
-5. **Import Relationships** - Restore table data correctly
-6. **Download from Live** - Fetch files via HTTP
-7. **Download Fallback** - Graceful handling when download fails
-8. **Missing References** - Handle missing deliverable issues
-9. **Config Integration** - Test `drush cim` runs automatically
-10. **NID Resolution** - Verify live NIDs ≠ local NIDs, assignment history correct
-11. **Full Round-Trip** - Complete live → local workflow
-
-### Success Criteria
-
-- [ ] All 11 tests pass
-- [ ] Commands work with no manual intervention
-- [ ] NID resolution works correctly (live NIDs ≠ local NIDs)
-- [ ] Assignment history displays on issue edit pages after import
-- [ ] Workflow documented in README.md
-- [ ] `.gitignore` updated
+**Key Changes:**
+1. New "Short Title" field for stakeholder-friendly titles
+2. Simplified roadmap cards (Short Title + Short Description only)
+3. Track/Workstream filters at the top
+4. Better click behavior (admin vs public)
 
 ---
 
-## NOTES: FRESH INSTALL FROM THIS BRANCH
+## Phase 1: Add Short Title Field & Sync [USER TESTABLE]
 
-These instructions help you rebuild a local copy of the AI Dashboard from scratch.
+**Goal:** Create the new field and enable syncing from drupal.org metadata.
 
-### Step 1: Complete Cleanup
-```bash
-ddev stop
-ddev delete -O
+### Tasks:
 
-# Optional: Delete entire directory and clone fresh
-cd ..
-rm -rf Drupal-AI-Dev-Tracker
-```
+1. **Create `field_short_title` field on AI Issue content type**
+   - Type: string (plain text), max 100 characters
+   - Label: "Short Title"
+   - Helper text: "Simple issue title for stakeholders without Drupalisms"
+   - Add via database update hook (9044)
 
-### Step 2: Clone Repository
-```bash
-git clone https://github.com/FreelyGive/Drupal-AI-Dev-Tracker.git
-cd Drupal-AI-Dev-Tracker
-git checkout improved-site-wide-config-export
-git pull origin improved-site-wide-config-export
-```
+2. **Update MetadataParserService** to parse Short Title
+   - File: `src/Service/MetadataParserService.php`
+   - Add pattern: `'short_title' => '/Short Title:\s*(.+?)(?=<br|\\n|$)/i'`
+   - Already handles template detection
 
-### Step 3: Start DDEV
-```bash
-ddev start
-ddev composer install
-```
+3. **Update IssueImportService** to store Short Title
+   - File: `src/Service/IssueImportService.php`
+   - Add `short_title` to mapDrupalOrgIssue() return array
+   - Add field setting in createIssue() and updateIssue()
 
-### Step 4: Fresh Drupal Install
-```bash
-ddev drush site:install --existing-config --account-pass=admin
-```
+4. **Update documentation template** in CLAUDE-BRANCH.md
+   - Template already includes `<strong>Short Title: </strong>` - just needs to be documented
 
-**This creates:**
-- All content types, fields, views from config
-- All 29 ModuleImport configurations
-- `assignment_record` table with `assignee_username` and `assignee_organization` fields
-- `ai_dashboard_project_issue` table
-- `ai_dashboard_roadmap_order` table
+5. **Export configuration**
+   - Run `drush cex` to export field configs
 
-### Step 5: Import Issues from Drupal.org
-```bash
-ddev drush ai-dashboard:import-all
-```
-
-This imports issues, processes AI Tracker metadata, applies tag mappings, syncs assignments, fetches organizations.
-
-### Step 6: Import Contributors
-1. Obtain latest contributor CSV file
-2. Visit: `https://drupal-ai-dev-tracker.ddev.site/ai-dashboard/admin/contributor-import`
-3. Upload CSV file
-
-### Step 7: Verify Installation
-
-**Login:**
-- URL: `https://drupal-ai-dev-tracker.ddev.site`
-- Username: `admin`
-- Password: `admin`
-
-**Test Pages:**
-- `/ai-dashboard/calendar`
-- `/ai-dashboard/priority-kanban`
-- `/ai-dashboard/projects`
-- `/ai-dashboard/roadmap`
-- `/ai-dashboard/reports`
-
-**Verify Database:**
-```bash
-ddev mysql -e "SHOW TABLES LIKE 'ai_dashboard%';"
-ddev mysql -e "SHOW TABLES LIKE 'assignment_record';"
-```
-
-**Verify Configs:**
-Visit `/admin/config/ai-dashboard/module-import` - should list ~29 configurations.
+### Testing:
+- Run `drush updb` to create field
+- Find an issue on drupal.org with the [Tracker] metadata block
+- Run `drush ai-dashboard:import-all` or `drush aid-meta` to reprocess
+- Verify field populates
 
 ---
 
-## TECHNICAL REFERENCE
+## Phase 2: Simplify Roadmap Display [USER TESTABLE]
 
-### Update Hooks vs Fresh Installs
+**Goal:** Cleaner cards showing only Short Title and Short Description.
 
-**Key Learning**: `drush site:install --existing-config` does NOT run update hooks.
+### Tasks:
 
-- All schema must be in `hook_schema()` or entity base field definitions
-- Update hooks only for updating existing sites, not fresh installs
-- Fresh installs get schema from code, not from running historical updates
+1. **Update ai-roadmap.html.twig**
+   - Display Short Title if available, fallback to regular title
+   - Show only Short Title + Short Description (remove project links, progress bars from cards)
+   - Keep due date visible (important for stakeholders)
+   - Different click behavior based on user role:
+     - **Admin:** Click goes to edit page (`/node/{nid}/edit`)
+     - **Public:** Click goes to drupal.org issue
 
-**Our Fixes:**
-- Moved `assignee_username`/`assignee_organization` from update hook to entity definition
-- Moved `ai_dashboard_roadmap_order` table from update hook to `hook_schema()`
+2. **Update roadmap.css**
+   - Simplify card styling
+   - Ensure cards look clickable
+   - Keep column colors and responsive layout
 
-### UUID Handling
+3. **Update roadmap.js**
+   - Modify click handler for admin vs public behavior
+   - Keep drag-drop for admin users
 
-**Non-Issue**: `drush site:install --existing-config` automatically adopts UUID from config files. No manual UUID fixing needed.
-
-### Config Ignore Best Practice
-
-Don't use Config Ignore to hide runtime data. Instead:
-- Remove runtime fields from `config_export` arrays in entity definitions
-- Only use Config Ignore for truly environment-specific configs
-
-### NID Resolution Requirement
-
-**Critical**: NIDs differ between live and local environments.
-
-**Always resolve during import:**
-- Issue numbers → local issue NIDs via `field_issue_number`
-- Project titles → local project NIDs via node title
-- Contributor usernames → local contributor NIDs via `field_drupal_username`
-- Parent issue numbers → local parent issue NIDs via `field_issue_number`
-
-**Never assume NIDs match** - always query by portable identifier.
+### Testing:
+- View roadmap as anonymous user - clicking should go to drupal.org
+- View roadmap as admin - clicking should go to edit page
+- Verify Short Title displays when available
+- Verify fallback to regular title works
 
 ---
 
-## WHAT WAS ACCOMPLISHED (History)
+## Phase 3: Add Track/Workstream Filters [USER TESTABLE]
 
-### 1. Configuration Sync Fixed
+**Goal:** Filter deliverables by Track or Workstream at the top of the page.
 
-**Problem**: Only 4 of 29 module import configurations were exporting to git.
+### Pre-work TODO:
+- [ ] **Review existing filter implementations** before proceeding:
+  - Look at `/ai-dashboard/priority-kanban` filtering (ProjectKanbanController)
+  - Look at `/ai-dashboard/calendar` filtering (CalendarController)
+  - Understand the pattern used (URL params, AJAX, client-side JS)
+  - Use a similar approach for consistency
 
-**Root Cause**: Config Ignore module was blocking `ai_dashboard.module_import.*` because `last_run` field created git noise.
+### Tasks:
 
-**Solution**:
-- Removed `last_run` from `config_export` in `ModuleImport.php`
-- Removed Config Ignore rule from `config/sync/config_ignore.settings.yml`
-- Exported all 29 import configurations from live
+1. **Update RoadmapController**
+   - File: `src/Controller/RoadmapController.php`
+   - Add method to get unique Tracks and Workstreams from deliverables
+   - Accept filter parameters from query string
+   - Filter deliverables before display
 
-**Result**: Import configurations now sync properly via git.
+2. **Update ai-roadmap.html.twig**
+   - Add filter bar below navigation, above columns
+   - Dropdown/buttons for Track filter
+   - Dropdown/buttons for Workstream filter
+   - "All" option to clear filters
 
-### 2. Fresh Install Schema Fixed
+3. **Update roadmap.js**
+   - Handle filter selection
+   - Update URL with query parameters
+   - Match pattern used in kanban/calendar
 
-**Problem**: `drush site:install --existing-config` was missing database tables/columns.
+4. **Update roadmap.css**
+   - Style filter bar (match existing filter styling)
+   - Active filter state styling
 
-**Missing Schema**:
-- `assignee_username` and `assignee_organization` columns on `assignment_record` table
-- `ai_dashboard_roadmap_order` table
-
-**Solution**:
-- Added fields to `AssignmentRecord.php` baseFieldDefinitions()
-- Added `ai_dashboard_roadmap_order` to `hook_schema()` in `ai_dashboard.install`
-
-**Result**: Fresh installs work without manual SQL fixes.
-
-### 3. Configuration vs Content Documentation
-
-**Accomplished**:
-- Rewrote README.md with step-by-step setup instructions
-- Updated CLAUDE.md to clarify config vs content distinction
-- Removed duplicate content from CLAUDE.md
-- All commands copy-pastable
-- Added feature branch workflow instructions
-
-**Key Concepts Documented**:
-- Configuration (in git) vs Content (not in git)
-- Fresh site rebuild using `drush site:install --existing-config`
-- Daily development workflow
-- Config export/import workflow
-
-### 4. Config Sync Directory Standardized
-
-**Accomplished**:
-- Fixed `config_sync_directory = '../config/sync'` in `settings.php`
-- Verified it works on both local (DDEV) and live (DevPanel)
-
-### 5. Roadmap Page Crash Fixed
-
-**Problem**: Roadmap page crashed on local database.
-
-**Root Cause**: Missing `ai_dashboard_roadmap_order` table (was only in update hooks, not in hook_schema).
-
-**Solution**: Added table definition to `hook_schema()` in `ai_dashboard.install`
-
-**Result**: Fresh installs have table automatically.
+### Testing:
+- Select a Track - only matching deliverables show
+- Select a Workstream - only matching deliverables show
+- Click "All" - all deliverables show
+- Filters persist in URL (shareable links)
+- Empty columns show empty state (not hidden)
 
 ---
 
-## FILES CHANGED IN THIS BRANCH
+## Phase 4: Configuration Management & Cleanup [CLAUDE TESTABLE]
 
-**Core Fixes**:
-- `web/modules/custom/ai_dashboard/src/Entity/ModuleImport.php` - Removed last_run
-- `web/modules/custom/ai_dashboard/src/Entity/AssignmentRecord.php` - Added username/org fields
-- `web/modules/custom/ai_dashboard/ai_dashboard.install` - Added roadmap_order table schema
-- `web/sites/default/settings.php` - Fixed config_sync_directory setting
-- `config/sync/config_ignore.settings.yml` - Removed ignore rule
-- `config/sync/ai_dashboard.module_import.*.yml` - All 29 import configs
+**Goal:** Ensure changes deploy cleanly and codebase is production-ready.
 
-**Documentation**:
-- `README.md` - Complete rewrite with setup instructions
-- `CLAUDE.md` - Updated project description, streamlined
-- `CLAUDE-BRANCH.md` - This file
+### Tasks:
 
-**DDEV Config**:
-- `.ddev/config.yaml` - Renamed project to `drupal-ai-dev-tracker-config-export`
-- `web/sites/development.services.yml` - Restored Twig debug settings
+1. **Export all configuration**
+   - Field storage and field instance for short_title
+   - Form display updates
+   - View display updates
+
+2. **Test fresh install scenario**
+   - Update hooks run in correct order
+   - No errors on `drush updb`
+
+3. **Code review and cleanup**
+   - PHPDoc comments on new methods
+   - Remove any debug code
+   - Ensure Drupal coding standards
+   - Add inline comments where logic is complex
+
+4. **Update documentation.md**
+   - Document new Short Title field
+   - Document filter functionality
+   - Update deployment checklist
+
+### Testing (Claude can run):
+- `ddev drush updb` - no errors
+- `ddev drush cex` - no unexpected changes
+- PHP CodeSniffer/linting if available
 
 ---
 
-## DEPLOYMENT TO LIVE
+## Design Decisions (Confirmed)
 
-**After merging this branch to main**:
-1. Pull main on live via DevPanel
-2. Run `drush updb -y` (not needed, but safe)
-3. Run `drush cim -y` (imports the config changes)
-4. Verify import configurations exist
-5. Run `drush ai-dashboard:import-all` to test
+1. **Project display** - ✅ REMOVE from roadmap cards
+2. **Due Date** - ✅ REMOVE from roadmap cards
+3. **Progress bars** - ✅ REMOVE from roadmap cards
+4. **Column logic** - ✅ KEEP current assignee-based logic
+5. **Empty state** - ✅ Show empty columns (not hidden)
 
-**No breaking changes** - all fixes are backwards compatible.
+**Important:** These simplifications apply ONLY to the Roadmap page. Project issue pages retain full deliverable information (progress bars, burndown charts, etc.)
+
+---
+
+## Files to Modify
+
+| File | Phase | Changes |
+|------|-------|---------|
+| `ai_dashboard.install` | 1 | Add update hook 9044 for field_short_title |
+| `MetadataParserService.php` | 1 | Add short_title pattern |
+| `IssueImportService.php` | 1 | Map and store short_title field |
+| `ai-roadmap.html.twig` | 2, 3 | Simplify cards, add filters |
+| `roadmap.css` | 2, 3 | Simplify card styles, add filter styles |
+| `roadmap.js` | 2, 3 | Click behavior, filter handling |
+| `RoadmapController.php` | 3 | Filter logic, get unique tracks/workstreams |
+| `documentation.md` | 4 | Update docs |
+| `config/sync/*.yml` | 1, 4 | Field configs |
+
+---
+
+## Execution Status
+
+1. ✅ **Phase 1** - Short Title field and sync - COMPLETE
+2. ✅ **Phase 2** - Simplified roadmap display - COMPLETE
+3. ✅ **Phase 3** - Track/Workstream filters - COMPLETE
+4. ✅ **Phase 4** - Cleanup and documentation - COMPLETE
+
+## Completed Changes Summary
+
+### Phase 1: Short Title Field
+- Added `field_short_title` (100 chars) to AI Issue content type via update hook 9044
+- Updated MetadataParserService to parse `Short Title:` from `[Tracker]` metadata blocks
+- Updated IssueImportService to store short_title on create/update
+- Added template detection for placeholder text (`[Simple...]`, `[...Drupalisms...]`)
+
+### Phase 2: Simplified Roadmap Display
+- Cards now show only: Short Title (or fallback to regular title), Short Description
+- Title is clickable and links to drupal.org issue (opens in new tab)
+- Icons in top-right corner matching calendar view style:
+  - Blue arrow (↗) links to drupal.org
+  - Cog icon (⚙) links to edit page (admin only)
+- Removed from cards: Project links, progress bars, due dates, assignees, status notes
+- Simplified CSS (~240 lines, reduced from ~480 lines)
+- Simplified JS (removed project click handling, kept drag-drop for admins)
+
+### Phase 3: Track/Workstream Filters
+- Updated RoadmapController to:
+  - Accept Request parameter and read `track` and `workstream` query params
+  - Collect unique tracks/workstreams from all deliverables for filter options
+  - Filter deliverables server-side before grouping into columns
+  - Pass filter_options, selected_track, selected_workstream to template
+  - Add cache contexts for URL query args
+- Updated ai-roadmap.html.twig with filter dropdowns:
+  - Track dropdown (only shows if tracks exist in data)
+  - Workstream dropdown (only shows if workstreams exist in data)
+  - "Clear Filters" link when filters are active
+- Updated roadmap.css with filter bar styling matching kanban pattern
+- Updated roadmap.js with auto-submit on filter change
+- Updated ai_dashboard.module theme hook with new variables
+- Updated docs page with Short Title in Advanced Format template
+
+### Column Header Tooltips
+- Added info icon (ⓘ) to each column header
+- PopperJS tooltips show on hover explaining column rules:
+  - **Complete**: Issues with status Fixed, Closed (Fixed), Closed (Duplicate), or Closed (Works as designed)
+  - **Now**: Issues with an assignee AND linked to a project (priority work)
+  - **Next**: Issues with an assignee but NOT linked to a project (being worked on but not priority)
+  - **Later**: Issues with no assignee (not yet being worked on)
+- Extended focus-tooltips.js to handle `.column-title` class
+- Added PopperJS and focus-tooltips to roadmap library
+
+---
+
+## Pull Request Description
+
+**Title:** Simplify roadmap with stakeholder-friendly display and Track/Workstream filters
+
+**Body:**
+
+## Summary
+
+- **Simplified roadmap cards** to show only Short Title and Short Description, removing Drupal jargon for stakeholder readability
+- **Added new Short Title field** (100 chars) that syncs from `[Tracker]` metadata blocks on drupal.org issues
+- **Added Track/Workstream filters** to help stakeholders find relevant deliverables quickly
+- **Added column header tooltips** explaining the rules for each status column
+
+## Changes
+
+### New Short Title Field
+- Created `field_short_title` on AI Issue content type (update hook 9044)
+- Updated MetadataParserService to parse `Short Title:` from issue summaries
+- Updated IssueImportService to store short_title during import/sync
+- Added to Advanced Format template on docs page
+
+### Simplified Roadmap Display
+- Cards now show only: Short Title (with fallback to regular title) and Short Description
+- Removed from cards: Project links, progress bars, due dates, assignees
+- Clickable title links to drupal.org issue
+- Icons in top-right corner: blue arrow (↗) to drupal.org, cog (⚙) to edit (admin only)
+- Styling matches calendar view for consistency
+
+### Track/Workstream Filters
+- Dropdown filters in header below navigation
+- Auto-submit on selection (no button needed)
+- "Clear Filters" link when filters are active
+- Filters persist in URL for shareable links
+- Empty columns show "No deliverables" state
+
+### Column Header Tooltips
+- Info icon (ⓘ) on each column header with hover tooltip
+- Uses PopperJS via existing focus-tooltips library
+- Explains the status rules for each column
+
+## Test Plan
+
+- [ ] Visit `/ai-dashboard/roadmap` and verify simplified card display
+- [ ] Click card title - should open drupal.org issue in new tab
+- [ ] Click arrow icon (↗) - should open drupal.org issue in new tab
+- [ ] As admin, click cog icon (⚙) - should go to local edit page
+- [ ] Select a Track filter - only matching deliverables should show
+- [ ] Select a Workstream filter - only matching deliverables should show
+- [ ] Click "Clear Filters" - all deliverables should show
+- [ ] Verify URL updates with filter params (shareable links)
+- [ ] Hover over column header info icon - tooltip should appear explaining column rules
+- [ ] Run `drush updb` on fresh install - should create field_short_title
+- [ ] Import an issue with Short Title in [Tracker] block - should populate field
+
+## Screenshots
+
+_(Add screenshots of the new roadmap view with filters)_

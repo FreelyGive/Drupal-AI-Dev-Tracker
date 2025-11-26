@@ -20,6 +20,7 @@ dependencies:
     - field.field.node.ai_issue.field_issue_tags
     - field.field.node.ai_issue.field_issue_url
     - field.field.node.ai_issue.field_short_description
+    - field.field.node.ai_issue.field_short_title
     - field.field.node.ai_issue.field_track
     - field.field.node.ai_issue.field_update_summary
     - field.field.node.ai_issue.field_workstream
@@ -151,6 +152,14 @@ content:
     settings:
       size: 60
       placeholder: 'Brief one-line description for roadmap display'
+    third_party_settings: {  }
+  field_short_title:
+    type: string_textfield
+    weight: 5
+    region: content
+    settings:
+      size: 60
+      placeholder: 'Stakeholder-friendly title without [Meta], module names, etc.'
     third_party_settings: {  }
   field_track:
     type: string_textfield
