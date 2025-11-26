@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - field.field.node.ai_project.field_hide_deliverable_roadmap
     - field.field.node.ai_project.field_is_default_kanban_project
     - field.field.node.ai_project.field_project_deliverable
     - field.field.node.ai_project.field_project_tags
@@ -45,4 +46,5 @@ content:
     third_party_settings: {  }
     weight: 100
     region: content
-hidden: {  }
+hidden:
+  field_hide_deliverable_roadmap: true

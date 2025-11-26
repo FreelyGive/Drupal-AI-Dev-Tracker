@@ -139,6 +139,19 @@ class RoadmapController extends ControllerBase {
       // Find if any project links to this deliverable
       $linked_project = $this->findLinkedProject($nid);
 
+      // Check if this deliverable is the Primary Milestone of a project with "Hide from Roadmap" set
+      if ($linked_project && $linked_project->hasField('field_hide_deliverable_roadmap')
+          && !$linked_project->get('field_hide_deliverable_roadmap')->isEmpty()
+          && $linked_project->get('field_hide_deliverable_roadmap')->value) {
+        // Only hide if this is the primary milestone (field_project_deliverable references this issue)
+        if ($linked_project->hasField('field_project_deliverable')
+            && !$linked_project->get('field_project_deliverable')->isEmpty()
+            && $linked_project->get('field_project_deliverable')->target_id == $nid) {
+          // Skip this deliverable - it's the primary milestone and hidden from the roadmap
+          continue;
+        }
+      }
+
       // Use saved column if exists, otherwise derive status
       if (isset($ordering[$nid]['column'])) {
         $status = $ordering[$nid]['column'];

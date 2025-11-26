@@ -596,6 +596,26 @@ class AiDashboardCommands extends DrushCommands {
                     }
                   }
                   break;
+
+                case 'short_title':
+                  if ($issue->hasField('field_short_title')) {
+                    $current = $issue->get('field_short_title')->value ?? '';
+                    if ($current !== $value) {
+                      $issue->set('field_short_title', $value);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
+
+                case 'short_description':
+                  if ($issue->hasField('field_short_description')) {
+                    $current = $issue->get('field_short_description')->value ?? '';
+                    if ($current !== $value) {
+                      $issue->set('field_short_description', $value);
+                      $needs_save = true;
+                    }
+                  }
+                  break;
               }
             }
             

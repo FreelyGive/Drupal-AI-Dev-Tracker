@@ -1,0 +1,23 @@
+uuid: 016e5af1-439a-4257-a989-99028d1d12eb
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_hide_deliverable_roadmap
+    - node.type.ai_project
+id: node.ai_project.field_hide_deliverable_roadmap
+field_name: field_hide_deliverable_roadmap
+entity_type: node
+bundle: ai_project
+label: 'Hide Primary Milestone from Roadmap'
+description: 'Check this to hide the Primary Milestone (the main deliverable issue on Drupal.org used as an Issue Tracker and Milestone) from appearing on the Roadmap page.'
+required: false
+translatable: true
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

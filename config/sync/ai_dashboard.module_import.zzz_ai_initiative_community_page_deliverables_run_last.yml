@@ -1,9 +1,9 @@
-uuid: 40a62d7e-f95b-43c1-be7b-abf2c77dcb58
+uuid: 22dec57d-222e-4d91-b862-d92fddda5b23
 langcode: en
 status: true
 dependencies: {  }
-id: ai_initiative_community_page_developer_tasks
-label: 'zzz  AI Initiative Community Page - Developer Tasks (Run Last)'
+id: zzz_ai_initiative_community_page_deliverables_run_last
+label: 'zzz  AI Initiative Community Page - Deliverables (Run Last)'
 source_type: drupal_org
 project_id: '3528462'
 project_name: ai_initiative

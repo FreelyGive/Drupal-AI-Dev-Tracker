@@ -4155,3 +4155,66 @@ function ai_dashboard_update_9044() {
     '@messages' => implode(' ', $messages),
   ]);
 }
+
+/**
+ * Add field to hide primary milestone from roadmap on AI Project.
+ */
+function ai_dashboard_update_9045() {
+  $messages = [];
+
+  // Check if field storage already exists.
+  $field_storage_config = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $field_storage = $field_storage_config->load('node.field_hide_deliverable_roadmap');
+
+  if (!$field_storage) {
+    $field_storage = $field_storage_config->create([
+      'field_name' => 'field_hide_deliverable_roadmap',
+      'entity_type' => 'node',
+      'type' => 'boolean',
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
+    $messages[] = 'Created field_hide_deliverable_roadmap storage.';
+  }
+
+  // Check if field instance exists on ai_project.
+  $field_config = \Drupal::entityTypeManager()->getStorage('field_config');
+  $field = $field_config->load('node.ai_project.field_hide_deliverable_roadmap');
+
+  if (!$field) {
+    $field = $field_config->create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_project',
+      'label' => 'Hide Primary Milestone from Roadmap',
+      'description' => 'Check this to hide the Primary Milestone (the main deliverable issue on Drupal.org used as an Issue Tracker and Milestone) from appearing on the Roadmap page.',
+      'required' => FALSE,
+      'default_value' => [
+        ['value' => 0],
+      ],
+    ]);
+    $field->save();
+    $messages[] = 'Created Hide from Roadmap field on AI Project.';
+  }
+
+  // Add to form display.
+  $form_display = \Drupal::entityTypeManager()
+    ->getStorage('entity_form_display')
+    ->load('node.ai_project.default');
+
+  if ($form_display && !$form_display->getComponent('field_hide_deliverable_roadmap')) {
+    $form_display->setComponent('field_hide_deliverable_roadmap', [
+      'type' => 'boolean_checkbox',
+      'weight' => 16,
+      'region' => 'content',
+      'settings' => [
+        'display_label' => TRUE,
+      ],
+    ]);
+    $form_display->save();
+    $messages[] = 'Added Hide from Roadmap to form display.';
+  }
+
+  return t('Added Hide from Roadmap field to AI Projects: @messages', [
+    '@messages' => implode(' ', $messages),
+  ]);
+}
