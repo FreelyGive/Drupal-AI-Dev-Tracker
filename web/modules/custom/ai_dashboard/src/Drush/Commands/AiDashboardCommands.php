@@ -1125,7 +1125,125 @@ class AiDashboardCommands extends DrushCommands {
   }
 
   /**
+   * Import contributors from live site CSV.
+   *
+   * Downloads contributors.csv from the live site's ai-exports directory
+   * and imports it using the existing CSV import functionality.
+   */
+  #[CLI\Command(name: 'ai-dashboard:import-contributors', aliases: ['aid-import-contributors'])]
+  #[CLI\Option(name: 'source', description: 'Source: live or local (default: live)')]
+  #[CLI\Option(name: 'live-url', description: 'Override live site URL')]
+  #[CLI\Usage(name: 'ai-dashboard:import-contributors', description: 'Import contributors CSV from live site')]
+  #[CLI\Usage(name: 'ai-dashboard:import-contributors --source=local', description: 'Import from local ai-exports directory')]
+  #[CLI\Usage(name: 'ai-dashboard:import-contributors --live-url=https://other-site.com', description: 'Import from a different live site')]
+  public function importContributors(array $options = ['source' => 'live', 'live-url' => NULL]) {
+    $this->output()->writeln("🚀 Starting Contributors import...\n");
+
+    $export_dir = 'public://ai-exports';
+    $csv_filename = 'contributors.csv';
+
+    // Determine source.
+    if ($options['source'] === 'local') {
+      $local_path = $this->fileSystem->realpath($export_dir);
+      $csv_path = $local_path . '/' . $csv_filename;
+
+      if (!file_exists($csv_path)) {
+        $this->output()->writeln("<error>❌ Local CSV not found: {$csv_path}</error>");
+        $this->output()->writeln("   Run CSV import via UI on live site first, then export.");
+        return;
+      }
+
+      $this->output()->writeln("📂 Using local file: {$csv_path}");
+    }
+    else {
+      // Download from live site.
+      $live_url = $options['live-url'];
+      if (!$live_url) {
+        $config = \Drupal::config('ai_dashboard.settings');
+        $live_url = $config->get('live_site_url') ?? 'https://www.drupalstarforge.ai';
+      }
+
+      $this->output()->writeln("📡 Downloading from: {$live_url}");
+
+      // Ensure export directory exists.
+      if (!$this->fileSystem->prepareDirectory($export_dir, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY)) {
+        $this->output()->writeln("<error>❌ Failed to create export directory: {$export_dir}</error>");
+        return;
+      }
+
+      $url = "{$live_url}/sites/default/files/ai-exports/{$csv_filename}";
+      $destination = $export_dir . '/' . $csv_filename;
+
+      try {
+        $response = $this->httpClient->get($url, ['timeout' => 30]);
+        $content = (string) $response->getBody();
+
+        if ($this->fileSystem->saveData($content, $destination, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE) === FALSE) {
+          throw new \Exception("Failed to save file: {$destination}");
+        }
+
+        $this->output()->writeln("   ✅ Downloaded: {$csv_filename}");
+        $csv_path = $this->fileSystem->realpath($destination);
+      }
+      catch (\Exception $e) {
+        $this->output()->writeln("<comment>   ⚠️  Failed to download {$csv_filename}: " . $e->getMessage() . "</comment>");
+
+        // Fallback to local file if it exists.
+        $local_path = $this->fileSystem->realpath($export_dir);
+        $fallback_path = $local_path . '/' . $csv_filename;
+
+        if ($local_path && file_exists($fallback_path)) {
+          $this->output()->writeln("   📂 Using local fallback: {$fallback_path}");
+          $csv_path = $fallback_path;
+        }
+        else {
+          $this->output()->writeln("<error>   ❌ No local fallback available.</error>");
+          $this->output()->writeln("   Make sure CSV import has been run on live site first.");
+          return;
+        }
+      }
+    }
+
+    // Import the CSV using ContributorCsvController.
+    $this->output()->writeln("\n📦 Importing contributors...");
+
+    try {
+      /** @var \Drupal\ai_dashboard\Controller\ContributorCsvController $csv_controller */
+      $csv_controller = \Drupal::service('class_resolver')
+        ->getInstanceFromDefinition('Drupal\ai_dashboard\Controller\ContributorCsvController');
+
+      $results = $csv_controller->importFromFilePath($csv_path);
+
+      $this->output()->writeln(sprintf(
+        "   ✅ Processed %d contributors. Created: %d, Updated: %d, Errors: %d",
+        $results['total'],
+        $results['created'],
+        $results['updated'],
+        $results['errors']
+      ));
+
+      if (!empty($results['error_details'])) {
+        $this->output()->writeln("\n   ⚠️  Errors:");
+        foreach ($results['error_details'] as $error) {
+          $this->output()->writeln("      - {$error}");
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->output()->writeln("<error>❌ Import failed: " . $e->getMessage() . "</error>");
+      return;
+    }
+
+    $this->output()->writeln("\n✅ Contributors import complete!");
+  }
+
+  /**
    * Import all configuration and content to the site.
+   *
+   * @todo Future: This command should orchestrate all imports in order:
+   *   1. Contributors (via aid-import-contributors)
+   *   2. Issues (via aid-import-all from drupal.org)
+   *   3. Current content (tag mappings, projects, assignments, etc.)
    */
   #[CLI\Command(name: 'ai-dashboard:content-import', aliases: ['aid-cimport'])]
   #[CLI\Option(name: 'replace', description: 'Replace existing content instead of skipping')]

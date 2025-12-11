@@ -44,9 +44,10 @@ ddev launch
 **Login**: Username `admin`, Password `admin`
 
 **Next Steps (in order):**
-1. Import contributor data via CSV upload at `/ai-dashboard/admin/contributor-import`
+1. Import contributors from live site: `ddev drush aid-import-contributors`
+   - Or manually via CSV upload at `/ai-dashboard/admin/contributor-import`
 2. Import issues from drupal.org: `ddev drush ai-dashboard:import-all`
-3. Import content from live site (optional): `ddev drush aid-cimport`
+3. Import content from live site: `ddev drush aid-cimport`
    - This imports projects, tag mappings, assignment history, and relationships
    - Must be done AFTER importing issues since it references them
 
@@ -78,6 +79,9 @@ This site deploys to Drupal Forge via DevPanel:
 ### Common Commands
 
 ```bash
+# Import contributors from live site
+ddev drush aid-import-contributors
+
 # Import issues from drupal.org
 ddev drush ai-dashboard:import-all
 
@@ -107,7 +111,9 @@ drush aid-cimport
 
 **What syncs**: Configuration, tag mappings, projects, assignment history, project-issue relationships, roadmap ordering.
 
-**What doesn't sync**: AI Issues (re-import from drupal.org), Contributors/Companies (use CSV import).
+**What doesn't sync**:
+- AI Issues - re-import from drupal.org via `aid-import-all`
+- Contributors/Companies - import via `aid-import-contributors` or CSV upload
 
 ## Development
 

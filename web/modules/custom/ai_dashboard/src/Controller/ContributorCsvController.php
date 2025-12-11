@@ -188,6 +188,29 @@ class ContributorCsvController extends ControllerBase {
   }
 
   /**
+   * Import contributors from a CSV file path.
+   *
+   * This method is designed to be called from drush commands or other code
+   * that already has access to a file path (not an uploaded file).
+   *
+   * @param string $file_path
+   *   The path to the CSV file to import.
+   *
+   * @return array
+   *   Results array with keys: total, created, updated, errors, error_details.
+   *
+   * @throws \Exception
+   *   If the file doesn't exist or has invalid format.
+   */
+  public function importFromFilePath($file_path) {
+    if (!file_exists($file_path)) {
+      throw new \Exception("CSV file not found: {$file_path}");
+    }
+
+    return $this->parseCsv($file_path);
+  }
+
+  /**
    * Parse CSV file and create/update contributors.
    */
   protected function parseCsv($file_path) {

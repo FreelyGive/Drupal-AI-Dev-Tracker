@@ -184,3 +184,48 @@ That's it. One file, ~15 lines including comments.
 - The `settings.devpanel.php` file in `/.devpanel/` is already correct and doesn't need modification
 - DevPanel has its own build process that handles settings.php on the live server
 - The `salt.txt` file in `.devpanel/` is gitignored (correctly) for security
+
+---
+
+# Feature 2: Contributors Import via Drush
+
+## Goal
+
+Make it easier to sync contributors between live and local environments:
+1. When importing contributors via CSV in the UI, save the CSV to `public://ai-exports/contributors.csv`
+2. New drush command `aid-import-contributors` to download and import contributors from live
+
+## Implementation
+
+### Part 1: Save CSV on UI Import
+
+Modify `ContributorCsvImportForm::submitForm()` to save a copy of the uploaded CSV to `public://ai-exports/contributors.csv` after successful processing.
+
+### Part 2: New Drush Command
+
+Create `ai-dashboard:import-contributors` (alias: `aid-import-contributors`) that:
+1. Downloads `contributors.csv` from live site (`public://ai-exports/contributors.csv`)
+2. Processes it using the existing `ContributorCsvController::processImport()` logic
+
+### Future: Unified Import Command
+
+Eventually, `aid-cimport` should orchestrate all imports in the correct order:
+1. Contributors (first - other content may reference them)
+2. Issues (second - from drupal.org via `aid-import-all`)
+3. Current aid-cimport content (tag mappings, projects, assignments, etc.)
+
+This is noted as a TODO in the code for future implementation.
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `ContributorCsvImportForm.php` | Save CSV copy to ai-exports after successful import |
+| `AiDashboardCommands.php` | Add new `import-contributors` command |
+
+## Implementation Tasks
+
+1. [ ] Modify `ContributorCsvImportForm` to save CSV to `public://ai-exports/contributors.csv`
+2. [ ] Add `importContributors` command to `AiDashboardCommands.php`
+3. [ ] Test: Upload CSV via UI, verify it saves to ai-exports
+4. [ ] Test: Run `aid-import-contributors` on local, verify it downloads and imports
