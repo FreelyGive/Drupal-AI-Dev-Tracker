@@ -1,0 +1,16 @@
+# DDEV hook to configure config_sync_directory for this project.
+#
+# Problem: DDEV defaults config_sync_directory to 'sites/default/files/sync'
+# but this project stores config in '/config/sync/' (outside web root).
+#
+# Solution: Append the correct setting to the end of settings.php.
+# This runs after DDEV creates settings.php, so our line takes precedence.
+#
+# See: https://github.com/ddev/ddev/issues/3549
+
+hooks:
+  post-start:
+    - exec: |
+        if ! grep -q "^\$settings\['config_sync_directory'\]" web/sites/default/settings.php; then
+          echo "\$settings['config_sync_directory'] = '../config/sync';" >> web/sites/default/settings.php
+        fi

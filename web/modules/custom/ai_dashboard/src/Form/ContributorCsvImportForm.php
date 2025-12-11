@@ -221,6 +221,9 @@ class ContributorCsvImportForm extends FormBase {
               $this->messenger()->addWarning($error);
             }
           }
+
+          // Save a copy of the CSV to ai-exports for syncing to other environments.
+          $this->saveCsvToExports($file);
         }
         else {
           // @phpcs:ignore
@@ -231,6 +234,40 @@ class ContributorCsvImportForm extends FormBase {
       catch (\Exception $e) {
         $this->messenger()->addError($this->t('Import failed: @message', ['@message' => $e->getMessage()]));
       }
+    }
+  }
+
+  /**
+   * Save a copy of the uploaded CSV to the ai-exports directory.
+   *
+   * This allows the CSV to be synced to other environments via aid-cimport
+   * or aid-import-contributors commands.
+   *
+   * @param \Symfony\Component\HttpFoundation\File\UploadedFile $file
+   *   The uploaded CSV file.
+   */
+  private function saveCsvToExports($file) {
+    try {
+      /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+      $file_system = \Drupal::service('file_system');
+
+      // Ensure the export directory exists.
+      $export_dir = 'public://ai-exports';
+      if (!$file_system->prepareDirectory($export_dir, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY)) {
+        $this->messenger()->addWarning($this->t('Could not create export directory for CSV backup.'));
+        return;
+      }
+
+      // Read the uploaded file content and save to exports.
+      $csv_content = file_get_contents($file->getPathname());
+      $destination = $export_dir . '/contributors.csv';
+
+      if ($file_system->saveData($csv_content, $destination, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE)) {
+        $this->messenger()->addMessage($this->t('CSV saved to ai-exports for syncing to other environments.'));
+      }
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addWarning($this->t('Could not save CSV backup: @message', ['@message' => $e->getMessage()]));
     }
   }
 

@@ -1,0 +1,23 @@
+uuid: 41fc7684-d02d-41bc-8b2e-79ff28536364
+langcode: en
+status: true
+dependencies: {  }
+id: twig_to_sdc
+label: 'Twig to SDC'
+source_type: drupal_org
+project_id: '3481091'
+project_name: twig_to_sdc
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev
