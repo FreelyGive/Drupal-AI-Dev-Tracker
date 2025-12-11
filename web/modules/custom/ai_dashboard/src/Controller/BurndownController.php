@@ -101,6 +101,16 @@ class BurndownController extends ControllerBase {
    * Calculate burndown chart data.
    */
   private function calculateBurndown($nodes, $deliverable) {
+    // Filter out meta issues - they shouldn't count toward burndown
+    $nodes = array_filter($nodes, function($node) {
+      if ($node->hasField('field_is_meta_issue') && !$node->get('field_is_meta_issue')->isEmpty()) {
+        return !$node->get('field_is_meta_issue')->value;
+      }
+      return TRUE;
+    });
+    // Re-index array after filtering
+    $nodes = array_values($nodes);
+
     $total_issues = count($nodes);
 
     // Get due date from deliverable

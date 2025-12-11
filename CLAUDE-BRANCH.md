@@ -5,227 +5,151 @@
 **IMPORTANT FOR FUTURE AGENTS**: This file documents the current branch's purpose, progress, and implementation plans.
 
 - **DO NOT REMOVE THIS SECTION** - it helps orient future agents to the branch context
-- **Current Branch**: `planning/improvements-to-projects`
-- **Branch Goal**: Fix settings.php and config_sync_directory conflict between DDEV (local) and DevPanel (live)
+- **Current Branch**: `planning/improvements-to-projects2`
+- **Branch Goal**: Improve the Planning Page
 - **Update the branch name above** when working on a different branch
 - **See Also**: `Codex_Branch.md` - Contains feedback from ChatGPT Codex on the work done in this branch
 
 ---
 
-## THE PROBLEM
+## User Goals
 
-### Summary
-When trying to set up the site locally with `ddev drush site:install --existing-config`, it fails because:
-1. `settings.php` is gitignored (required because DevPanel makes it read-only on live)
-2. DDEV creates a default `settings.php` that sets `config_sync_directory` to `sites/default/files/sync`
-3. The actual config files are in `/config/sync/` (outside web root)
-4. Drush can't find `core.extension.yml` in the wrong location
+https://www.drupal.org/project/3547184/issues/3562683
 
-### Current File Structure
-```
-/config/sync/               <- Where config actually lives (741 files)
-/web/sites/default/
-  settings.php              <- DDEV-created, gitignored, points to wrong config dir
-  settings.ddev.php         <- DDEV-generated, sets config_sync_directory to 'sites/default/files/sync'
-/.devpanel/
-  settings.devpanel.php     <- DevPanel's settings (sets config_sync_directory to '../config/sync')
-```
 
-### Key Settings Differences
+- The Save order button doesn't seem to be working on the projects page (And not on roadmap presumably or kanban)
+- Make the Deliverables simpler like on the roadmap page and use the short title and description not issues title.
+- Make the list of issues use short title if evailable otherwise the issue title.
+- Meta issues shouldn't appear in the numbers for burndown charts.
+- If a deliverable shouldn't appear in roadmap, it shouldn't appear in the list of issues either
 
-| Setting | DDEV (settings.ddev.php) | DevPanel (settings.devpanel.php) |
-|---------|-------------------------|----------------------------------|
-| `config_sync_directory` | `sites/default/files/sync` | `../config/sync` |
-| `hash_salt` | Hardcoded value | `file_get_contents(__DIR__ . '/salt.txt')` |
-| `file_private_path` | Not set | `../private` |
-| Database | Hardcoded db/db/db | Environment variables |
+More planning needed
 
-### Constraints
-1. **Cannot commit settings.php** - DevPanel overwrites it and makes it read-only
-2. **Cannot commit from live server** - DevPanel's settings.php would break local dev
-3. **Must work on fresh clone** - New developers need to be able to set up without manual intervention
-4. **Config must deploy cleanly** - `drush cim` must work on both local and live
+- I need to differenciate deliverables on the list of issues visually somehow.
 
----
 
-## USER PLAN
+## AI Notes
 
-(Claude can put its planning in Claude Plan)
+### Completed Work (This Session)
 
-Goals:
-- Fix the local site setup so `ddev drush site:install --existing-config` works
-- Maintain compatibility with DevPanel deployment
-- Avoid manual steps when setting up from a fresh clone
-- Document the solution clearly
+1. **Fixed JS scoping bug** (`project-issues.js`)
+   - `updateCollapsibleStates()` and `updateIssueCounts()` were defined inside nested functions but called from sibling functions
+   - Moved to outer scope so they're accessible throughout the behavior
+   - This was causing "ReferenceError: updateCollapsibleStates is not defined" on production (due to JS aggregation)
+
+2. **Deliverables section improvements** (`ai-project-issues.html.twig`, `project-issues.css`)
+   - Uses short title with fallback to full title
+   - Only shows "Done" status badge (removed "Active" status)
+   - Removed italics from description
+   - Toned down due date styling (plain gray text, no yellow background)
+   - Includes additional collaborators in assignees display
+   - Added collapsible section with ▼/▶ toggle (persists to localStorage)
+
+3. **Issues table** (`ProjectIssuesController.php`, template)
+   - Uses short title with fallback to full title
+   - Full title shown in tooltip on hover
+   - Added `is_meta` data attribute for filtering
+
+4. **Burndown charts** (`BurndownController.php`)
+   - Meta issues are now filtered out before calculating totals
 
 ---
 
-## CLAUDE PLAN
+### Deferred Work
 
-### Analysis
+#### 1. Kanban drag-and-drop ordering
+- Currently Kanban reflects project page ordering (which is correct)
+- Direct drag-and-drop on Kanban itself deferred for later
 
-The root cause is that DDEV's auto-generated `settings.ddev.php` hardcodes the wrong `config_sync_directory`:
+#### 2. Visual differentiation for deliverables in issues list
+- Left for future consideration
+
+---
+
+### Known Issue: Short Titles Missing on Local (TODO)
+
+**Problem**: Some issues on local don't have `field_short_title` populated, but they work fine on live.
+
+**Root Cause Found**: The `MetadataParserService::isTemplateData()` method is too aggressive.
+
+**Location**: `web/modules/custom/ai_dashboard/src/Service/MetadataParserService.php` lines 238-268
+
+**Details**:
+- When parsing metadata, if ANY field contains template placeholder text (e.g., `[One-line status update for stakeholders]`), the ENTIRE metadata block is rejected
+- This means valid fields like `short_title: "Content Classification Agent"` are discarded because `update_summary` still has placeholder text
+
+**Example**: Node 270 (issue #3561079) has:
+```
+Update Summary: [One-line status update for stakeholders]  ← Template text
+Short Title: Content Classification Agent                  ← Valid data (but discarded!)
+```
+
+**Proposed Fix**:
+Change `isTemplateData()` to filter out individual template fields rather than rejecting everything:
+
 ```php
-// In settings.ddev.php (line 36-38)
-if (empty($settings['config_sync_directory'])) {
-  $settings['config_sync_directory'] = 'sites/default/files/sync';  // WRONG!
+// Instead of returning TRUE/FALSE for the whole block,
+// filter out template values from individual fields:
+protected function filterTemplateData(array $metadata) {
+  $template_patterns = [
+    '/\[One-line.*?\]/',
+    '/\[Simple.*?\]/',
+    // ... etc
+  ];
+
+  foreach ($metadata as $field => $value) {
+    foreach ($template_patterns as $pattern) {
+      if (preg_match($pattern, $value)) {
+        // Remove just this field, not the whole block
+        unset($metadata[$field]);
+        break;
+      }
+    }
+  }
+  return $metadata;
 }
 ```
 
-This only applies "if empty" - so if we set it BEFORE settings.ddev.php is included, it would work. But `settings.ddev.php` is included at the END of `settings.php`.
+**Why it works on live**: Live likely has fresher data from drupal.org where users have filled in the update_summary field, so no template placeholders remain.
 
-### Solution Options
-
-#### Option A: Custom DDEV Post-Start Hook
-Create a DDEV hook that patches settings.php after DDEV creates it.
-- **Pros**: Automated, works on fresh clone
-- **Cons**: Fragile if DDEV changes its template, hook runs every `ddev start`
-
-#### Option B: Custom settings.ddev.php Override
-DDEV allows customizing settings.ddev.php by removing the `#ddev-generated` comment.
-- **Pros**: Clean, documented DDEV approach
-- **Cons**: Need to maintain custom file, conflicts possible
-
-#### Option C: DDEV config.yaml `disable_settings_management: true`
-Tell DDEV not to create settings files, then provide our own.
-- **Pros**: Full control over settings
-- **Cons**: Lose DDEV's auto-configuration benefits
-
-#### Option D: settings.local.php (RECOMMENDED)
-Create a `settings.local.php` that DDEV can include, and modify the settings.php pattern.
-- **Pros**: Standard Drupal pattern, clean separation
-- **Cons**: Requires initial settings.php modification
-
-#### Option E: Fix settings.ddev.php directly
-Modify the DDEV-generated settings.ddev.php to use the correct path.
-- **Pros**: Simple, direct fix
-- **Cons**: Will be overwritten if DDEV regenerates it (need to remove #ddev-generated marker)
-
-### Recommended Solution: Simple DDEV Post-Start Hook (Option A - Simplified)
-
-Append the correct `config_sync_directory` to the end of `settings.php` via a DDEV hook.
-
-This is the standard approach recommended by Drupal/DDEV developers:
-- Simple one-liner that appends to settings.php
-- Idempotent (checks if already set before adding)
-- Works on fresh clone with no manual steps
-- Runs after DDEV creates settings.php, so our line comes last and overrides
-- Separate config file keeps it organized and clear
+**Investigation needed**: Why does local have stale issue summaries? Possible causes:
+- Local DB was synced before users updated their issue summaries on drupal.org
+- Re-importing from drupal.org should fix it: `ddev drush ai-dashboard:import-all --full-from=2025-01-01`
 
 ---
 
-## Implementation Details
+## PR Description
 
-### File 1: `.ddev/config.settings.yaml`
+```
+## Summary
+Improvements to the Project Issues page for better usability and fixes a production JS bug.
 
-```yaml
-# DDEV hook to configure config_sync_directory for this project.
-#
-# Problem: DDEV defaults config_sync_directory to 'sites/default/files/sync'
-# but this project stores config in '/config/sync/' (outside web root).
-#
-# Solution: Append the correct setting to the end of settings.php.
-# This runs after DDEV creates settings.php, so our line takes precedence.
-#
-# See: https://github.com/ddev/ddev/issues/3549
+### Changes
+- **Fix JS scoping bug**: Resolved "updateCollapsibleStates is not defined" error on production caused by JS aggregation
+- **Deliverables section**: Use short titles, show only "Done" status, add collapsible toggle, include additional collaborators
+- **Issues table**: Use short titles with full title in tooltip
+- **Burndown charts**: Exclude meta issues from calculations
+- **Styling**: Removed italics from descriptions, toned down due date styling
 
-hooks:
-  post-start:
-    - exec: |
-        if ! grep -q "config_sync_directory" web/sites/default/settings.php; then
-          echo "\$settings['config_sync_directory'] = '../config/sync';" >> web/sites/default/settings.php
-        fi
+### Testing
+- Verify Save Order button works on production after deployment
+- Check deliverables section collapses/expands and persists state
+- Confirm short titles display (with fallback to full title)
+- Verify burndown chart numbers exclude meta issues
+
+Fixes: https://www.drupal.org/project/3547184/issues/3562683
 ```
 
-That's it. One file, ~15 lines including comments.
+## Merge Commit Message (for squash merge into main)
 
----
+```
+Improve Project Issues page - fix JS bug, add short titles, collapsible deliverables
 
-## How It Works
+- Fix JS scoping bug causing save order failure on production
+- Use short titles for deliverables and issues (with fallback)
+- Add collapsible deliverables section with localStorage persistence
+- Include additional collaborators in assignee display
+- Exclude meta issues from burndown chart calculations
+- Simplify deliverable cards (only show Done status, remove italics)
+```
 
-1. **Fresh clone**: No `settings.php` exists
-2. **Run `ddev start`**:
-   - DDEV creates `settings.php` from its template
-   - DDEV creates `settings.ddev.php` (sets config_sync_directory to wrong path, but only "if empty")
-   - Our hook checks if `config_sync_directory` is already in settings.php
-   - If not, appends our correct path to the end of settings.php
-3. **Run `ddev drush site:install --existing-config`**:
-   - Drupal loads settings.php
-   - Our appended line sets `config_sync_directory` to `../config/sync`
-   - settings.ddev.php include happens, but its "if empty" check sees it's already set
-   - Drush finds config in `../config/sync/` ✓
-
-**Key insight**: By appending to the END of settings.php, our setting is evaluated BEFORE settings.ddev.php's "if empty" check, so DDEV's default never applies.
-
----
-
-## Implementation Tasks
-
-1. [ ] Create `.ddev/config.settings.yaml`
-2. [ ] Test: `ddev stop && ddev start`
-3. [ ] Verify settings.php has the appended line
-4. [ ] Test: `ddev drush site:install --existing-config --account-pass=admin`
-5. [ ] Update README.md with setup instructions
-6. [ ] Update CLAUDE.md if needed
-
----
-
-## Execution Status
-
-- [ ] Phase 1: Create the config file
-- [ ] Phase 2: Test site installation
-- [ ] Phase 3: Update documentation
-- [ ] Phase 4: Commit and verify
-
----
-
-## Notes
-
-- The `settings.devpanel.php` file in `/.devpanel/` is already correct and doesn't need modification
-- DevPanel has its own build process that handles settings.php on the live server
-- The `salt.txt` file in `.devpanel/` is gitignored (correctly) for security
-
----
-
-# Feature 2: Contributors Import via Drush
-
-## Goal
-
-Make it easier to sync contributors between live and local environments:
-1. When importing contributors via CSV in the UI, save the CSV to `public://ai-exports/contributors.csv`
-2. New drush command `aid-import-contributors` to download and import contributors from live
-
-## Implementation
-
-### Part 1: Save CSV on UI Import
-
-Modify `ContributorCsvImportForm::submitForm()` to save a copy of the uploaded CSV to `public://ai-exports/contributors.csv` after successful processing.
-
-### Part 2: New Drush Command
-
-Create `ai-dashboard:import-contributors` (alias: `aid-import-contributors`) that:
-1. Downloads `contributors.csv` from live site (`public://ai-exports/contributors.csv`)
-2. Processes it using the existing `ContributorCsvController::processImport()` logic
-
-### Future: Unified Import Command
-
-Eventually, `aid-cimport` should orchestrate all imports in the correct order:
-1. Contributors (first - other content may reference them)
-2. Issues (second - from drupal.org via `aid-import-all`)
-3. Current aid-cimport content (tag mappings, projects, assignments, etc.)
-
-This is noted as a TODO in the code for future implementation.
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `ContributorCsvImportForm.php` | Save CSV copy to ai-exports after successful import |
-| `AiDashboardCommands.php` | Add new `import-contributors` command |
-
-## Implementation Tasks
-
-1. [ ] Modify `ContributorCsvImportForm` to save CSV to `public://ai-exports/contributors.csv`
-2. [ ] Add `importContributors` command to `AiDashboardCommands.php`
-3. [ ] Test: Upload CSV via UI, verify it saves to ai-exports
-4. [ ] Test: Run `aid-import-contributors` on local, verify it downloads and imports
