@@ -609,6 +609,8 @@ class AiDashboardCommands extends DrushCommands {
 
                 case 'short_description':
                   if ($issue->hasField('field_short_description')) {
+                    // Truncate to 255 characters to fit field max length.
+                    $value = mb_substr($value, 0, 255);
                     $current = $issue->get('field_short_description')->value ?? '';
                     if ($current !== $value) {
                       $issue->set('field_short_description', $value);

@@ -1324,7 +1324,8 @@ class IssueImportService {
       $issue->set('field_short_title', $mapped_data['short_title']);
     }
     if (!empty($mapped_data['short_description']) && $issue->hasField('field_short_description')) {
-      $issue->set('field_short_description', $mapped_data['short_description']);
+      // Truncate to 255 characters to fit field max length.
+      $issue->set('field_short_description', mb_substr($mapped_data['short_description'], 0, 255));
     }
     if (!empty($mapped_data['checkin_date']) && $issue->hasField('field_checkin_date')) {
       // Convert date format if needed (MM/DD/YYYY to Y-m-d).
@@ -1458,7 +1459,8 @@ class IssueImportService {
     }
     if ($issue->hasField('field_short_description')) {
       if (!empty($mapped_data['short_description'])) {
-        $issue->set('field_short_description', $mapped_data['short_description']);
+        // Truncate to 255 characters to fit field max length.
+        $issue->set('field_short_description', mb_substr($mapped_data['short_description'], 0, 255));
       }
       else {
         $issue->set('field_short_description', '');

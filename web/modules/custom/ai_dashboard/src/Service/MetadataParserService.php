@@ -62,16 +62,20 @@ class MetadataParserService {
       // Parse individual metadata fields
       $metadata = $this->parseMetadataFields($metadata_block);
 
-      // Validate parsed data to prevent dummy/template imports
-      if ($this->isTemplateData($metadata)) {
-        $this->loggerFactory->get('ai_dashboard')->debug('Ignoring template/dummy metadata');
-        return [];
-      }
+      // Filter out fields containing template/placeholder data
+      // This allows valid fields to be kept even if some fields have template text
+      $metadata = $this->filterTemplateFields($metadata);
 
-      $this->loggerFactory->get('ai_dashboard')->info('Parsed AI Tracker metadata with @count fields', [
-        '@count' => count($metadata),
-      ]);
-    } else {
+      if (!empty($metadata)) {
+        $this->loggerFactory->get('ai_dashboard')->info('Parsed AI Tracker metadata with @count fields', [
+          '@count' => count($metadata),
+        ]);
+      }
+      else {
+        $this->loggerFactory->get('ai_dashboard')->debug('All metadata fields were template/placeholder data');
+      }
+    }
+    else {
       // Log when no metadata block is found
       $this->loggerFactory->get('ai_dashboard')->debug('No AI Tracker metadata block found in issue summary');
     }
@@ -227,15 +231,18 @@ class MetadataParserService {
   }
 
   /**
-   * Check if metadata contains template/dummy data.
+   * Filter out fields containing template/placeholder data.
+   *
+   * Instead of rejecting all metadata if any field has template data,
+   * this filters out individual template fields while keeping valid ones.
    *
    * @param array $metadata
    *   The parsed metadata array.
    *
-   * @return bool
-   *   TRUE if this appears to be template data, FALSE otherwise.
+   * @return array
+   *   Filtered metadata with template fields removed.
    */
-  protected function isTemplateData(array $metadata) {
+  protected function filterTemplateFields(array $metadata) {
     // Check for common template patterns.
     $template_patterns = [
       '/\[One-line.*?\]/',
@@ -246,32 +253,37 @@ class MetadataParserService {
       '/\[.*stakeholders.*\]/',
       '/\[.*summary.*\]/',
       '/\[.*Drupalisms.*\]/i',
+      '/^\[.*\]$/',  // Any value that is entirely bracketed placeholder text
     ];
+
+    $filtered = [];
 
     foreach ($metadata as $field => $value) {
       if (empty($value)) {
         continue;
       }
 
+      $is_template = FALSE;
+
       // Check each pattern
       foreach ($template_patterns as $pattern) {
         if (preg_match($pattern, $value)) {
-          $this->loggerFactory->get('ai_dashboard')->debug('Template data detected in field @field: @value', [
+          $this->loggerFactory->get('ai_dashboard')->debug('Template data filtered from field @field: @value', [
             '@field' => $field,
             '@value' => $value,
           ]);
-          return TRUE;
+          $is_template = TRUE;
+          break;
         }
+      }
+
+      // Keep the field if it's not template data
+      if (!$is_template) {
+        $filtered[$field] = $value;
       }
     }
 
-    // Also check if all required fields are template text
-    if (!empty($metadata['update_summary']) &&
-        preg_match('/^\[.*\]$/', trim($metadata['update_summary']))) {
-      return TRUE;
-    }
-
-    return FALSE;
+    return $filtered;
   }
 
 }
