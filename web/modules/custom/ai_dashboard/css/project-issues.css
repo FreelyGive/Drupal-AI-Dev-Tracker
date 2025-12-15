@@ -197,6 +197,28 @@
   border-bottom: 2px solid #e5e7eb;
 }
 
+/* Deliverables Toggle */
+.deliverables-toggle {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.deliverables-toggle:hover {
+  color: #4b5563;
+}
+
+.deliverables-toggle .toggle-icon {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.deliverables-toggle.collapsed .toggle-icon {
+  transform: rotate(0deg);
+}
+
 /* Deliverables Grid */
 .deliverables-grid {
   display: grid;
@@ -245,7 +267,6 @@
   font-size: 0.875rem;
   color: #4b5563;
   line-height: 1.4;
-  font-style: italic;
 }
 
 /* Card Details Container */
@@ -293,25 +314,18 @@
   color: #166534;
 }
 
+.deliverable-card .status-badge.status-done {
+  background: #dcfce7;
+  color: #166534;
+}
+
 /* Due Date */
 .deliverable-card .card-due-date {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-size: 0.875rem;
 }
 
-.deliverable-card .due-label {
+.deliverable-card .due-date-text {
   color: #6b7280;
-  font-weight: 500;
-}
-
-.deliverable-card .due-date {
-  color: #1f2937;
-  font-weight: 600;
-  background-color: #fef3c7;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
 }
 
 /* Assignees */

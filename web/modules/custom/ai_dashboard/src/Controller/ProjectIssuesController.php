@@ -445,11 +445,19 @@ class ProjectIssuesController extends ControllerBase {
       // Build issue data
       $nid = $node->id();
       $meta = $project_meta[$nid] ?? ['weight' => 9999, 'indent' => 0, 'parent' => NULL];
-      
+
+      // Get short title with fallback to full title
+      $short_title = '';
+      if ($node->hasField('field_short_title') && !$node->get('field_short_title')->isEmpty()) {
+        $short_title = $node->get('field_short_title')->value;
+      }
+      $display_title = $short_title ?: $node->label();
+
       $issue = [
         'nid' => $nid,
         'id' => $nid,
-        'title' => $node->label(),
+        'title' => $display_title,
+        'full_title' => $node->label(),
         'status' => $node->get('field_issue_status')->value ?? 'active',
         'priority' => $node->get('field_issue_priority')->value ?? 'normal',
         'weight' => $meta['weight'],
@@ -504,6 +512,12 @@ class ProjectIssuesController extends ControllerBase {
         // Strip HTML tags and decode entities
         $issue['update_summary'] = html_entity_decode(strip_tags($raw_summary), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $issue['update_summary'] = trim(preg_replace('/\s+/', ' ', $issue['update_summary']));
+      }
+
+      // Check if meta issue
+      $issue['is_meta'] = FALSE;
+      if ($node->hasField('field_is_meta_issue') && !$node->get('field_is_meta_issue')->isEmpty()) {
+        $issue['is_meta'] = (bool) $node->get('field_is_meta_issue')->value;
       }
 
       $issues[] = $issue;

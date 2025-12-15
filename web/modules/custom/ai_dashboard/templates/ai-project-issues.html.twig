@@ -145,15 +145,18 @@
   {# Deliverables Section #}
   {% if deliverables|length > 0 %}
     <div class="deliverables-section">
-      <h3 class="section-title">Deliverables</h3>
-      <div class="deliverables-grid">
+      <h3 class="section-title deliverables-toggle" id="deliverables-toggle">
+        <span class="toggle-icon">▼</span>
+        Deliverables ({{ deliverables|length }})
+      </h3>
+      <div class="deliverables-grid" id="deliverables-grid">
         {% for item in deliverables %}
           <div class="deliverable-card" data-nid="{{ item.node.id }}">
             <div class="card-header">
               <h4>
                 <a href="https://www.drupal.org/node/{{ item.node.field_issue_number.value }}"
                    target="_blank" rel="noopener">
-                  {{ item.node.label }}
+                  {{ item.node.field_short_title.value ?: item.node.label }}
                 </a>
               </h4>
             </div>
@@ -165,27 +168,38 @@
             {% endif %}
 
             <div class="card-details">
-              {% if item.node.field_issue_status.value %}
+              {# Only show status if fixed/done #}
+              {% set status = item.node.field_issue_status.value %}
+              {% if status in ['fixed', 'closed', 'closed_fixed', 'closed_duplicate', 'closed_works'] %}
                 <div class="card-status">
-                  <span class="status-badge status-{{ item.node.field_issue_status.value|replace({'_': '-'}) }}">
-                    {{ item.node.field_issue_status.value|replace({'_': ' '})|title }}
-                  </span>
+                  <span class="status-badge status-done">Done</span>
                 </div>
               {% endif %}
 
               {% if item.node.field_due_date.value %}
                 <div class="card-due-date">
-                  <span class="due-label">Due:</span>
-                  <span class="due-date">{{ item.node.field_due_date.value|date('M j, Y') }}</span>
+                  <span class="due-date-text">Due: {{ item.node.field_due_date.value|date('M j, Y') }}</span>
                 </div>
               {% endif %}
 
-              {% if item.node.field_issue_assignees is not empty %}
+              {% if item.node.field_issue_assignees is not empty or item.node.field_additional_collaborators.value %}
                 <div class="card-assignees">
                   <span class="assignees-label">Assigned to:</span>
+                  {% set assignee_names = [] %}
                   {% for assignee in item.node.field_issue_assignees %}
-                    <span class="assignee">{{ assignee.entity.label }}</span>{% if not loop.last %}, {% endif %}
+                    {% set assignee_names = assignee_names|merge([assignee.entity.label]) %}
                   {% endfor %}
+                  {# Add additional collaborators #}
+                  {% if item.node.field_additional_collaborators.value %}
+                    {% set collaborators = item.node.field_additional_collaborators.value|split(',') %}
+                    {% for collaborator in collaborators %}
+                      {% set collaborator = collaborator|trim|replace({'@': ''}) %}
+                      {% if collaborator %}
+                        {% set assignee_names = assignee_names|merge([collaborator]) %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                  <span class="assignee-list">{{ assignee_names|join(', ') }}</span>
                 </div>
               {% endif %}
 
@@ -240,7 +254,7 @@
     </div>
     <div class="issues-table-body" id="issues-table-body">
       {% for issue in issues %}
-        <div class="issue-row status-{{ issue.status|replace({'_': '-'}) }}" data-nid="{{ issue.nid }}" data-indent="{{ issue.indent }}" {% if user_has_admin %}draggable="true"{% endif %}>
+        <div class="issue-row status-{{ issue.status|replace({'_': '-'}) }}{% if issue.is_meta %} is-meta{% endif %}" data-nid="{{ issue.nid }}" data-indent="{{ issue.indent }}" data-is-meta="{{ issue.is_meta ? '1' : '0' }}" {% if user_has_admin %}draggable="true"{% endif %}>
           {% if user_has_admin %}
             <span class="col-drag">
               <span class="drag-handle" title="Drag to reorder">⋮⋮</span>
@@ -262,7 +276,7 @@
               <span class="collapse-icon expanded">▼</span>
               <span class="child-count" style="display: none;"></span>
             </span>
-            <span class="issue-title-text developer-focus" title="{{ issue.title|e('html_attr') }}">{{ issue.title }}</span>
+            <span class="issue-title-text developer-focus" title="{{ issue.full_title|default(issue.title)|e('html_attr') }}">{{ issue.title }}</span>
             {% if issue.is_blocked %}
               <span class="blocked-icon" title="Blocked by: {{ issue.blocked_by|join(', ') }}">🚫</span>
             {% endif %}

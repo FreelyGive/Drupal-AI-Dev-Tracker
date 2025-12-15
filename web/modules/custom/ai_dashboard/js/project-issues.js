@@ -26,7 +26,77 @@
       initFixedToggle();
       initSaveButton();
       initCollapsible();
+      initDeliverablesToggle();
       updateEpicStyles();
+
+      /**
+       * Update collapsible states after filtering changes
+       */
+      function updateCollapsibleStates() {
+        // Re-check which parents have visible children
+        const rows = container.querySelectorAll('.issue-row');
+        rows.forEach((row, index) => {
+          const toggle = row.querySelector('.collapse-toggle');
+          if (!toggle) return;
+
+          const currentIndent = parseInt(row.dataset.indent || '0');
+          let hasVisibleChildren = false;
+
+          // Check subsequent rows for visible children
+          for (let i = index + 1; i < rows.length; i++) {
+            const nextRow = rows[i];
+            const nextIndent = parseInt(nextRow.dataset.indent || '0');
+
+            // Stop if we've reached same or lower indent
+            if (nextIndent <= currentIndent) break;
+
+            // Check if this child is visible
+            if (nextRow.style.display !== 'none') {
+              hasVisibleChildren = true;
+              break;
+            }
+          }
+
+          // Update toggle visibility based on whether there are visible children
+          if (hasVisibleChildren) {
+            toggle.style.display = 'inline-block';
+          }
+        });
+      }
+
+      /**
+       * Update issue counts display
+       */
+      function updateIssueCounts() {
+        const visibleIssues = $('.issue-row:visible');
+        const totalVisible = visibleIssues.length;
+        const activeVisible = visibleIssues.filter('.status-active').length;
+        const needsWorkVisible = visibleIssues.filter('.status-needs-work').length;
+        const needsReviewVisible = visibleIssues.filter('.status-needs-review').length;
+        const rtbcVisible = visibleIssues.filter('.status-rtbc').length;
+        const fixedVisible = visibleIssues.filter('.status-fixed, .status-closed-fixed').length;
+
+        // Update the counts display if it exists
+        const countsContainer = $('.issue-counts');
+        if (countsContainer.length) {
+          countsContainer.find('.count-item').each(function() {
+            const text = $(this).text();
+            if (text.startsWith('Total:')) {
+              $(this).text('Total: ' + totalVisible);
+            } else if (text.startsWith('Active:')) {
+              $(this).text('Active: ' + activeVisible);
+            } else if (text.startsWith('Needs Work:')) {
+              $(this).text('Needs Work: ' + needsWorkVisible);
+            } else if (text.startsWith('Needs Review:')) {
+              $(this).text('Needs Review: ' + needsReviewVisible);
+            } else if (text.startsWith('RTBC:')) {
+              $(this).text('RTBC: ' + rtbcVisible);
+            } else if (text.startsWith('Fixed:')) {
+              $(this).text('Fixed: ' + fixedVisible);
+            }
+          });
+        }
+      }
 
       /**
        * Initialize drag and drop functionality
@@ -418,46 +488,6 @@
 
         // Initial filter application
         applyFilters();
-
-        // Update issue counts function
-        function updateIssueCounts() {
-          const visibleIssues = $('.issue-row:visible');
-          const totalVisible = visibleIssues.length;
-          const activeVisible = visibleIssues.filter('.status-active').length;
-          const needsWorkVisible = visibleIssues.filter('.status-needs-work').length;
-          const needsReviewVisible = visibleIssues.filter('.status-needs-review').length;
-          const rtbcVisible = visibleIssues.filter('.status-rtbc').length;
-          const fixedVisible = visibleIssues.filter('.status-fixed, .status-closed-fixed').length;
-
-          // Update the counts display if it exists
-          const countsContainer = $('.issue-counts');
-          if (countsContainer.length) {
-            countsContainer.find('.count-item').each(function() {
-              const text = $(this).text();
-              if (text.startsWith('Total:')) {
-                $(this).text('Total: ' + totalVisible);
-              } else if (text.startsWith('Active:')) {
-                $(this).text('Active: ' + activeVisible);
-              } else if (text.startsWith('Needs Work:')) {
-                $(this).text('Needs Work: ' + needsWorkVisible);
-              } else if (text.startsWith('Needs Review:')) {
-                $(this).text('Needs Review: ' + needsReviewVisible);
-              } else if (text.startsWith('RTBC:')) {
-                $(this).text('RTBC: ' + rtbcVisible);
-              } else if (text.startsWith('Fixed:')) {
-                $(this).text('Fixed: ' + fixedVisible);
-              }
-            });
-          }
-        }
-
-        // Update collapsible states function
-        function updateCollapsibleStates() {
-          // This function should be available from the parent scope
-          if (typeof window.updateCollapsibleStates === 'function') {
-            window.updateCollapsibleStates();
-          }
-        }
       }
 
       /**
@@ -492,37 +522,6 @@
           updateIssueCounts();
           // Update collapsible states after hiding/showing
           updateCollapsibleStates();
-        }
-
-        function updateIssueCounts() {
-          const visibleIssues = $('.issue-row:visible');
-          const totalVisible = visibleIssues.length;
-          const activeVisible = visibleIssues.filter('.status-active').length;
-          const needsWorkVisible = visibleIssues.filter('.status-needs-work').length;
-          const needsReviewVisible = visibleIssues.filter('.status-needs-review').length;
-          const rtbcVisible = visibleIssues.filter('.status-rtbc').length;
-          const fixedVisible = visibleIssues.filter('.status-fixed, .status-closed-fixed').length;
-
-          // Update the counts display if it exists
-          const countsContainer = $('.issue-counts');
-          if (countsContainer.length) {
-            countsContainer.find('.count-item').each(function() {
-              const text = $(this).text();
-              if (text.startsWith('Total:')) {
-                $(this).text('Total: ' + totalVisible);
-              } else if (text.startsWith('Active:')) {
-                $(this).text('Active: ' + activeVisible);
-              } else if (text.startsWith('Needs Work:')) {
-                $(this).text('Needs Work: ' + needsWorkVisible);
-              } else if (text.startsWith('Needs Review:')) {
-                $(this).text('Needs Review: ' + needsReviewVisible);
-              } else if (text.startsWith('RTBC:')) {
-                $(this).text('RTBC: ' + rtbcVisible);
-              } else if (text.startsWith('Fixed:')) {
-                $(this).text('Fixed: ' + fixedVisible);
-              }
-            });
-          }
         }
       }
 
@@ -807,7 +806,45 @@
           }
         });
       }
-      
+
+      /**
+       * Initialize deliverables section collapse toggle
+       */
+      function initDeliverablesToggle() {
+        const toggle = document.getElementById('deliverables-toggle');
+        const grid = document.getElementById('deliverables-grid');
+
+        if (!toggle || !grid) return;
+
+        const storageKey = 'aiDashboard.project.' + projectId + '.deliverablesCollapsed';
+        const icon = toggle.querySelector('.toggle-icon');
+
+        // Restore saved state
+        const savedState = localStorage.getItem(storageKey);
+        if (savedState === 'true') {
+          grid.style.display = 'none';
+          if (icon) icon.textContent = '▶';
+          toggle.classList.add('collapsed');
+        }
+
+        // Handle toggle click
+        toggle.addEventListener('click', function() {
+          const isCollapsed = grid.style.display === 'none';
+
+          if (isCollapsed) {
+            grid.style.display = '';
+            if (icon) icon.textContent = '▼';
+            toggle.classList.remove('collapsed');
+            localStorage.setItem(storageKey, 'false');
+          } else {
+            grid.style.display = 'none';
+            if (icon) icon.textContent = '▶';
+            toggle.classList.add('collapsed');
+            localStorage.setItem(storageKey, 'true');
+          }
+        });
+      }
+
       /**
        * Update epic styles - only mark items as epics if they have children
        */
