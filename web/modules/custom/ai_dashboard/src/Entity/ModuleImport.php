@@ -129,14 +129,6 @@ class ModuleImport extends ConfigEntityBase {
    */
   protected $active = TRUE;
 
-  /**
-   * Timestamp of when this configuration was last run.
-   *
-   * @var int|null
-   */
-  protected $last_run;
-
-  
 
   /**
    * Selected audiences to assign to imported issues (e.g., dev, non_dev).
@@ -310,30 +302,6 @@ class ModuleImport extends ConfigEntityBase {
     $this->invalidateConfigurationCaches();
   }
 
-  /**
-   * Get the last run timestamp.
-   *
-   * @return int|null
-   *   The timestamp when this configuration was last run, or NULL if never run.
-   */
-  public function getLastRun() {
-    return $this->last_run;
-  }
-
-  /**
-   * Set the last run timestamp.
-   *
-   * @param int|null $timestamp
-   *   The timestamp when this configuration was last run.
-   *
-   * @return $this
-   */
-  public function setLastRun($timestamp) {
-    $this->last_run = $timestamp;
-    return $this;
-  }
-
-  
 
   /**
    * Get selected audiences for imported issues.

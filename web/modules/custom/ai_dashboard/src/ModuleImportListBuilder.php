@@ -110,8 +110,8 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
       ];
     }
 
-    // Show last run timestamp.
-    $last_run = $entity->getLastRun();
+    // Show last run timestamp from State API (where drush command stores it).
+    $last_run = \Drupal::state()->get('ai_dashboard:last_import:' . $entity->id());
     if ($last_run) {
       $last_run_date = \Drupal::service('date.formatter')->format($last_run, 'medium');
       $row['last_run'] = [

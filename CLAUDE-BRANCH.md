@@ -5,151 +5,86 @@
 **IMPORTANT FOR FUTURE AGENTS**: This file documents the current branch's purpose, progress, and implementation plans.
 
 - **DO NOT REMOVE THIS SECTION** - it helps orient future agents to the branch context
-- **Current Branch**: `planning/improvements-to-projects2`
-- **Branch Goal**: Improve the Planning Page
+- **Current Branch**: `main` (hotfix)
+- **Branch Goal**: Multiple fixes for metadata parsing, import configuration, and admin UI
 - **Update the branch name above** when working on a different branch
-- **See Also**: `Codex_Branch.md` - Contains feedback from ChatGPT Codex on the work done in this branch
 
 ---
 
-## User Goals
+## COMPLETED FIXES (This Session)
 
-https://www.drupal.org/project/3547184/issues/3562683
+### 1. Metadata Parser - Filter Instead of Reject
+**Problem**: `MetadataParserService::isTemplateData()` rejected ALL metadata if ANY field contained template text.
 
+**Fix**: Changed to `filterTemplateFields()` which removes individual template fields while keeping valid ones.
 
-- The Save order button doesn't seem to be working on the projects page (And not on roadmap presumably or kanban)
-- Make the Deliverables simpler like on the roadmap page and use the short title and description not issues title.
-- Make the list of issues use short title if evailable otherwise the issue title.
-- Meta issues shouldn't appear in the numbers for burndown charts.
-- If a deliverable shouldn't appear in roadmap, it shouldn't appear in the list of issues either
+**Files**: `MetadataParserService.php`
 
-More planning needed
+### 2. Short Description Truncation
+**Problem**: `field_short_description` has max 255 chars, but some metadata exceeded this causing database errors.
 
-- I need to differenciate deliverables on the list of issues visually somehow.
+**Fix**: Added `mb_substr($value, 0, 255)` truncation in both:
+- `IssueImportService.php` (for imports)
+- `AiDashboardCommands.php` (for metadata processing)
 
+### 3. Last Run Timestamp - Use State API Consistently
+**Problem**: Admin page `/admin/config/ai-dashboard/module-import` showed "Never" for Last Run, but docs page showed correct dates.
 
-## AI Notes
+**Root Cause**: Two different storage locations:
+- Drush command stored in State API (`ai_dashboard:last_import:{id}`)
+- Admin list read from entity property (`$entity->getLastRun()`)
 
-### Completed Work (This Session)
+**Fix**:
+- Changed `ModuleImportListBuilder.php` to read from State API
+- Removed dead `last_run` property/methods from `ModuleImport.php` entity
+- Removed `last_run` from schema
+- Updated `IssueImportService.php` to use State API
 
-1. **Fixed JS scoping bug** (`project-issues.js`)
-   - `updateCollapsibleStates()` and `updateIssueCounts()` were defined inside nested functions but called from sibling functions
-   - Moved to outer scope so they're accessible throughout the behavior
-   - This was causing "ReferenceError: updateCollapsibleStates is not defined" on production (due to JS aggregation)
+### 4. Resolved Project ID Not Saved
+**Problem**: When creating import config with machine name, the resolved project ID was shown in a message but not saved to the entity.
 
-2. **Deliverables section improvements** (`ai-project-issues.html.twig`, `project-issues.css`)
-   - Uses short title with fallback to full title
-   - Only shows "Done" status badge (removed "Active" status)
-   - Removed italics from description
-   - Toned down due date styling (plain gray text, no yellow background)
-   - Includes additional collaborators in assignees display
-   - Added collapsible section with ▼/▶ toggle (persists to localStorage)
+**Fix**: In `ModuleImportForm.php`:
+- Store resolved ID in form state during validation
+- Use resolved ID in save() if no explicit ID provided
 
-3. **Issues table** (`ProjectIssuesController.php`, template)
-   - Uses short title with fallback to full title
-   - Full title shown in tooltip on hover
-   - Added `is_meta` data attribute for filtering
+### 5. Recipes Don't Resolve
+**Problem**: Recipe projects like `ai_recipe_seo_optimizer` failed to resolve because they use `project_general` type.
 
-4. **Burndown charts** (`BurndownController.php`)
-   - Meta issues are now filtered out before calculating totals
-
----
-
-### Deferred Work
-
-#### 1. Kanban drag-and-drop ordering
-- Currently Kanban reflects project page ordering (which is correct)
-- Direct drag-and-drop on Kanban itself deferred for later
-
-#### 2. Visual differentiation for deliverables in issues list
-- Left for future consideration
+**Fix**: Added `project_general` to the list of project types in `IssueImportService::resolveProjectIdFromMachineName()`
 
 ---
 
-### Known Issue: Short Titles Missing on Local (TODO)
+## DEPLOYMENT PLAN
 
-**Problem**: Some issues on local don't have `field_short_title` populated, but they work fine on live.
+### Step 1: First Commit (Code Fixes)
+- [x] Commit all code fixes to main
+- [ ] Push to origin
+- [ ] Deploy to live site
+- [ ] Clear caches on live
 
-**Root Cause Found**: The `MetadataParserService::isTemplateData()` method is too aggressive.
+### Step 2: Verify on Live
+- [ ] Check `/admin/config/ai-dashboard/module-import` shows Last Run dates
+- [ ] Test creating new import config for a recipe (e.g., `ai_recipe_seo_optimizer`)
+- [ ] Verify resolved project ID is saved when editing the config
+- [ ] Run `drush ai-dashboard:import-all` and verify it works for recipes
 
-**Location**: `web/modules/custom/ai_dashboard/src/Service/MetadataParserService.php` lines 238-268
-
-**Details**:
-- When parsing metadata, if ANY field contains template placeholder text (e.g., `[One-line status update for stakeholders]`), the ENTIRE metadata block is rejected
-- This means valid fields like `short_title: "Content Classification Agent"` are discarded because `update_summary` still has placeholder text
-
-**Example**: Node 270 (issue #3561079) has:
-```
-Update Summary: [One-line status update for stakeholders]  ← Template text
-Short Title: Content Classification Agent                  ← Valid data (but discarded!)
-```
-
-**Proposed Fix**:
-Change `isTemplateData()` to filter out individual template fields rather than rejecting everything:
-
-```php
-// Instead of returning TRUE/FALSE for the whole block,
-// filter out template values from individual fields:
-protected function filterTemplateData(array $metadata) {
-  $template_patterns = [
-    '/\[One-line.*?\]/',
-    '/\[Simple.*?\]/',
-    // ... etc
-  ];
-
-  foreach ($metadata as $field => $value) {
-    foreach ($template_patterns as $pattern) {
-      if (preg_match($pattern, $value)) {
-        // Remove just this field, not the whole block
-        unset($metadata[$field]);
-        break;
-      }
-    }
-  }
-  return $metadata;
-}
-```
-
-**Why it works on live**: Live likely has fresher data from drupal.org where users have filled in the update_summary field, so no template placeholders remain.
-
-**Investigation needed**: Why does local have stale issue summaries? Possible causes:
-- Local DB was synced before users updated their issue summaries on drupal.org
-- Re-importing from drupal.org should fix it: `ddev drush ai-dashboard:import-all --full-from=2025-01-01`
+### Step 3: Export/Import Config
+- [ ] On live: `drush aid-cexport` (export new import configurations)
+- [ ] On local: `drush aid-cimport` (import the new configurations)
+- [ ] Review changes
+- [ ] Commit new configuration files
 
 ---
 
-## PR Description
+## FILES CHANGED
 
 ```
-## Summary
-Improvements to the Project Issues page for better usability and fixes a production JS bug.
-
-### Changes
-- **Fix JS scoping bug**: Resolved "updateCollapsibleStates is not defined" error on production caused by JS aggregation
-- **Deliverables section**: Use short titles, show only "Done" status, add collapsible toggle, include additional collaborators
-- **Issues table**: Use short titles with full title in tooltip
-- **Burndown charts**: Exclude meta issues from calculations
-- **Styling**: Removed italics from descriptions, toned down due date styling
-
-### Testing
-- Verify Save Order button works on production after deployment
-- Check deliverables section collapses/expands and persists state
-- Confirm short titles display (with fallback to full title)
-- Verify burndown chart numbers exclude meta issues
-
-Fixes: https://www.drupal.org/project/3547184/issues/3562683
+web/modules/custom/ai_dashboard/src/Service/MetadataParserService.php
+web/modules/custom/ai_dashboard/src/Service/IssueImportService.php
+web/modules/custom/ai_dashboard/src/Drush/Commands/AiDashboardCommands.php
+web/modules/custom/ai_dashboard/src/ModuleImportListBuilder.php
+web/modules/custom/ai_dashboard/src/Entity/ModuleImport.php
+web/modules/custom/ai_dashboard/src/Form/ModuleImportForm.php
+web/modules/custom/ai_dashboard/config/schema/ai_dashboard.schema.yml
+config/sync/ai_dashboard.module_import.ai_initiative_community_page.yml
 ```
-
-## Merge Commit Message (for squash merge into main)
-
-```
-Improve Project Issues page - fix JS bug, add short titles, collapsible deliverables
-
-- Fix JS scoping bug causing save order failure on production
-- Use short titles for deliverables and issues (with fallback)
-- Add collapsible deliverables section with localStorage persistence
-- Include additional collaborators in assignee display
-- Exclude meta issues from burndown chart calculations
-- Simplify deliverable cards (only show Done status, remove italics)
-```
-

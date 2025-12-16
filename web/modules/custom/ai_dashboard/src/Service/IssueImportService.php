@@ -104,10 +104,9 @@ class IssueImportService {
   public function import(ModuleImport $config): array {
     $result = $this->importFromConfig($config, TRUE);
     
-    // Update last run timestamp on successful start.
+    // Update last run timestamp in State API on successful start.
     if ($result['success']) {
-      $config->setLastRun(\Drupal::time()->getRequestTime());
-      $config->save();
+      \Drupal::state()->set('ai_dashboard:last_import:' . $config->id(), \Drupal::time()->getRequestTime());
     }
     
     return $result;
@@ -1675,6 +1674,7 @@ class IssueImportService {
       'project_distribution',
       'project_core',
       'project_profile',
+      'project_general',  // Used for recipes and other general projects.
       // Fallback types (rare but included for resilience):
       'project_theme_engine',
       'project_translation',

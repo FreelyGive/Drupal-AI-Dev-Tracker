@@ -183,15 +183,18 @@ class ModuleImportForm extends EntityForm {
         $reflection = new \ReflectionClass($import_service);
         $method = $reflection->getMethod('resolveProjectIdFromMachineName');
         $method->setAccessible(TRUE);
-        
+
         $resolved_id = $method->invoke($import_service, $project_name);
-        
+
+        // Store resolved ID for save() to use.
+        $form_state->set('resolved_project_id', $resolved_id);
+
         // If successful, show the resolved ID as a message.
         $this->messenger()->addMessage($this->t('Machine name "@name" successfully resolved to project ID @id.', [
           '@name' => $project_name,
           '@id' => $resolved_id,
         ]));
-        
+
       } catch (\Exception $e) {
         $form_state->setErrorByName('project_name', $this->t('Could not resolve machine name "@name": @error', [
           '@name' => $project_name,
@@ -223,9 +226,13 @@ class ModuleImportForm extends EntityForm {
     $status_filter = array_filter($form_state->getValue('status_filter', []));
     $module_import->setStatusFilter(array_keys($status_filter))
       ->setProjectMachineName($form_state->getValue('project_name'));
-    // Persist explicit project ID when provided.
-    if (!empty($form_state->getValue('project_id'))) {
-      $module_import->setProjectId($form_state->getValue('project_id'));
+    // Persist project ID - either explicitly provided or resolved from machine name.
+    $project_id = $form_state->getValue('project_id');
+    if (empty($project_id)) {
+      $project_id = $form_state->get('resolved_project_id');
+    }
+    if (!empty($project_id)) {
+      $module_import->setProjectId($project_id);
     }
     $module_import->setFilterTags($form_state->getValue('filter_tags'));
     $module_import->setFilterComponent($form_state->getValue('filter_component'));
