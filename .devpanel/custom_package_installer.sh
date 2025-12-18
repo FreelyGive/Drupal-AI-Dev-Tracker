@@ -52,6 +52,6 @@ fi
 #== Set up AI Dashboard cron job (every 30 minutes).
 echo 'Set up AI Dashboard cron job.'
 chmod +x $APP_ROOT/.devpanel/ai-dashboard-cron.sh
-CRON_CMD="*/30 * * * * cd $APP_ROOT && APP_ROOT=$APP_ROOT PATH=$PATH $APP_ROOT/.devpanel/ai-dashboard-cron.sh"
-(crontab -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh'; echo "$CRON_CMD") | crontab -
+CRON_CMD="*/30 * * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin /var/www/html/.devpanel/ai-dashboard-cron.sh"
+(crontab -u www -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh'; echo "$CRON_CMD") | crontab -u www -
 echo 'AI Dashboard cron job configured.'
