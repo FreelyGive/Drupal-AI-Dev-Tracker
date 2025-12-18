@@ -82,19 +82,6 @@ echo 'Populate caches.'
 time drush cache:warm
 time .devpanel/warm
 
-#== Set up AI Dashboard cron job (every 30 minutes).
-echo
-echo 'Set up AI Dashboard cron job.'
-chmod +x .devpanel/ai-dashboard-cron.sh
-# Create crontab entry for AI Dashboard (runs every 30 minutes)
-# The cron job runs as the current user with proper environment
-CRON_CMD="*/30 * * * * cd $APP_ROOT && APP_ROOT=$APP_ROOT PATH=$PATH .devpanel/ai-dashboard-cron.sh"
-# Remove any existing AI Dashboard cron entries and add new one
-(crontab -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh'; echo "$CRON_CMD") | crontab -
-# Start cron service if not running
-sudo service cron start 2>/dev/null || true
-echo 'AI Dashboard cron job configured to run every 30 minutes.'
-
 #== Finish measuring script time.
 INIT_DURATION=$SECONDS
 INIT_HOURS=$(($INIT_DURATION / 3600))

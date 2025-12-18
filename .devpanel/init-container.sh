@@ -33,10 +33,3 @@ fi
 
 echo 'cache:rebuild'
 drush cr;
-
-#== Set up AI Dashboard cron job (every 30 minutes).
-echo 'Set up AI Dashboard cron job.'
-chmod +x $APP_ROOT/.devpanel/ai-dashboard-cron.sh
-CRON_CMD="*/30 * * * * cd $APP_ROOT && APP_ROOT=$APP_ROOT PATH=$PATH $APP_ROOT/.devpanel/ai-dashboard-cron.sh"
-(crontab -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh'; echo "$CRON_CMD") | crontab -
-echo 'AI Dashboard cron job configured.'
