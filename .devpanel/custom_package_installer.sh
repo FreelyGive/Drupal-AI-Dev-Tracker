@@ -24,6 +24,13 @@ if ! command -v cron >/dev/null 2>&1; then
   sudo apt-get install -y cron
 fi
 
+# Start cron daemon if not already running.
+if command -v cron >/dev/null 2>&1; then
+  if ! pgrep -x cron > /dev/null; then
+    cron
+  fi
+fi
+
 # Enable AVIF support in GD extension if not already enabled.
 if [ -z "$(php --ri gd | grep AVIF)" ]; then
   sudo apt-get install -y libavif-dev
