@@ -12,38 +12,23 @@ if [ -n "$DEBUG_SCRIPT" ]; then
     set -x
 fi
 
-# Debug logging to track which scripts run on container start
-mkdir -p /var/www/html/.logs
-DEBUG_LOG="/var/www/html/.logs/devpanel-debug.log"
-echo "$(date '+%Y-%m-%d %H:%M:%S') - [custom_package_installer.sh] Script started" >> $DEBUG_LOG
-echo "$(date '+%Y-%m-%d %H:%M:%S') - Running as user: $(whoami)" >> $DEBUG_LOG
-
 # Install APT packages.
 if ! command -v npm >/dev/null 2>&1; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - npm not found, installing packages..." >> $DEBUG_LOG
-  sudo apt-get update >> $DEBUG_LOG 2>&1
-  sudo apt-get install -y cron jq nano npm >> $DEBUG_LOG 2>&1
+  sudo apt-get update
+  sudo apt-get install -y cron jq nano npm
 fi
 
 # Install cron if not already installed.
 if ! command -v cron >/dev/null 2>&1; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - cron not found, attempting install..." >> $DEBUG_LOG
-  sudo apt-get update >> $DEBUG_LOG 2>&1
-  sudo apt-get install -y cron >> $DEBUG_LOG 2>&1
-  # Check if it worked
-  if command -v cron >/dev/null 2>&1; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - cron installed successfully" >> $DEBUG_LOG
-  else
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: cron install FAILED" >> $DEBUG_LOG
-  fi
-else
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - cron already installed" >> $DEBUG_LOG
+  sudo apt-get update
+  sudo apt-get install -y cron
 fi
 
-# Start cron daemon if installed
+# Start cron daemon if not already running.
 if command -v cron >/dev/null 2>&1; then
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting cron daemon..." >> $DEBUG_LOG
-  cron >> $DEBUG_LOG 2>&1 && echo "$(date '+%Y-%m-%d %H:%M:%S') - cron daemon started" >> $DEBUG_LOG
+  if ! pgrep -x cron > /dev/null; then
+    cron
+  fi
 fi
 
 # Enable AVIF support in GD extension if not already enabled.
