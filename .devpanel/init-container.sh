@@ -15,10 +15,6 @@
 # For GNU Affero General Public License see <https://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
 
-# Debug logging to track which scripts run on container start
-mkdir -p /var/www/html/.logs
-echo "$(date '+%Y-%m-%d %H:%M:%S') - [init-container.sh] Script started" >> /var/www/html/.logs/devpanel-debug.log
-
 #== Import database
 if [[ $(mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASSWORD $DB_NAME -e "show tables;") == '' ]]; then
   if [[ -f "$APP_ROOT/.devpanel/dumps/db.sql.gz" ]]; then

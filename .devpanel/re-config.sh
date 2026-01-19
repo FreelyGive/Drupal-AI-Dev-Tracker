@@ -15,10 +15,6 @@
 # For GNU Affero General Public License see <https://www.gnu.org/licenses/>.
 # ----------------------------------------------------------------------
 
-# Debug logging to track which scripts run on container start
-mkdir -p /var/www/html/.logs
-echo "$(date '+%Y-%m-%d %H:%M:%S') - [re-config.sh] Script started" >> /var/www/html/.logs/devpanel-debug.log
-
 #== If webRoot has not been difined, we will set appRoot to webRoot
 if [[ ! -n "$WEB_ROOT" ]]; then
   export WEB_ROOT=$APP_ROOT

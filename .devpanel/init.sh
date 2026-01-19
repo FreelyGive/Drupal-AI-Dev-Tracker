@@ -5,10 +5,6 @@ fi
 set -eu -o pipefail
 cd $APP_ROOT
 
-# Debug logging to track which scripts run on container start
-mkdir -p .logs
-echo "$(date '+%Y-%m-%d %H:%M:%S') - [init.sh] Script started" >> .logs/devpanel-debug.log
-
 LOG_FILE=".logs/init-$(date +%F-%T).log"
 exec > >(tee $LOG_FILE) 2>&1
 
