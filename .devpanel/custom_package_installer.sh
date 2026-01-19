@@ -12,6 +12,10 @@ if [ -n "$DEBUG_SCRIPT" ]; then
     set -x
 fi
 
+# Debug logging to track which scripts run on container start
+mkdir -p /var/www/html/.logs
+echo "$(date '+%Y-%m-%d %H:%M:%S') - [custom_package_installer.sh] Script started" >> /var/www/html/.logs/devpanel-debug.log
+
 # Install APT packages.
 if ! command -v npm >/dev/null 2>&1; then
   sudo apt-get update
