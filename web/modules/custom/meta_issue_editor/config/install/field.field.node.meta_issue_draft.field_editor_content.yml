@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_editor_content
+    - node.type.meta_issue_draft
+  module:
+    - text
+id: node.meta_issue_draft.field_editor_content
+field_name: field_editor_content
+entity_type: node
+bundle: meta_issue_draft
+label: 'Editor Content'
+description: 'JSON blob storing the TipTap editor document state.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

@@ -1,0 +1,13 @@
+use meta issue editor:
+  title: 'Use Meta-Issue-Editor'
+  description: 'View, edit, and export meta-issues. This permission can be granted to anonymous users.'
+
+save meta issue drafts:
+  title: 'Save Meta-Issue-Editor drafts'
+  description: 'Save and manage draft documents to the site.'
+  restrict access: true
+
+fetch issues from drupal org:
+  title: 'Fetch issues from drupal.org'
+  description: 'Pull unknown issue data via the drupal.org API.'
+  restrict access: true

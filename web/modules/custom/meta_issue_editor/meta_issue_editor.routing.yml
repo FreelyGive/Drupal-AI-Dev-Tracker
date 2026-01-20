@@ -1,0 +1,60 @@
+meta_issue_editor.editor:
+  path: '/ai-dashboard/meta-issue-editor'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::editor'
+    _title: 'Meta-Issue-Editor'
+  requirements:
+    _permission: 'use meta issue editor'
+
+meta_issue_editor.editor_load:
+  path: '/ai-dashboard/meta-issue-editor/{issue_number}'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::editor'
+    _title: 'Meta-Issue-Editor'
+  requirements:
+    _permission: 'use meta issue editor'
+    issue_number: '\d+'
+
+meta_issue_editor.export:
+  path: '/ai-dashboard/meta-issue-editor/export/{format}'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::export'
+    _title: 'Export Meta-Issue'
+  requirements:
+    _permission: 'use meta issue editor'
+    format: 'html|markdown'
+  methods: [POST]
+
+# API endpoints
+meta_issue_editor.api.fetch_issues:
+  path: '/api/meta-issue-editor/fetch-issues'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::fetchIssues'
+  requirements:
+    _permission: 'fetch issues from drupal org'
+  methods: [POST]
+
+meta_issue_editor.api.local_issues:
+  path: '/api/meta-issue-editor/local-issues'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::localIssues'
+  requirements:
+    _permission: 'use meta issue editor'
+  methods: [GET]
+
+meta_issue_editor.api.save_draft:
+  path: '/api/meta-issue-editor/save-draft'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::saveDraft'
+  requirements:
+    _permission: 'save meta issue drafts'
+  methods: [POST]
+
+meta_issue_editor.api.load_draft:
+  path: '/api/meta-issue-editor/load-draft/{source_issue}'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::loadDraft'
+  requirements:
+    _permission: 'use meta issue editor'
+    source_issue: '\d+'
+  methods: [GET]

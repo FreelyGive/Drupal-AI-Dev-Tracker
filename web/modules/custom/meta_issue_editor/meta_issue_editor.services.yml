@@ -1,0 +1,4 @@
+services:
+  meta_issue_editor.parser:
+    class: Drupal\meta_issue_editor\Service\MetaIssueParserService
+    arguments: ['@logger.factory']

@@ -1,0 +1,46 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.meta_issue_draft.field_editor_content
+    - field.field.node.meta_issue_draft.field_issue_cache
+    - field.field.node.meta_issue_draft.field_source_issue
+    - node.type.meta_issue_draft
+  module:
+    - text
+id: node.meta_issue_draft.default
+targetEntityType: node
+bundle: meta_issue_draft
+mode: default
+content:
+  field_source_issue:
+    type: number
+    weight: 1
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  field_editor_content:
+    type: text_textarea
+    weight: 2
+    region: content
+    settings:
+      rows: 20
+      placeholder: ''
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  field_issue_cache: true
+  path: true
+  promote: true
+  status: true
+  sticky: true
+  uid: true

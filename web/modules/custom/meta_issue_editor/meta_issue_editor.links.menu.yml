@@ -1,0 +1,6 @@
+meta_issue_editor.editor:
+  title: 'Meta-Issue-Editor'
+  description: 'Edit and manage drupal.org meta-issues'
+  route_name: meta_issue_editor.editor
+  parent: ai_dashboard.main
+  weight: 50

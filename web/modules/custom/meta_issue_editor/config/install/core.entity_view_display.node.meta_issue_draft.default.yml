@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.meta_issue_draft.field_editor_content
+    - field.field.node.meta_issue_draft.field_issue_cache
+    - field.field.node.meta_issue_draft.field_source_issue
+    - node.type.meta_issue_draft
+  module:
+    - text
+id: node.meta_issue_draft.default
+targetEntityType: node
+bundle: meta_issue_draft
+mode: default
+content:
+  field_source_issue:
+    type: number_integer
+    weight: 0
+    region: content
+    label: inline
+    settings:
+      thousand_separator: ''
+      prefix_suffix: true
+    third_party_settings: {  }
+hidden:
+  field_editor_content: true
+  field_issue_cache: true
+  links: true

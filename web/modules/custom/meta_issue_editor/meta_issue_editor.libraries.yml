@@ -1,0 +1,28 @@
+editor:
+  version: 1.x
+  css:
+    theme:
+      css/meta-issue-editor.css: {}
+  js:
+    https://cdn.jsdelivr.net/npm/@tiptap/core@2.1.13/dist/index.umd.min.js:
+      type: external
+      minified: true
+      attributes:
+        defer: true
+    https://cdn.jsdelivr.net/npm/@tiptap/pm@2.1.13/dist/index.umd.min.js:
+      type: external
+      minified: true
+      attributes:
+        defer: true
+    https://cdn.jsdelivr.net/npm/@tiptap/starter-kit@2.1.13/dist/index.umd.min.js:
+      type: external
+      minified: true
+      attributes:
+        defer: true
+    js/meta-issue-editor/editor.js: {}
+    js/meta-issue-editor/issue-block.js: {}
+    js/meta-issue-editor/api.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

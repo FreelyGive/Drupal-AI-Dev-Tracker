@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_issue_cache
+    - node.type.meta_issue_draft
+  module:
+    - text
+id: node.meta_issue_draft.field_issue_cache
+field_name: field_issue_cache
+entity_type: node
+bundle: meta_issue_draft
+label: 'Issue Cache'
+description: 'Cached issue metadata for offline rendering.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

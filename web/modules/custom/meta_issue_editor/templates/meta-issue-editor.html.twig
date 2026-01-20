@@ -1,0 +1,63 @@
+{#
+/**
+ * @file
+ * Template for the Meta-Issue-Editor page.
+ *
+ * Variables:
+ * - issue_number: The issue number being edited (if any).
+ */
+#}
+<div class="meta-issue-editor-wrapper">
+  <div class="meta-issue-editor-toolbar">
+    <label for="issue-number-input">Issue #</label>
+    <input type="text"
+           id="issue-number-input"
+           placeholder="e.g., 3456789"
+           value="{{ issue_number }}"
+           aria-label="Issue number">
+    <button type="button" id="load-issue-btn" class="primary">Load</button>
+
+    <span class="spacer"></span>
+
+    <button type="button" id="import-md-btn" class="secondary">Import MD</button>
+
+    <div class="dropdown">
+      <button type="button" id="export-html-btn" class="secondary">Export HTML</button>
+      <button type="button" id="export-md-btn" class="secondary">Export MD</button>
+    </div>
+
+    {% if can_save %}
+      <button type="button" id="save-draft-btn" class="primary">Save Draft</button>
+    {% endif %}
+  </div>
+
+  <div class="editor-format-toolbar">
+    <button type="button" data-format="bold" title="Bold"><strong>B</strong></button>
+    <button type="button" data-format="italic" title="Italic"><em>I</em></button>
+    <button type="button" data-format="insertUnorderedList" title="Bullet List">• List</button>
+    <button type="button" data-format="insertOrderedList" title="Numbered List">1. List</button>
+    <button type="button" data-format="formatBlock" data-value="h2" title="Heading 2">H2</button>
+    <button type="button" data-format="formatBlock" data-value="h3" title="Heading 3">H3</button>
+  </div>
+
+  <div class="meta-issue-editor-content" id="meta-issue-editor-content">
+    <p>Enter an issue number above and click "Load" to begin editing a meta-issue.</p>
+    <p>Or paste content directly into this editor.</p>
+  </div>
+
+  <div class="meta-issue-editor-footer">
+    <div class="unknown-issues-info">
+      <strong id="unknown-issues-count">0</strong> unknown issues
+    </div>
+
+    {% if can_fetch %}
+      <button type="button" id="fetch-unknown-btn" class="primary" disabled>
+        Pull 0 Unknown Issues from Drupal.org
+      </button>
+    {% else %}
+      <span class="fetch-disabled-message">Log in to fetch issues from drupal.org</span>
+    {% endif %}
+
+    <span id="editor-status" class="status-message"></span>
+  </div>
+</div>

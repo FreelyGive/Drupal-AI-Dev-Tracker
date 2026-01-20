@@ -1,0 +1,124 @@
+<?php
+
+/**
+ * @file
+ * Meta Issue Editor module.
+ *
+ * Provides a TipTap-based editor for managing drupal.org meta-issues.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function meta_issue_editor_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.meta_issue_editor':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Meta Issue Editor provides a rich editing experience for drupal.org meta-issues. It allows you to load meta-issues, reorganize child issues with drag-and-drop, view issue metadata, add internal notes, and export back to drupal.org.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function meta_issue_editor_theme($existing, $type, $theme, $path) {
+  return [
+    'meta_issue_editor' => [
+      'variables' => [
+        'issue_number' => NULL,
+        'can_save' => FALSE,
+        'can_fetch' => FALSE,
+      ],
+      'template' => 'meta-issue-editor',
+    ],
+    'meta_issue_export' => [
+      'variables' => [
+        'format' => 'html',
+        'content' => '',
+        'issue_number' => NULL,
+      ],
+      'template' => 'meta-issue-export',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_extra_field_info().
+ */
+function meta_issue_editor_entity_extra_field_info() {
+  $extra = [];
+
+  $extra['node']['meta_issue_draft']['display']['meta_issue_editor_display'] = [
+    'label' => t('Meta-Issue-Editor'),
+    'description' => t('Displays the TipTap editor for this draft.'),
+    'weight' => 0,
+    'visible' => TRUE,
+  ];
+
+  return $extra;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view() for node entities.
+ */
+function meta_issue_editor_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->bundle() !== 'meta_issue_draft') {
+    return;
+  }
+
+  if ($display->getComponent('meta_issue_editor_display')) {
+    $sourceIssue = $entity->get('field_source_issue')->value;
+    $currentUser = \Drupal::currentUser();
+
+    $build['meta_issue_editor_display'] = [
+      '#theme' => 'meta_issue_editor',
+      '#issue_number' => $sourceIssue,
+      '#can_save' => $currentUser->hasPermission('save meta issue drafts'),
+      '#can_fetch' => $currentUser->hasPermission('fetch issues from drupal org'),
+      '#attached' => [
+        'library' => [
+          'meta_issue_editor/editor',
+        ],
+        'drupalSettings' => [
+          'metaIssueEditor' => [
+            'issueNumber' => $sourceIssue,
+            'canSave' => $currentUser->hasPermission('save meta issue drafts'),
+            'canFetch' => $currentUser->hasPermission('fetch issues from drupal org'),
+            'draft' => [
+              'nid' => $entity->id(),
+              'content' => $entity->get('field_editor_content')->value,
+              'issueCache' => $entity->get('field_issue_cache')->value,
+            ],
+          ],
+        ],
+      ],
+    ];
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function meta_issue_editor_page_attachments(array &$attachments) {
+  $route = \Drupal::routeMatch()->getRouteName();
+
+  // Add noindex for meta_issue_draft nodes.
+  if (in_array($route, ['entity.node.canonical', 'entity.node.edit_form'])) {
+    $node = \Drupal::routeMatch()->getParameter('node');
+    if ($node && $node->bundle() === 'meta_issue_draft') {
+      $attachments['#attached']['html_head'][] = [
+        [
+          '#tag' => 'meta',
+          '#attributes' => [
+            'name' => 'robots',
+            'content' => 'noindex, nofollow',
+          ],
+        ],
+        'meta_issue_draft_noindex',
+      ];
+    }
+  }
+}

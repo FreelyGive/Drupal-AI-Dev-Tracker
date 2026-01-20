@@ -1,0 +1,63 @@
+{#
+/**
+ * @file
+ * Template for the export display page.
+ *
+ * Variables:
+ * - format: The export format ('html' or 'markdown').
+ * - content: The exported content.
+ * - issue_number: The source issue number.
+ */
+#}
+<div class="export-content-wrapper">
+  <h2>
+    {% if format == 'html' %}
+      HTML Export
+    {% else %}
+      Markdown Export
+    {% endif %}
+    {% if issue_number %}
+      for Issue #{{ issue_number }}
+    {% endif %}
+  </h2>
+
+  <p class="export-instructions">
+    {% if format == 'html' %}
+      Copy the HTML below and paste it into the issue body on drupal.org.
+    {% else %}
+      Copy the Markdown below to save as a draft file. This includes internal notes and metadata.
+    {% endif %}
+  </p>
+
+  <textarea id="export-content" readonly>{{ content }}</textarea>
+
+  <div class="export-actions">
+    <button type="button" class="copy-button" onclick="Drupal.metaIssueExport.copyToClipboard()">
+      Copy to Clipboard
+    </button>
+    <a href="/ai-dashboard/meta-issue-editor{{ issue_number ? '/' ~ issue_number : '' }}" class="button secondary">
+      Back to Editor
+    </a>
+  </div>
+</div>
+
+<script>
+  (function (Drupal) {
+    Drupal.metaIssueExport = {
+      copyToClipboard: function () {
+        const textarea = document.getElementById('export-content');
+        textarea.select();
+        document.execCommand('copy');
+
+        const btn = document.querySelector('.copy-button');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+
+        setTimeout(function () {
+          btn.textContent = 'Copy to Clipboard';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+    };
+  })(Drupal);
+</script>
