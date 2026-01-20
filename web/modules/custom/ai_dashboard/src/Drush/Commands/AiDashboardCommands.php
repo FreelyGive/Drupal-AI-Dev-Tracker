@@ -870,12 +870,28 @@ class AiDashboardCommands extends DrushCommands {
         $this->output()->writeln("   ℹ️  Skipped (not in allowlist): " . implode(', ', $skipped_files));
       }
 
-      // Restore config/sync to last committed state so git stays clean
+      // Restore config/sync to last committed state so git stays clean.
+      // This prevents untracked config files from blocking git pull on production.
+      // Step 1: Restore modified tracked files
       $restore_process = \Drush\Drush::process(['git', 'checkout', '--', 'config/sync/'], $project_root);
       $restore_process->setTimeout(30);
       $restore_process->run();
-      if ($restore_process->isSuccessful()) {
-        $this->output()->writeln("   🧹 Restored config/sync/ to git state");
+
+      // Step 2: Remove untracked files (new configs not yet in git)
+      $clean_process = \Drush\Drush::process(['git', 'clean', '-f', 'config/sync/'], $project_root);
+      $clean_process->setTimeout(30);
+      $clean_process->run();
+
+      if ($restore_process->isSuccessful() && $clean_process->isSuccessful()) {
+        $this->output()->writeln("   🧹 Restored config/sync/ to git state (cleaned untracked files)");
+      }
+      else {
+        if (!$restore_process->isSuccessful()) {
+          $this->output()->writeln("<comment>   ⚠️  Failed to restore tracked config files</comment>");
+        }
+        if (!$clean_process->isSuccessful()) {
+          $this->output()->writeln("<comment>   ⚠️  Failed to clean untracked config files</comment>");
+        }
       }
     }
     catch (\Throwable $e) {
