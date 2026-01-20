@@ -5,86 +5,184 @@
 **IMPORTANT FOR FUTURE AGENTS**: This file documents the current branch's purpose, progress, and implementation plans.
 
 - **DO NOT REMOVE THIS SECTION** - it helps orient future agents to the branch context
-- **Current Branch**: `main` (hotfix)
-- **Branch Goal**: Multiple fixes for metadata parsing, import configuration, and admin UI
-- **Update the branch name above** when working on a different branch
+- **Current Branch**: `feature/meta-issue-editor`
+- **Branch Goal**: Build a TipTap-based editor for managing drupal.org meta-issues
+- **Design Document**: `docs/plans/2025-01-20-meta-issue-editor-design.md`
 
 ---
 
-## COMPLETED FIXES (This Session)
+## Overview
 
-### 1. Metadata Parser - Filter Instead of Reject
-**Problem**: `MetadataParserService::isTemplateData()` rejected ALL metadata if ANY field contained template text.
+Building a new Drupal module `meta_issue_editor` that provides a rich editor for drupal.org meta-issues. Meta-issues contain lists of child issues in `[#XXXX]` format. This editor allows reorganizing these issues, viewing metadata, adding internal notes, and exporting back to drupal.org.
 
-**Fix**: Changed to `filterTemplateFields()` which removes individual template fields while keeping valid ones.
+## Key Features
 
-**Files**: `MetadataParserService.php`
+1. **Load meta-issues** from drupal.org by issue number
+2. **Parse `[#XXXX]` references** into styled issue blocks
+3. **Display issue metadata**: status, component, tags, assignment, update summary
+4. **Rich editing**: drag-drop reordering, indentation, headings, bullets
+5. **Inline notes**: preserved in drafts, stripped from exports
+6. **Export**: HTML (for drupal.org) or Markdown (for drafts)
+7. **Save drafts**: Drupal nodes with revisions
 
-### 2. Short Description Truncation
-**Problem**: `field_short_description` has max 255 chars, but some metadata exceeded this causing database errors.
-
-**Fix**: Added `mb_substr($value, 0, 255)` truncation in both:
-- `IssueImportService.php` (for imports)
-- `AiDashboardCommands.php` (for metadata processing)
-
-### 3. Last Run Timestamp - Use State API Consistently
-**Problem**: Admin page `/admin/config/ai-dashboard/module-import` showed "Never" for Last Run, but docs page showed correct dates.
-
-**Root Cause**: Two different storage locations:
-- Drush command stored in State API (`ai_dashboard:last_import:{id}`)
-- Admin list read from entity property (`$entity->getLastRun()`)
-
-**Fix**:
-- Changed `ModuleImportListBuilder.php` to read from State API
-- Removed dead `last_run` property/methods from `ModuleImport.php` entity
-- Removed `last_run` from schema
-- Updated `IssueImportService.php` to use State API
-
-### 4. Resolved Project ID Not Saved
-**Problem**: When creating import config with machine name, the resolved project ID was shown in a message but not saved to the entity.
-
-**Fix**: In `ModuleImportForm.php`:
-- Store resolved ID in form state during validation
-- Use resolved ID in save() if no explicit ID provided
-
-### 5. Recipes Don't Resolve
-**Problem**: Recipe projects like `ai_recipe_seo_optimizer` failed to resolve because they use `project_general` type.
-
-**Fix**: Added `project_general` to the list of project types in `IssueImportService::resolveProjectIdFromMachineName()`
-
----
-
-## DEPLOYMENT PLAN
-
-### Step 1: First Commit (Code Fixes)
-- [x] Commit all code fixes to main
-- [ ] Push to origin
-- [ ] Deploy to live site
-- [ ] Clear caches on live
-
-### Step 2: Verify on Live
-- [ ] Check `/admin/config/ai-dashboard/module-import` shows Last Run dates
-- [ ] Test creating new import config for a recipe (e.g., `ai_recipe_seo_optimizer`)
-- [ ] Verify resolved project ID is saved when editing the config
-- [ ] Run `drush ai-dashboard:import-all` and verify it works for recipes
-
-### Step 3: Export/Import Config
-- [ ] On live: `drush aid-cexport` (export new import configurations)
-- [ ] On local: `drush aid-cimport` (import the new configurations)
-- [ ] Review changes
-- [ ] Commit new configuration files
-
----
-
-## FILES CHANGED
+## Module Structure
 
 ```
-web/modules/custom/ai_dashboard/src/Service/MetadataParserService.php
-web/modules/custom/ai_dashboard/src/Service/IssueImportService.php
-web/modules/custom/ai_dashboard/src/Drush/Commands/AiDashboardCommands.php
-web/modules/custom/ai_dashboard/src/ModuleImportListBuilder.php
-web/modules/custom/ai_dashboard/src/Entity/ModuleImport.php
-web/modules/custom/ai_dashboard/src/Form/ModuleImportForm.php
-web/modules/custom/ai_dashboard/config/schema/ai_dashboard.schema.yml
-config/sync/ai_dashboard.module_import.ai_initiative_community_page.yml
+web/modules/custom/meta_issue_editor/
+├── meta_issue_editor.info.yml          # Requires ai_dashboard
+├── meta_issue_editor.module
+├── meta_issue_editor.routing.yml
+├── meta_issue_editor.permissions.yml
+├── meta_issue_editor.links.menu.yml
+├── meta_issue_editor.libraries.yml     # TipTap, CSS, JS
+├── config/install/                     # Content type + fields
+├── src/
+│   ├── Controller/MetaIssueEditorController.php
+│   └── Service/MetaIssueParserService.php
+├── js/meta-issue-editor/
+│   ├── editor.js
+│   ├── issue-block.js
+│   └── api.js
+├── css/meta-issue-editor.css
+└── templates/
+    ├── meta-issue-editor.html.twig
+    └── meta-issue-export.html.twig
 ```
+
+## Dependencies
+
+**Reuses from ai_dashboard:**
+- `IssueImportService` - fetch issues from drupal.org API
+- `MetadataParserService` - parse metadata from issue summaries
+- AI Issue nodes - local issue data lookup
+- Status color styling from existing CSS
+
+**New in this module:**
+- `MetaIssueParserService` - parse `[#XXXX]` references from meta-issue body
+
+## Content Type: Meta Issue Draft
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Auto-generated: "Meta #3512345" |
+| `field_source_issue` | integer | Drupal.org issue number (unique) |
+| `field_editor_content` | text (long) | JSON blob of TipTap document state |
+| `field_issue_cache` | text (long) | Cached issue metadata |
+
+Settings: Revisions enabled, unique constraint on `field_source_issue`
+
+## Routes
+
+| Path | Permission |
+|------|------------|
+| `/ai-dashboard/meta-issue-editor` | use meta issue editor |
+| `/ai-dashboard/meta-issue-editor/export/{format}` | use meta issue editor |
+| `/node/{nid}` | standard (view draft in TipTap read-only) |
+| `/node/{nid}/edit` | standard (edit draft in TipTap) |
+
+## Permissions
+
+- `use meta issue editor` - View, edit, export (anonymous allowed)
+- `save meta issue drafts` - Save drafts to site (authenticated)
+- `fetch issues from drupal org` - Pull via API (authenticated)
+
+## Issue Block Features
+
+**Collapsed view:**
+- Drag handle (⋮⋮) for reordering
+- Title links to drupal.org
+- Status badges (colored: green=fixed, blue=active, red=needs work, grey=closed)
+- Closed issues get strikethrough
+
+**Expanded view (click Expand):**
+- Status, Component, Tags, Assignment
+- Update Summary (from starforge metadata)
+- Inline notes field (not exported to drupal.org)
+
+**Unknown issues:**
+- Warning badge for issues not in local DB
+- "Pull from Drupal.org" button fetches all unknowns
+
+## Export Formats
+
+**HTML** (for drupal.org):
+```html
+<h2>Phase 1: Foundation</h2>
+<ul>
+  <li>[#3456789] - Implement AI agent memory system</li>
+</ul>
+```
+
+**Markdown** (for drafts):
+```markdown
+## Phase 1: Foundation
+
+- [#3456789] Implement AI agent memory system
+  <!-- meta: status=active, assigned=@username -->
+  <!-- note: Waiting on API review -->
+```
+
+---
+
+## Implementation Tasks
+
+### Phase 1: Module Scaffolding
+- [ ] Create module directory structure
+- [ ] `meta_issue_editor.info.yml` with ai_dashboard dependency
+- [ ] `meta_issue_editor.routing.yml` with routes
+- [ ] `meta_issue_editor.permissions.yml`
+- [ ] `meta_issue_editor.links.menu.yml`
+
+### Phase 2: Content Type
+- [ ] `node.type.meta_issue_draft.yml`
+- [ ] `field.storage.node.field_source_issue.yml`
+- [ ] `field.storage.node.field_editor_content.yml`
+- [ ] `field.storage.node.field_issue_cache.yml`
+- [ ] Field instance configs
+- [ ] Form and view display configs
+
+### Phase 3: Controller & Service
+- [ ] `MetaIssueEditorController.php` - landing page
+- [ ] `MetaIssueParserService.php` - parse `[#XXXX]` from text
+
+### Phase 4: TipTap Integration
+- [ ] `meta_issue_editor.libraries.yml` - TipTap CDN
+- [ ] `editor.js` - TipTap initialization
+- [ ] `issue-block.js` - custom node for issues
+- [ ] `api.js` - AJAX for save/load/fetch
+- [ ] `meta-issue-editor.css` - styling
+
+### Phase 5: API Endpoints
+- [ ] POST `/api/meta-issue-editor/fetch-issues`
+- [ ] GET `/api/meta-issue-editor/local-issues`
+- [ ] POST `/api/meta-issue-editor/save-draft`
+
+### Phase 6: Export & Templates
+- [ ] `meta-issue-editor.html.twig` - editor page
+- [ ] `meta-issue-export.html.twig` - export display
+- [ ] Export route handler
+- [ ] Markdown import parser
+
+### Phase 7: Node Integration
+- [ ] Hook into node view for TipTap read-only display
+- [ ] Hook into node edit for TipTap editor
+- [ ] Add noindex meta tag to content type
+
+---
+
+## Reference Files
+
+- **Design**: `docs/plans/2025-01-20-meta-issue-editor-design.md`
+- **Issue Import**: `web/modules/custom/ai_dashboard/src/Service/IssueImportService.php`
+- **Metadata Parser**: `web/modules/custom/ai_dashboard/src/Service/MetadataParserService.php`
+- **Example Controller**: `web/modules/custom/ai_dashboard/src/Controller/CalendarController.php`
+- **Example Content Type**: `config/sync/node.type.ai_issue.yml`
+
+---
+
+## Technical Notes
+
+- TipTap loaded via CDN (https://cdn.jsdelivr.net/npm/@tiptap/...)
+- Inject ai_dashboard services via dependency injection
+- Use existing status color CSS from ai_dashboard module
+- Add noindex meta tag to prevent search indexing of drafts
