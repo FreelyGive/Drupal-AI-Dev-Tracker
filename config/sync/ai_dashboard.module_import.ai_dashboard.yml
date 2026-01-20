@@ -1,0 +1,23 @@
+uuid: 0a2dc0bb-41ba-4f7e-a202-f48c32bc80b3
+langcode: en
+status: true
+dependencies: {  }
+id: ai_dashboard
+label: 'AI Dashboard'
+source_type: drupal_org
+project_id: '3557420'
+project_name: ai_dashboard
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

@@ -1,0 +1,25 @@
+uuid: 4f42a995-60ea-4626-bc31-f232355fdcec
+langcode: en
+status: true
+dependencies: {  }
+id: ai_powered_search_block
+label: 'AI powered Search Block'
+source_type: drupal_org
+project_id: '3500291'
+project_name: ai_search_block
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

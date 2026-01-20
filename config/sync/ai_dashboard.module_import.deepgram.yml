@@ -1,0 +1,23 @@
+uuid: c267cfd9-f10a-4a03-bd43-fa34eeb30213
+langcode: en
+status: true
+dependencies: {  }
+id: deepgram
+label: Deepgram
+source_type: drupal_org
+project_id: '3460517'
+project_name: deepgram
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

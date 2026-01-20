@@ -1,0 +1,23 @@
+uuid: 2aaf1851-8ca1-4d15-93b9-1c269fec9931
+langcode: en
+status: true
+dependencies: {  }
+id: ai_recipe_content_classification
+label: 'AI Recipe Content Classification'
+source_type: drupal_org
+project_id: '3549994'
+project_name: ai_recipe_content_classification
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

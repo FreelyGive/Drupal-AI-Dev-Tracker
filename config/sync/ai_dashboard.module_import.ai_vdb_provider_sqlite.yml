@@ -1,0 +1,23 @@
+uuid: dc7c81e1-147b-4833-9a2c-fbca71a91e81
+langcode: en
+status: true
+dependencies: {  }
+id: ai_vdb_provider_sqlite
+label: 'AI VDB Provider Sqlite'
+source_type: drupal_org
+project_id: '3519169'
+project_name: ai_vdb_provider_sqlite
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

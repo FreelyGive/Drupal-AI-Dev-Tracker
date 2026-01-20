@@ -1,0 +1,23 @@
+uuid: 717d4805-876d-4811-be47-f7d5534fe7a3
+langcode: en
+status: true
+dependencies: {  }
+id: ai_recipe_image_classification
+label: 'AI Recipe Image Classification'
+source_type: drupal_org
+project_id: '3548651'
+project_name: ai_recipe_image_classification
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

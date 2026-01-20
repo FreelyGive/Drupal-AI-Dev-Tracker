@@ -1,0 +1,25 @@
+uuid: 013f5e32-143c-4609-9574-f8a37e068c05
+langcode: en
+status: true
+dependencies: {  }
+id: flowdrop_ui
+label: 'FlowDrop UI'
+source_type: drupal_org
+project_id: '3561634'
+project_name: flowdrop_ui
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

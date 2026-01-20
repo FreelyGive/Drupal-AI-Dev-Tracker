@@ -1,0 +1,23 @@
+uuid: 0e70a4f9-76cf-4d92-bcbc-a1af5c1fd106
+langcode: en
+status: true
+dependencies: {  }
+id: ai_recipe_seo_optimizer
+label: 'AI Recipe SEO Optimizer'
+source_type: drupal_org
+project_id: '3542949'
+project_name: ai_recipe_seo_optimizer
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

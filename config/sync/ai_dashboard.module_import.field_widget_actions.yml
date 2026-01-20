@@ -1,0 +1,23 @@
+uuid: 202474fc-d0a7-42b3-ba06-98094232d65d
+langcode: en
+status: true
+dependencies: {  }
+id: field_widget_actions
+label: 'Field Widget Actions'
+source_type: drupal_org
+project_id: '3552800'
+project_name: field_widget_actions
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

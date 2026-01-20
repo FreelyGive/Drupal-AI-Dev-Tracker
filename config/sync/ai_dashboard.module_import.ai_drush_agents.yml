@@ -1,0 +1,23 @@
+uuid: b4cc5020-a85d-438b-9dce-651d5407809c
+langcode: en
+status: true
+dependencies: {  }
+id: ai_drush_agents
+label: 'AI Drush Agents'
+source_type: drupal_org
+project_id: '3532746'
+project_name: ai_drush_agents
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

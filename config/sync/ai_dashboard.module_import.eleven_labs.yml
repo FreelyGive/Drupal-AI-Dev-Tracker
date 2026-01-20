@@ -1,0 +1,23 @@
+uuid: cdc6de0b-0a0e-46e9-88e2-48868289b6ee
+langcode: en
+status: true
+dependencies: {  }
+id: eleven_labs
+label: 'Eleven Labs'
+source_type: drupal_org
+project_id: '3460563'
+project_name: elevenlabs
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

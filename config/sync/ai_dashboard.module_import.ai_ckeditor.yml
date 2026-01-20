@@ -1,0 +1,23 @@
+uuid: 79220e7f-98c8-496b-a95b-fab0d5ac04d7
+langcode: en
+status: true
+dependencies: {  }
+id: ai_ckeditor
+label: 'AI CKeditor'
+source_type: drupal_org
+project_id: '3462388'
+project_name: ai_ckeditor
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

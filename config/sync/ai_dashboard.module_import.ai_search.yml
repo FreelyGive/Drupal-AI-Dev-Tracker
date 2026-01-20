@@ -1,0 +1,23 @@
+uuid: 045c3480-9800-4f18-8e03-5e9f74a297a6
+langcode: en
+status: true
+dependencies: {  }
+id: ai_search
+label: 'AI Search'
+source_type: drupal_org
+project_id: '3553068'
+project_name: ai_search
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

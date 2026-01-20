@@ -1,0 +1,23 @@
+uuid: f7b1bfd8-cc4c-4104-b633-0a378043ae9d
+langcode: en
+status: true
+dependencies: {  }
+id: ai_vdb_provider_pinecone
+label: 'AI VDB Provider Pinecone'
+source_type: drupal_org
+project_id: '3483463'
+project_name: ai_vdb_provider_pinecone
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

@@ -1,0 +1,23 @@
+uuid: e06c3ed5-c4d6-4ade-bbbe-e3f2f4e0b88d
+langcode: en
+status: true
+dependencies: {  }
+id: ai_provider_groq
+label: 'AI Provider Groq'
+source_type: drupal_org
+project_id: '3481077'
+project_name: ai_provider_groq
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

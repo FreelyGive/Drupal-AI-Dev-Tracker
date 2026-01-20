@@ -1,0 +1,25 @@
+uuid: 32fb6293-9b74-49b8-a18c-9a3f37c1e881
+langcode: en
+status: true
+dependencies: {  }
+id: langfuse
+label: Langfuse
+source_type: drupal_org
+project_id: '3505477'
+project_name: langfuse
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

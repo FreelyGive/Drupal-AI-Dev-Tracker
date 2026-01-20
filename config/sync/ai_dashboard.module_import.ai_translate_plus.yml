@@ -1,0 +1,23 @@
+uuid: e539835b-74bf-4ab7-82c8-72a6468b0441
+langcode: en
+status: true
+dependencies: {  }
+id: ai_translate_plus
+label: 'AI Translate Plus'
+source_type: drupal_org
+project_id: '3546477'
+project_name: ai_translate_plus
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

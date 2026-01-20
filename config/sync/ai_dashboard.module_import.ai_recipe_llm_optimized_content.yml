@@ -1,0 +1,23 @@
+uuid: a4fef8ea-a439-4f7d-b701-e1d22b7bb222
+langcode: en
+status: true
+dependencies: {  }
+id: ai_recipe_llm_optimized_content
+label: 'AI Recipe LLM Optimized Content'
+source_type: drupal_org
+project_id: '3550670'
+project_name: ai_recipe_llm_optimized_content
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

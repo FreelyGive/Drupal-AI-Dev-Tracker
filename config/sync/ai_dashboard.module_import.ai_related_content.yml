@@ -1,0 +1,23 @@
+uuid: b8dcc09b-3470-42c5-8601-f8c77f3dbca1
+langcode: en
+status: true
+dependencies: {  }
+id: ai_related_content
+label: 'AI Related Content'
+source_type: drupal_org
+project_id: '3522150'
+project_name: ai_related_content
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev

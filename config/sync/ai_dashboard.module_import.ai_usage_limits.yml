@@ -1,0 +1,23 @@
+uuid: ec2cada7-7fba-4505-808d-333510fa3a56
+langcode: en
+status: true
+dependencies: {  }
+id: ai_usage_limits
+label: 'AI Usage Limits'
+source_type: drupal_org
+project_id: '3519933'
+project_name: ai_usage_limits
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev
