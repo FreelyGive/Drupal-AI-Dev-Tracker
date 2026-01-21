@@ -167,15 +167,66 @@ Settings: Revisions enabled, unique constraint on `field_source_issue`
 - [x] Hook into node view for TipTap read-only display
 - [x] Add noindex meta tag to content type
 
+### Phase 8: Code Review Fixes - COMPLETE
+- [x] CSRF token validation on POST endpoints (fetchIssues, saveDraft)
+- [x] XSS protection in export template (Html::escape)
+- [x] Document accessCheck(FALSE) usage with comments
+- [x] Add return type hints to all controller methods
+- [x] Fix JavaScript fetch error handling (response.ok check)
+- [x] Add CSRF token to JavaScript POST requests
+- [x] Move inline JS from export template to library
+- [x] Implement drag-and-drop for issue blocks
+- [x] Add drag visual feedback CSS
+- [x] Document TipTap integration status
+
+## Remaining Work (Functional Issues)
+
+### Issue 1: HTML Export Produces Escaped HTML - FIXED
+**Problem:** Export showed `&lt;p&gt;` instead of `<p>` - the XSS fix incorrectly escaped content destined for a textarea.
+
+**Fixes applied:**
+- Added `|raw` filter in twig template (textarea content is safe)
+- `generateHtmlExport()` converts `<br>` back to newlines
+- `cleanImportedHtml()` transforms API HTML on import
+
+### Issue 2: List Items (Bullets) Don't Drag-Drop
+**Problem:** Current drag-drop only works on `.issue-block` elements, not on `<li>` list items.
+
+**Fix needed:**
+- Extend drag-drop to handle list items containing issue blocks
+- Or restructure so issue blocks are always direct children of the editor (not nested in lists)
+- Consider: should the editor manage lists, or just issue blocks in a flat structure?
+
+### Issue 3: Issue Metadata Not Populating
+**Problem:** When expanding an issue block, metadata fields (component, tags, assignment, update summary) may not be displaying.
+
+**Fix needed:**
+- Verify local issue lookup is returning all fields
+- Check that `formatIssueData()` includes all expected fields
+- Ensure JavaScript `renderBlockWithData()` handles all fields correctly
+- Test with real issue numbers from the local database
+
+### Issue 4: Loading Meta-Issue Body
+**Problem:** When loading a meta-issue from drupal.org, need to properly parse the body HTML and extract issue references while preserving structure.
+
+**Fix needed:**
+- The fetched body HTML should be cleaned up
+- Issue references `[#XXXXXX]` should be converted to issue blocks
+- Preserve heading structure (h2, h3) and lists
+
 ## Next Steps (Testing & Refinement)
 
-- [ ] Enable module locally: `ddev drush en meta_issue_editor`
+- [x] Enable module locally: `ddev drush en meta_issue_editor`
+- [x] Fix HTML export escaping issue
+- [x] Fix H2/H3 format buttons (execCommand needed tag value)
+- [x] Fix CSRF token missing on node view pages
+- [x] Fix draft content key inconsistency (editor_content)
+- [x] Add user feedback for anonymous fetch restriction
+- [x] Improve JSON parse error handling
 - [ ] Test loading a meta-issue from drupal.org
+- [ ] Test issue metadata display in expanded view
 - [ ] Test saving and loading drafts
-- [ ] Test export to HTML and Markdown
-- [ ] Test fetching unknown issues from drupal.org API
-- [ ] Refine TipTap editor behavior (drag-drop, formatting)
-- [ ] Add proper TipTap npm build if CDN approach has issues
+- [ ] Decide on drag-drop approach for list items
 
 ---
 
@@ -191,7 +242,16 @@ Settings: Revisions enabled, unique constraint on `field_source_issue`
 
 ## Technical Notes
 
-- TipTap loaded via CDN (https://cdn.jsdelivr.net/npm/@tiptap/...)
+- **Editor approach**: Uses contenteditable with execCommand as MVP; TipTap CDN is loaded but not fully integrated due to ES module compatibility issues with Drupal's JS loading
+- **Drag-drop**: Native HTML5 drag-drop API for issue block reordering
+- **Security**: CSRF tokens on all POST endpoints, XSS protection via Html::escape
 - Inject ai_dashboard services via dependency injection
 - Use existing status color CSS from ai_dashboard module
 - Add noindex meta tag to prevent search indexing of drafts
+
+### Future TipTap Integration
+To fully integrate TipTap (if needed):
+1. Add npm build step with webpack/vite
+2. Create custom TipTap extensions for issue blocks
+3. Replace contenteditable with TipTap editor instance
+4. See documentation in `js/meta-issue-editor/editor.js`

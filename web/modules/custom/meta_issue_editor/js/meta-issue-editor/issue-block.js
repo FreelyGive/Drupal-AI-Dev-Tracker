@@ -179,6 +179,135 @@
       return div.innerHTML;
     },
 
+    /**
+     * Currently dragged element.
+     */
+    draggedElement: null,
+
+    /**
+     * Initialize drag-and-drop for issue blocks.
+     */
+    initDragDrop: function () {
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      if (!editorEl) return;
+
+      // Use event delegation on the editor container
+      editorEl.addEventListener('dragstart', (e) => this.handleDragStart(e));
+      editorEl.addEventListener('dragend', (e) => this.handleDragEnd(e));
+      editorEl.addEventListener('dragover', (e) => this.handleDragOver(e));
+      editorEl.addEventListener('dragenter', (e) => this.handleDragEnter(e));
+      editorEl.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+      editorEl.addEventListener('drop', (e) => this.handleDrop(e));
+    },
+
+    /**
+     * Handle drag start.
+     */
+    handleDragStart: function (e) {
+      const handle = e.target.closest('.issue-block-drag-handle');
+      if (!handle) return;
+
+      const block = handle.closest('.issue-block');
+      if (!block) return;
+
+      this.draggedElement = block;
+      block.classList.add('dragging');
+
+      // Set drag data
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', block.dataset.issueNumber);
+
+      // Use the block as drag image
+      e.dataTransfer.setDragImage(block, 20, 20);
+    },
+
+    /**
+     * Handle drag end.
+     */
+    handleDragEnd: function (e) {
+      if (this.draggedElement) {
+        this.draggedElement.classList.remove('dragging');
+        this.draggedElement = null;
+      }
+
+      // Remove all drop indicators
+      document.querySelectorAll('.issue-block.drop-above, .issue-block.drop-below').forEach(el => {
+        el.classList.remove('drop-above', 'drop-below');
+      });
+    },
+
+    /**
+     * Handle drag over.
+     */
+    handleDragOver: function (e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      const block = e.target.closest('.issue-block');
+      if (!block || block === this.draggedElement) return;
+
+      // Determine if dropping above or below
+      const rect = block.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+
+      block.classList.remove('drop-above', 'drop-below');
+      if (e.clientY < midY) {
+        block.classList.add('drop-above');
+      } else {
+        block.classList.add('drop-below');
+      }
+    },
+
+    /**
+     * Handle drag enter.
+     */
+    handleDragEnter: function (e) {
+      e.preventDefault();
+    },
+
+    /**
+     * Handle drag leave.
+     */
+    handleDragLeave: function (e) {
+      const block = e.target.closest('.issue-block');
+      if (block && !block.contains(e.relatedTarget)) {
+        block.classList.remove('drop-above', 'drop-below');
+      }
+    },
+
+    /**
+     * Handle drop.
+     */
+    handleDrop: function (e) {
+      e.preventDefault();
+
+      const targetBlock = e.target.closest('.issue-block');
+      if (!targetBlock || !this.draggedElement || targetBlock === this.draggedElement) {
+        return;
+      }
+
+      // Determine insertion point
+      const rect = targetBlock.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < midY;
+
+      // Perform the move
+      if (insertBefore) {
+        targetBlock.parentNode.insertBefore(this.draggedElement, targetBlock);
+      } else {
+        targetBlock.parentNode.insertBefore(this.draggedElement, targetBlock.nextSibling);
+      }
+
+      // Clean up
+      targetBlock.classList.remove('drop-above', 'drop-below');
+
+      // Notify that content changed
+      const statusEl = document.getElementById('editor-status');
+      if (statusEl) {
+        statusEl.textContent = 'Issues reordered (remember to save)';
+      }
+    },
+
   };
 
 })(Drupal, drupalSettings);

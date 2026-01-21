@@ -7,6 +7,8 @@
  * Provides a TipTap-based editor for managing drupal.org meta-issues.
  */
 
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
@@ -46,6 +48,14 @@ function meta_issue_editor_theme($existing, $type, $theme, $path) {
 }
 
 /**
+ * Implements hook_preprocess_HOOK() for meta_issue_export.
+ */
+function meta_issue_editor_preprocess_meta_issue_export(&$variables) {
+  // Attach the export library for copy-to-clipboard functionality.
+  $variables['#attached']['library'][] = 'meta_issue_editor/export';
+}
+
+/**
  * Implements hook_entity_extra_field_info().
  */
 function meta_issue_editor_entity_extra_field_info() {
@@ -64,7 +74,7 @@ function meta_issue_editor_entity_extra_field_info() {
 /**
  * Implements hook_ENTITY_TYPE_view() for node entities.
  */
-function meta_issue_editor_node_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
+function meta_issue_editor_node_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
   if ($entity->bundle() !== 'meta_issue_draft') {
     return;
   }
@@ -87,10 +97,11 @@ function meta_issue_editor_node_view(array &$build, \Drupal\Core\Entity\EntityIn
             'issueNumber' => $sourceIssue,
             'canSave' => $currentUser->hasPermission('save meta issue drafts'),
             'canFetch' => $currentUser->hasPermission('fetch issues from drupal org'),
+            'csrfToken' => \Drupal::csrfToken()->get('meta_issue_editor'),
             'draft' => [
               'nid' => $entity->id(),
-              'content' => $entity->get('field_editor_content')->value,
-              'issueCache' => $entity->get('field_issue_cache')->value,
+              'editor_content' => $entity->get('field_editor_content')->value,
+              'issue_cache' => $entity->get('field_issue_cache')->value,
             ],
           ],
         ],

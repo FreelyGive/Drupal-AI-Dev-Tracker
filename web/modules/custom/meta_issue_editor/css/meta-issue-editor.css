@@ -281,6 +281,33 @@
   color: #e65100;
 }
 
+/* Drag-and-drop states */
+.issue-block.dragging {
+  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.issue-block.drop-above {
+  border-top: 3px solid #0073e6;
+  margin-top: 5px;
+}
+
+.issue-block.drop-below {
+  border-bottom: 3px solid #0073e6;
+  margin-bottom: 5px;
+}
+
+.issue-block-drag-handle {
+  padding: 4px;
+  margin: -4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.issue-block-drag-handle:hover {
+  background: #f0f0f0;
+}
+
 /* Bottom toolbar */
 .meta-issue-editor-footer {
   margin-top: 20px;

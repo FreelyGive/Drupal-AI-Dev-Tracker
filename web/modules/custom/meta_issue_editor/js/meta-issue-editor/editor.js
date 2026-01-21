@@ -1,6 +1,27 @@
 /**
  * @file
  * Main editor initialization for Meta-Issue-Editor.
+ *
+ * TECHNICAL NOTE: TipTap Integration Status
+ * =========================================
+ * This editor currently uses a contenteditable fallback with execCommand
+ * for formatting. The TipTap CDN libraries are loaded but not fully
+ * integrated because:
+ *
+ * 1. TipTap is designed as an ES module and CDN UMD builds have
+ *    compatibility issues with Drupal's JavaScript loading
+ * 2. The execCommand API, while deprecated, still works in all browsers
+ *    and provides basic formatting (bold, italic, lists, headings)
+ * 3. The primary value of this editor is issue block management and
+ *    drag-drop reordering, which work without TipTap
+ *
+ * To properly integrate TipTap, you would need to:
+ * 1. Add a build step (npm/webpack) to bundle TipTap properly
+ * 2. Create custom TipTap extensions for issue blocks
+ * 3. Replace the contenteditable approach with TipTap's editor instance
+ *
+ * The current approach is functional for MVP purposes. Full TipTap
+ * integration should be done when build tooling is established.
  */
 
 (function (Drupal, drupalSettings, once) {
@@ -41,6 +62,9 @@
 
       // Set up event listeners
       this.setupEventListeners();
+
+      // Initialize drag-and-drop for issue blocks
+      Drupal.metaIssueBlock.initDragDrop();
 
       // Load existing draft if available
       if (this.settings.draft) {
@@ -125,7 +149,14 @@
       document.querySelectorAll('[data-format]').forEach(btn => {
         btn.addEventListener('click', () => {
           const format = btn.dataset.format;
-          document.execCommand(format, false, null);
+          let value = btn.dataset.value || null;
+
+          // formatBlock requires the tag wrapped in angle brackets.
+          if (format === 'formatBlock' && value) {
+            value = '<' + value + '>';
+          }
+
+          document.execCommand(format, false, value);
           editorEl.focus();
         });
       });
@@ -165,13 +196,24 @@
      */
     fetchAndLoadMetaIssue: function (issueNumber) {
       const statusEl = document.getElementById('editor-status');
+
+      // Check if user can fetch from drupal.org
+      if (!this.settings.canFetch) {
+        if (statusEl) {
+          statusEl.textContent = 'Log in to load issues from drupal.org, or paste content directly into the editor.';
+        }
+        return;
+      }
+
       if (statusEl) statusEl.textContent = 'Loading issue from drupal.org...';
 
       Drupal.metaIssueEditorApi.fetchMetaIssueBody(issueNumber)
         .then(body => {
           const editorEl = document.getElementById('meta-issue-editor-content');
           if (editorEl) {
-            editorEl.innerHTML = body;
+            // Clean the imported HTML to match drupal.org edit format
+            const cleanedHtml = this.cleanImportedHtml(body);
+            editorEl.innerHTML = cleanedHtml;
             this.processContentForIssues();
           }
           if (statusEl) statusEl.textContent = 'Loaded issue #' + issueNumber;
@@ -186,26 +228,41 @@
      */
     loadDraftContent: function (draft) {
       const editorEl = document.getElementById('meta-issue-editor-content');
+      const statusEl = document.getElementById('editor-status');
       if (!editorEl) return;
 
-      try {
-        const content = JSON.parse(draft.editor_content || draft.content);
-        editorEl.innerHTML = content.html || '';
-
-        // Restore issue cache
-        if (draft.issue_cache) {
-          const cache = JSON.parse(draft.issue_cache);
-          Object.assign(Drupal.metaIssueBlock.issueCache, cache);
-        }
-
-        // Process to render issue blocks
-        this.processContentForIssues();
-
-        const statusEl = document.getElementById('editor-status');
-        if (statusEl) statusEl.textContent = 'Draft loaded';
-      } catch (e) {
-        console.error('Failed to load draft:', e);
+      // Parse editor content (handle both key names for compatibility)
+      const editorContentRaw = draft.editor_content || draft.content;
+      if (!editorContentRaw) {
+        if (statusEl) statusEl.textContent = 'Draft is empty';
+        return;
       }
+
+      try {
+        const content = JSON.parse(editorContentRaw);
+        editorEl.innerHTML = content.html || '';
+      } catch (e) {
+        console.error('Failed to parse draft content:', e);
+        if (statusEl) statusEl.textContent = 'Failed to load draft: invalid content format';
+        return;
+      }
+
+      // Restore issue cache (handle both key names for compatibility)
+      const issueCacheRaw = draft.issueCache || draft.issue_cache;
+      if (issueCacheRaw) {
+        try {
+          const cache = JSON.parse(issueCacheRaw);
+          Object.assign(Drupal.metaIssueBlock.issueCache, cache);
+        } catch (e) {
+          console.error('Failed to parse issue cache:', e);
+          // Non-fatal - continue without cache
+        }
+      }
+
+      // Process to render issue blocks
+      this.processContentForIssues();
+
+      if (statusEl) statusEl.textContent = 'Draft loaded';
     },
 
     /**
@@ -407,6 +464,10 @@
 
     /**
      * Generate HTML export (for drupal.org).
+     *
+     * Converts editor content back to drupal.org edit HTML format.
+     * Issue blocks become [#XXXXXX] references.
+     * <br> converted back to newlines.
      */
     generateHtmlExport: function (editorEl) {
       // Clone content
@@ -415,11 +476,84 @@
       // Replace issue blocks with [#XXXXXX] references
       clone.querySelectorAll('.issue-block').forEach(block => {
         const issueNum = block.dataset.issueNumber;
-        const text = document.createTextNode('[#' + issueNum + ']');
-        block.replaceWith(text);
+        block.replaceWith(document.createTextNode('[#' + issueNum + ']'));
       });
 
-      return clone.innerHTML;
+      // Remove editor-specific elements (notes, metadata panels, drag handles)
+      clone.querySelectorAll('.issue-block-notes, .issue-block-metadata, .issue-block-drag-handle').forEach(el => {
+        el.remove();
+      });
+
+      // Get HTML and convert <br> back to newlines for drupal.org edit format
+      let html = clone.innerHTML;
+      html = html.replace(/<br\s*\/?>/gi, '\n');
+
+      return html;
+    },
+
+    /**
+     * Clean imported HTML to match drupal.org edit format.
+     *
+     * Converts rendered/API HTML to the format seen in drupal.org edit form:
+     * - Strips wrapper divs
+     * - Converts issue link spans to [#XXXXXX]
+     * - Removes <p> tags, adds double newline after </p>
+     * - Converts <br> to single newline
+     * - Formats lists with proper indentation
+     */
+    cleanImportedHtml: function (html) {
+      // Create a temporary container to parse HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      // Strip wrapper divs (drupal field wrappers)
+      const fieldItem = temp.querySelector('.field-item');
+      if (fieldItem) {
+        temp.innerHTML = fieldItem.innerHTML;
+      }
+
+      // Convert drupal.org issue link spans to [#XXXXXX]
+      temp.querySelectorAll('span.project-issue-issue-link').forEach(span => {
+        const link = span.querySelector('a');
+        if (link) {
+          const href = link.getAttribute('href') || '';
+          const match = href.match(/\/issues\/(\d+)/);
+          if (match) {
+            span.replaceWith(document.createTextNode('[#' + match[1] + ']'));
+          }
+        }
+      });
+
+      // Get HTML string for text transformations
+      let result = temp.innerHTML;
+
+      // Convert <br> to single newline
+      result = result.replace(/<br\s*\/?>/gi, '\n');
+
+      // Remove <p> opening tags
+      result = result.replace(/<p[^>]*>/gi, '');
+
+      // Replace </p> with double newline
+      result = result.replace(/<\/p>/gi, '\n\n');
+
+      // Format lists: ensure <li> has 2-space indent
+      result = result.replace(/<ul[^>]*>/gi, '<ul>');
+      result = result.replace(/<li[^>]*>/gi, '  <li>');
+
+      // Add blank line before headings (h2, h3, h4)
+      result = result.replace(/([^\n])(\n?)(<h[2-4])/gi, '$1\n\n$3');
+
+      // Normalize multiple newlines (max 2)
+      result = result.replace(/\n{3,}/g, '\n\n');
+
+      // Trim leading/trailing whitespace
+      result = result.trim();
+
+      // Convert newlines to <br> for display in contenteditable
+      // (browsers collapse \n in innerHTML)
+      result = result.replace(/\n/g, '<br>');
+
+      return result;
     },
 
     /**

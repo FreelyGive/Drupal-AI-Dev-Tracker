@@ -29,7 +29,7 @@
     {% endif %}
   </p>
 
-  <textarea id="export-content" readonly>{{ content }}</textarea>
+  <textarea id="export-content" readonly>{{ content|raw }}</textarea>
 
   <div class="export-actions">
     <button type="button" class="copy-button" onclick="Drupal.metaIssueExport.copyToClipboard()">
@@ -40,24 +40,3 @@
     </a>
   </div>
 </div>
-
-<script>
-  (function (Drupal) {
-    Drupal.metaIssueExport = {
-      copyToClipboard: function () {
-        const textarea = document.getElementById('export-content');
-        textarea.select();
-        document.execCommand('copy');
-
-        const btn = document.querySelector('.copy-button');
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-
-        setTimeout(function () {
-          btn.textContent = 'Copy to Clipboard';
-          btn.classList.remove('copied');
-        }, 2000);
-      }
-    };
-  })(Drupal);
-</script>

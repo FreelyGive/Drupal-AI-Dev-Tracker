@@ -40,17 +40,17 @@ class MetaIssueParserService {
   public function parseIssueReferences(string $content): array {
     $issues = [];
 
-    // Match [#1234567] format (with brackets)
+    // Match [#1234567] format (with brackets).
     if (preg_match_all('/\[#(\d{5,8})\]/', $content, $matches)) {
       $issues = array_merge($issues, $matches[1]);
     }
 
-    // Also match standalone #1234567 format (without brackets, word boundary)
+    // Also match standalone #1234567 format (without brackets, word boundary).
     if (preg_match_all('/(?<!\[)#(\d{5,8})(?!\])/', $content, $matches)) {
       $issues = array_merge($issues, $matches[1]);
     }
 
-    // Return unique issue numbers as integers
+    // Return unique issue numbers as integers.
     $issues = array_unique($issues);
     $issues = array_map('intval', $issues);
     sort($issues);
@@ -75,7 +75,7 @@ class MetaIssueParserService {
    *   Content with issue references marked for TipTap.
    */
   public function markIssueReferences(string $content): string {
-    // Replace [#1234567] with a data attribute marker
+    // Replace [#1234567] with a data attribute marker.
     $content = preg_replace(
       '/\[#(\d{5,8})\]/',
       '<span data-issue-ref="$1" class="issue-reference">[#$1]</span>',
@@ -97,13 +97,13 @@ class MetaIssueParserService {
   public function parseIssueReferencesWithContext(string $content): array {
     $results = [];
 
-    // Load as DOM to understand structure
+    // Load as DOM to understand structure.
     $dom = new \DOMDocument();
     @$dom->loadHTML('<?xml encoding="utf-8"?>' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
     $xpath = new \DOMXPath($dom);
 
-    // Find all text nodes containing issue references
+    // Find all text nodes containing issue references.
     $textNodes = $xpath->query('//text()[contains(., "#")]');
 
     foreach ($textNodes as $textNode) {

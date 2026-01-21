@@ -12,6 +12,33 @@
   Drupal.metaIssueEditorApi = {
 
     /**
+     * Get CSRF token from drupalSettings.
+     *
+     * @returns {string|null} - CSRF token or null.
+     */
+    getCsrfToken: function () {
+      return drupalSettings.metaIssueEditor?.csrfToken || null;
+    },
+
+    /**
+     * Handle fetch response, checking for errors.
+     *
+     * @param {Response} response - Fetch response object.
+     * @returns {Promise} - Promise resolving to JSON data.
+     * @throws {Error} - If response is not ok.
+     */
+    handleResponse: function (response) {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || `HTTP error ${response.status}`);
+        }).catch(() => {
+          throw new Error(`HTTP error ${response.status}`);
+        });
+      }
+      return response.json();
+    },
+
+    /**
      * Fetch local issues from the AI Dashboard.
      *
      * @param {Array} issueNumbers - Array of issue numbers.
@@ -26,7 +53,7 @@
           'Content-Type': 'application/json',
         },
       })
-      .then(response => response.json());
+      .then(response => this.handleResponse(response));
     },
 
     /**
@@ -36,16 +63,22 @@
      * @returns {Promise} - Promise resolving to issue data.
      */
     fetchFromDrupalOrg: function (issueNumbers) {
+      const csrfToken = this.getCsrfToken();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       return fetch('/api/meta-issue-editor/fetch-issues', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
           issue_numbers: issueNumbers,
         }),
       })
-      .then(response => response.json());
+      .then(response => this.handleResponse(response));
     },
 
     /**
@@ -57,18 +90,24 @@
      * @returns {Promise} - Promise resolving to save result.
      */
     saveDraft: function (sourceIssue, editorContent, issueCache) {
+      const csrfToken = this.getCsrfToken();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       return fetch('/api/meta-issue-editor/save-draft', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
           source_issue: sourceIssue,
           editor_content: editorContent,
           issue_cache: issueCache,
         }),
       })
-      .then(response => response.json());
+      .then(response => this.handleResponse(response));
     },
 
     /**
@@ -84,7 +123,7 @@
           'Content-Type': 'application/json',
         },
       })
-      .then(response => response.json());
+      .then(response => this.handleResponse(response));
     },
 
     /**

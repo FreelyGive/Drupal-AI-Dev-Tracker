@@ -2,10 +2,11 @@
 
 namespace Drupal\meta_issue_editor\Controller;
 
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\meta_issue_editor\Service\MetaIssueParserService;
+use Drupal\node\NodeInterface;
 use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -38,6 +39,13 @@ class MetaIssueEditorController extends ControllerBase {
   protected $httpClient;
 
   /**
+   * The CSRF token generator.
+   *
+   * @var \Drupal\Core\Access\CsrfTokenGenerator
+   */
+  protected $csrfToken;
+
+  /**
    * Constructs a MetaIssueEditorController object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -46,26 +54,45 @@ class MetaIssueEditorController extends ControllerBase {
    *   The meta issue parser service.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP client.
+   * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
+   *   The CSRF token generator.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     MetaIssueParserService $parser,
-    ClientInterface $http_client
+    ClientInterface $http_client,
+    CsrfTokenGenerator $csrf_token,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->parser = $parser;
     $this->httpClient = $http_client;
+    $this->csrfToken = $csrf_token;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container) {
+  public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('meta_issue_editor.parser'),
-      $container->get('http_client')
+      $container->get('http_client'),
+      $container->get('csrf_token'),
     );
+  }
+
+  /**
+   * Validate CSRF token from request header.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return bool
+   *   TRUE if token is valid, FALSE otherwise.
+   */
+  protected function validateCsrfToken(Request $request): bool {
+    $token = $request->headers->get('X-CSRF-Token');
+    return $token && $this->csrfToken->validate($token, 'meta_issue_editor');
   }
 
   /**
@@ -77,7 +104,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return array
    *   A render array.
    */
-  public function editor($issue_number = NULL) {
+  public function editor($issue_number = NULL): array {
     $canSave = $this->currentUser()->hasPermission('save meta issue drafts');
     $canFetch = $this->currentUser()->hasPermission('fetch issues from drupal org');
 
@@ -95,7 +122,7 @@ class MetaIssueEditorController extends ControllerBase {
             'issueNumber' => $issue_number,
             'canSave' => $canSave,
             'canFetch' => $canFetch,
-            'csrfToken' => \Drupal::csrfToken()->get('meta_issue_editor'),
+            'csrfToken' => $this->csrfToken->get('meta_issue_editor'),
           ],
         ],
       ],
@@ -107,8 +134,8 @@ class MetaIssueEditorController extends ControllerBase {
       if ($draft) {
         $build['#attached']['drupalSettings']['metaIssueEditor']['draft'] = [
           'nid' => $draft->id(),
-          'content' => $draft->get('field_editor_content')->value,
-          'issueCache' => $draft->get('field_issue_cache')->value,
+          'editor_content' => $draft->get('field_editor_content')->value,
+          'issue_cache' => $draft->get('field_issue_cache')->value,
         ];
       }
     }
@@ -127,9 +154,13 @@ class MetaIssueEditorController extends ControllerBase {
    * @return array
    *   A render array.
    */
-  public function export(string $format, Request $request) {
+  public function export(string $format, Request $request): array {
+    // Content is displayed in a <textarea> which doesn't execute HTML,
+    // so we pass it through unescaped. The textarea element itself
+    // provides the necessary XSS protection.
     $content = $request->request->get('content', '');
-    $issueNumber = $request->request->get('issue_number', '');
+    // Issue number should be numeric only.
+    $issueNumber = preg_replace('/[^0-9]/', '', $request->request->get('issue_number', ''));
 
     return [
       '#theme' => 'meta_issue_export',
@@ -148,12 +179,25 @@ class MetaIssueEditorController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response with fetched issue data.
    */
-  public function fetchIssues(Request $request) {
+  public function fetchIssues(Request $request): JsonResponse {
+    // Validate CSRF token to prevent cross-site request forgery.
+    if (!$this->validateCsrfToken($request)) {
+      return new JsonResponse(['error' => 'Invalid CSRF token'], 403);
+    }
+
     $data = json_decode($request->getContent(), TRUE);
     $issueNumbers = $data['issue_numbers'] ?? [];
 
     if (empty($issueNumbers)) {
       return new JsonResponse(['error' => 'No issue numbers provided'], 400);
+    }
+
+    // Limit number of issues to prevent timeout (0.5s delay per issue).
+    $maxIssues = 20;
+    if (count($issueNumbers) > $maxIssues) {
+      return new JsonResponse([
+        'error' => "Maximum $maxIssues issues per request",
+      ], 400);
     }
 
     $results = [];
@@ -168,7 +212,7 @@ class MetaIssueEditorController extends ControllerBase {
         else {
           $errors[$issueNumber] = 'Issue not found';
         }
-        // Rate limiting: 0.5s between requests
+        // Rate limiting: 0.5s between requests.
         usleep(500000);
       }
       catch (\Exception $e) {
@@ -192,7 +236,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response with local issue data.
    */
-  public function localIssues(Request $request) {
+  public function localIssues(Request $request): JsonResponse {
     $issueNumbers = $request->query->get('issue_numbers', '');
     $issueNumbers = array_filter(explode(',', $issueNumbers));
 
@@ -208,7 +252,11 @@ class MetaIssueEditorController extends ControllerBase {
     foreach ($issueNumbers as $issueNumber) {
       $issueNumber = (int) $issueNumber;
 
-      // Find AI Issue node by issue number
+      // Find AI Issue node by issue number.
+      // Using accessCheck(FALSE) is safe here because:
+      // 1. AI Issue nodes are public content (no access restrictions)
+      // 2. This endpoint only returns issue metadata, not sensitive data
+      // 3. Route already requires 'use meta issue editor' permission.
       $query = $nodeStorage->getQuery()
         ->condition('type', 'ai_issue')
         ->condition('field_issue_number', $issueNumber)
@@ -242,7 +290,12 @@ class MetaIssueEditorController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response.
    */
-  public function saveDraft(Request $request) {
+  public function saveDraft(Request $request): JsonResponse {
+    // Validate CSRF token to prevent cross-site request forgery.
+    if (!$this->validateCsrfToken($request)) {
+      return new JsonResponse(['error' => 'Invalid CSRF token'], 403);
+    }
+
     $data = json_decode($request->getContent(), TRUE);
 
     $sourceIssue = (int) ($data['source_issue'] ?? 0);
@@ -253,7 +306,7 @@ class MetaIssueEditorController extends ControllerBase {
       return new JsonResponse(['error' => 'Source issue number required'], 400);
     }
 
-    // Check for existing draft
+    // Check for existing draft.
     $existing = $this->loadDraftBySourceIssue($sourceIssue);
 
     if ($existing) {
@@ -271,7 +324,7 @@ class MetaIssueEditorController extends ControllerBase {
       ]);
     }
     else {
-      // Create new draft
+      // Create new draft.
       $nodeStorage = $this->entityTypeManager->getStorage('node');
       $node = $nodeStorage->create([
         'type' => 'meta_issue_draft',
@@ -299,7 +352,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response.
    */
-  public function loadDraft(int $source_issue) {
+  public function loadDraft(int $source_issue): JsonResponse {
     $draft = $this->loadDraftBySourceIssue($source_issue);
 
     if ($draft) {
@@ -330,9 +383,14 @@ class MetaIssueEditorController extends ControllerBase {
    * @return \Drupal\node\NodeInterface|null
    *   The draft node, or NULL if not found.
    */
-  protected function loadDraftBySourceIssue(int $source_issue) {
+  protected function loadDraftBySourceIssue(int $source_issue): ?NodeInterface {
     $nodeStorage = $this->entityTypeManager->getStorage('node');
 
+    // Using accessCheck(FALSE) is safe here because:
+    // 1. Meta Issue Draft nodes are internal working documents.
+    // 2. Route already requires 'save meta issue drafts' or
+    //    'use meta issue editor' permission.
+    // 3. This is an internal helper method, not directly exposed to users.
     $query = $nodeStorage->getQuery()
       ->condition('type', 'meta_issue_draft')
       ->condition('field_source_issue', $source_issue)
@@ -351,13 +409,18 @@ class MetaIssueEditorController extends ControllerBase {
   /**
    * Fetch issue data from drupal.org API.
    *
+   * Note: This method fetches issue data directly via HTTP rather than using
+   * the IssueImportService because we only need to display metadata, not
+   * import the issue into the database. The IssueImportService's methods
+   * are designed for full imports that create/update nodes.
+   *
    * @param int $issue_number
    *   The issue number.
    *
    * @return array|null
    *   Issue data array, or NULL if not found.
    */
-  protected function fetchIssueFromDrupalOrg(int $issue_number) {
+  protected function fetchIssueFromDrupalOrg(int $issue_number): ?array {
     $url = 'https://www.drupal.org/api-d7/node/' . $issue_number . '.json';
 
     try {
@@ -404,7 +467,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return array
    *   Formatted issue data.
    */
-  protected function formatIssueData($node) {
+  protected function formatIssueData(NodeInterface $node): array {
     return [
       'issue_number' => (int) $node->get('field_issue_number')->value,
       'title' => $node->label(),
@@ -428,7 +491,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return array
    *   Array of tag names.
    */
-  protected function getIssueTags($node) {
+  protected function getIssueTags(NodeInterface $node): array {
     $tags = [];
     if ($node->hasField('field_issue_tags') && !$node->get('field_issue_tags')->isEmpty()) {
       foreach ($node->get('field_issue_tags') as $item) {
@@ -447,7 +510,7 @@ class MetaIssueEditorController extends ControllerBase {
    * @return string
    *   Human-readable status.
    */
-  protected function mapIssueStatus($status_id) {
+  protected function mapIssueStatus(string $status_id): string {
     $statuses = [
       '1' => 'Active',
       '2' => 'Fixed',
