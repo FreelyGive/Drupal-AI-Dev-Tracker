@@ -72,11 +72,12 @@
       Drupal.metaIssueBlock.initDragDrop();
 
       const rememberedIssue = this.getRememberedIssueNumber();
+      const forceFresh = new URLSearchParams(window.location.search).get('fresh') === '1';
 
       // Path issue number takes precedence over remembered issue number.
       if (this.sourceIssue) {
         this.syncLoadedIssue(this.sourceIssue);
-        if (this.settings.draft) {
+        if (this.settings.draft && !forceFresh) {
           this.loadDraftContent(this.settings.draft);
         }
         else {
@@ -166,6 +167,23 @@
       editorEl.addEventListener('input', Drupal.debounce(() => {
         this.checkForIssuePatterns();
       }, 500));
+
+      // Arrow controls are the primary indentation UX for list rows.
+      editorEl.addEventListener('click', (e) => {
+        const indentBtn = e.target.closest('.list-indent-btn');
+        if (!indentBtn) {
+          return;
+        }
+
+        const listItem = indentBtn.closest('li');
+        if (!listItem) {
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        this.applyIndentForListItem(listItem, indentBtn.classList.contains('outdent'));
+      });
     },
 
     /**
@@ -256,9 +274,10 @@
       }
 
       this.syncLoadedIssue(issueNumber, updateUrl);
+      const forceFresh = new URLSearchParams(window.location.search).get('fresh') === '1';
 
       // First check if we have a local draft (for authorized users).
-      if (this.settings.canLoadDraft) {
+      if (this.settings.canLoadDraft && !forceFresh) {
         Drupal.metaIssueEditorApi.loadDraft(issueNumber)
           .then(result => {
             if (result.success && result.draft) {
@@ -369,6 +388,8 @@
       }
 
       if (issues.length === 0) {
+        this.normalizeIssueListItems(editorEl);
+        this.ensureListItemDragHandles(editorEl);
         this.updateUnknownCount();
         return;
       }
@@ -409,14 +430,333 @@
       });
 
       editorEl.innerHTML = newHtml;
+      this.normalizeIssueListItems(editorEl);
+      this.ensureListItemDragHandles(editorEl);
+    },
+
+    /**
+     * Normalize list items that contain only issue blocks.
+     *
+     * This removes default bullets/padding from issue-only lists so imported
+     * meta-issues stay compact and closer to drupal.org's visual rhythm.
+     *
+     * @param {HTMLElement} editorEl - Editor element.
+     */
+    normalizeIssueListItems: function (editorEl) {
+      editorEl.querySelectorAll('ul, ol').forEach(list => {
+        const listItems = Array.from(list.children).filter(el => el.tagName === 'LI');
+        if (!listItems.length) {
+          list.classList.remove('issue-list-blocks');
+          return;
+        }
+
+        let issueRowCount = 0;
+        listItems.forEach(li => {
+          const significantNodes = Array.from(li.childNodes).filter(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              return node.textContent.replace(/\u00a0/g, ' ').trim() !== '';
+            }
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.tagName === 'BR') {
+                return false;
+              }
+              if (node.classList?.contains('list-item-drag-handle')) {
+                return false;
+              }
+              if (node.classList?.contains('list-indent-controls')) {
+                return false;
+              }
+            }
+            return true;
+          });
+
+          const isIssueOnlyRow = significantNodes.length === 1 &&
+            significantNodes[0].nodeType === Node.ELEMENT_NODE &&
+            significantNodes[0].classList.contains('issue-block');
+
+          if (isIssueOnlyRow) {
+            li.classList.add('issue-list-item');
+            issueRowCount++;
+          }
+          else {
+            li.classList.remove('issue-list-item');
+          }
+        });
+
+        if (issueRowCount > 0 && issueRowCount === listItems.length) {
+          list.classList.add('issue-list-blocks');
+        }
+        else {
+          list.classList.remove('issue-list-blocks');
+        }
+      });
+    },
+
+    /**
+     * Add drag handles to regular list items (non-issue rows).
+     *
+     * @param {HTMLElement} editorEl - Editor element.
+     */
+    ensureListItemDragHandles: function (editorEl) {
+      editorEl.querySelectorAll('li').forEach(li => {
+        const hasIssueHandle = !!li.querySelector('.issue-block-drag-handle');
+        const existingHandle = Array.from(li.children).find(child => child.classList?.contains('list-item-drag-handle'));
+        const topLevelControls = Array.from(li.children).find(child => child.classList?.contains('list-indent-controls'));
+        const headerControls = li.querySelector('.issue-block-header > .list-indent-controls');
+        const existingControls = topLevelControls || headerControls;
+
+        if (hasIssueHandle) {
+          if (existingHandle) {
+            existingHandle.remove();
+          }
+
+          const header = li.querySelector('.issue-block-header');
+          const issueHandle = header?.querySelector('.issue-block-drag-handle');
+
+          if (topLevelControls) {
+            topLevelControls.remove();
+          }
+
+          if (!headerControls && header && issueHandle) {
+            const controls = this.createIndentControls();
+            header.insertBefore(controls, issueHandle.nextSibling);
+          }
+
+          return;
+        }
+        else if (!existingHandle) {
+          const handle = document.createElement('span');
+          handle.className = 'list-item-drag-handle';
+          handle.setAttribute('draggable', 'true');
+          handle.setAttribute('contenteditable', 'false');
+          handle.setAttribute('title', 'Drag bullet to reorder');
+          handle.setAttribute('aria-label', 'Drag bullet');
+          handle.textContent = '⋮⋮';
+
+          li.insertBefore(handle, li.firstChild);
+        }
+
+        if (!existingControls) {
+          const controls = this.createIndentControls();
+          li.insertBefore(controls, li.firstChild);
+        }
+      });
+    },
+
+    /**
+     * Create reusable indent control buttons.
+     *
+     * @returns {HTMLElement} - Controls container.
+     */
+    createIndentControls: function () {
+      const controls = document.createElement('span');
+      controls.className = 'list-indent-controls';
+      controls.setAttribute('contenteditable', 'false');
+
+      const outdentBtn = document.createElement('button');
+      outdentBtn.type = 'button';
+      outdentBtn.className = 'list-indent-btn outdent';
+      outdentBtn.title = 'Outdent';
+      outdentBtn.setAttribute('aria-label', 'Outdent bullet');
+      outdentBtn.textContent = '◀';
+
+      const indentBtn = document.createElement('button');
+      indentBtn.type = 'button';
+      indentBtn.className = 'list-indent-btn indent';
+      indentBtn.title = 'Indent';
+      indentBtn.setAttribute('aria-label', 'Indent bullet');
+      indentBtn.textContent = '▶';
+
+      controls.appendChild(outdentBtn);
+      controls.appendChild(indentBtn);
+      return controls;
+    },
+
+    /**
+     * Apply indent/outdent command for a specific list item.
+     *
+     * @param {HTMLElement} listItem - Target list item.
+     * @param {boolean} outdent - TRUE to outdent, FALSE to indent.
+     */
+    applyIndentForListItem: function (listItem, outdent = false) {
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      if (!editorEl || !listItem || !editorEl.contains(listItem)) {
+        return;
+      }
+
+      const moved = outdent
+        ? this.outdentListItem(listItem)
+        : this.indentListItem(listItem);
+
+      if (!moved) {
+        return;
+      }
+
+      this.normalizeIssueListItems(editorEl);
+      this.ensureListItemDragHandles(editorEl);
+      this.placeCaretInListItem(listItem);
+      editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
+    /**
+     * Indent a list item into the previous sibling list item.
+     *
+     * @param {HTMLElement} listItem - Target list item.
+     * @returns {boolean} - TRUE if moved.
+     */
+    indentListItem: function (listItem) {
+      const currentList = this.getParentListElement(listItem);
+      if (!currentList) {
+        return false;
+      }
+
+      const previousItem = listItem.previousElementSibling;
+      if (!previousItem || previousItem.tagName !== 'LI') {
+        return false;
+      }
+
+      let nestedList = null;
+      for (let i = previousItem.children.length - 1; i >= 0; i--) {
+        const child = previousItem.children[i];
+        if (child.tagName === currentList.tagName) {
+          nestedList = child;
+          break;
+        }
+      }
+
+      if (!nestedList) {
+        nestedList = document.createElement(currentList.tagName.toLowerCase());
+        previousItem.appendChild(nestedList);
+      }
+
+      nestedList.appendChild(listItem);
+      this.removeListIfEmpty(currentList);
+      return true;
+    },
+
+    /**
+     * Outdent a list item one level up.
+     *
+     * @param {HTMLElement} listItem - Target list item.
+     * @returns {boolean} - TRUE if moved.
+     */
+    outdentListItem: function (listItem) {
+      const currentList = this.getParentListElement(listItem);
+      if (!currentList) {
+        return false;
+      }
+
+      const parentItem = currentList.parentElement;
+      if (!parentItem || parentItem.tagName !== 'LI') {
+        return false;
+      }
+
+      const parentList = this.getParentListElement(parentItem);
+      if (!parentList) {
+        return false;
+      }
+
+      if (parentItem.nextSibling) {
+        parentList.insertBefore(listItem, parentItem.nextSibling);
+      }
+      else {
+        parentList.appendChild(listItem);
+      }
+
+      this.removeListIfEmpty(currentList);
+      return true;
+    },
+
+    /**
+     * Get the parent list element for a list item.
+     *
+     * @param {HTMLElement} listItem - List item.
+     * @returns {HTMLElement|null} - UL/OL element or null.
+     */
+    getParentListElement: function (listItem) {
+      const parent = listItem?.parentElement;
+      if (!parent) {
+        return null;
+      }
+
+      if (parent.tagName === 'UL' || parent.tagName === 'OL') {
+        return parent;
+      }
+
+      return null;
+    },
+
+    /**
+     * Remove a list element when it no longer has list-item children.
+     *
+     * @param {HTMLElement} listEl - List element.
+     */
+    removeListIfEmpty: function (listEl) {
+      if (!listEl) {
+        return;
+      }
+
+      const hasListItems = Array.from(listEl.children).some(child => child.tagName === 'LI');
+      if (!hasListItems) {
+        listEl.remove();
+      }
+    },
+
+    /**
+     * Place caret at start of a list item after structural moves.
+     *
+     * @param {HTMLElement} listItem - Target list item.
+     */
+    placeCaretInListItem: function (listItem) {
+      const selection = window.getSelection();
+      if (!selection || !listItem) {
+        return;
+      }
+
+      const range = document.createRange();
+      range.selectNodeContents(listItem);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    },
+
+    /**
+     * Find closest list item for current selection.
+     *
+     * @param {HTMLElement} editorEl - Editor element.
+     * @returns {HTMLElement|null} - Closest LI or null.
+     */
+    getClosestListItemFromSelection: function (editorEl) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return null;
+      }
+
+      let node = selection.anchorNode;
+      if (!node) {
+        return null;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        node = node.parentElement;
+      }
+
+      if (!node || !editorEl.contains(node)) {
+        return null;
+      }
+
+      return node.closest('li');
     },
 
     /**
      * Check for issue patterns being typed.
      */
     checkForIssuePatterns: function () {
-      // This would handle live typing of #1234567
-      // For now, just update unknown count
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      if (editorEl) {
+        this.normalizeIssueListItems(editorEl);
+        this.ensureListItemDragHandles(editorEl);
+      }
       this.updateUnknownCount();
     },
 
@@ -566,7 +906,7 @@
       });
 
       // Remove editor-specific elements (notes, metadata panels, drag handles)
-      clone.querySelectorAll('.issue-block-notes, .issue-block-metadata, .issue-block-drag-handle').forEach(el => {
+      clone.querySelectorAll('.issue-block-notes, .issue-block-metadata, .issue-block-drag-handle, .list-item-drag-handle, .list-indent-controls').forEach(el => {
         el.remove();
       });
 
@@ -578,27 +918,23 @@
     },
 
     /**
-     * Clean imported HTML to match drupal.org edit format.
+     * Clean imported HTML while preserving semantic structure.
      *
-     * Converts rendered/API HTML to the format seen in drupal.org edit form:
-     * - Strips wrapper divs
-     * - Converts issue link spans to [#XXXXXX]
-     * - Removes <p> tags, adds double newline after </p>
-     * - Converts <br> to single newline
-     * - Formats lists with proper indentation
+     * Keeps headings/lists/paragraphs intact, only normalizes wrappers and
+     * converts drupal.org issue links into [#XXXXXX] placeholders that are
+     * rendered as issue blocks in the editor.
      */
     cleanImportedHtml: function (html) {
-      // Create a temporary container to parse HTML
       const temp = document.createElement('div');
       temp.innerHTML = html;
 
-      // Strip wrapper divs (drupal field wrappers)
+      // Strip drupal field wrapper if present.
       const fieldItem = temp.querySelector('.field-item');
       if (fieldItem) {
         temp.innerHTML = fieldItem.innerHTML;
       }
 
-      // Convert drupal.org issue link spans to [#XXXXXX]
+      // Convert drupal.org issue link spans to [#XXXXXX].
       temp.querySelectorAll('span.project-issue-issue-link').forEach(span => {
         const link = span.querySelector('a');
         if (link) {
@@ -610,36 +946,28 @@
         }
       });
 
-      // Get HTML string for text transformations
-      let result = temp.innerHTML;
+      // Remove empty paragraphs produced by API formatting noise.
+      temp.querySelectorAll('p').forEach(p => {
+        if (p.textContent.replace(/\u00a0/g, ' ').trim() === '') {
+          p.remove();
+        }
+      });
 
-      // Convert <br> to single newline
-      result = result.replace(/<br\s*\/?>/gi, '\n');
+      // Remove whitespace-only text nodes between block elements.
+      const pruneWhitespaceTextNodes = node => {
+        Array.from(node.childNodes).forEach(child => {
+          if (child.nodeType === Node.TEXT_NODE) {
+            if (child.textContent.replace(/\u00a0/g, ' ').trim() === '') {
+              child.remove();
+            }
+            return;
+          }
+          pruneWhitespaceTextNodes(child);
+        });
+      };
+      pruneWhitespaceTextNodes(temp);
 
-      // Remove <p> opening tags
-      result = result.replace(/<p[^>]*>/gi, '');
-
-      // Replace </p> with double newline
-      result = result.replace(/<\/p>/gi, '\n\n');
-
-      // Format lists: ensure <li> has 2-space indent
-      result = result.replace(/<ul[^>]*>/gi, '<ul>');
-      result = result.replace(/<li[^>]*>/gi, '  <li>');
-
-      // Add blank line before headings (h2, h3, h4)
-      result = result.replace(/([^\n])(\n?)(<h[2-4])/gi, '$1\n\n$3');
-
-      // Normalize multiple newlines (max 2)
-      result = result.replace(/\n{3,}/g, '\n\n');
-
-      // Trim leading/trailing whitespace
-      result = result.trim();
-
-      // Convert newlines to <br> for display in contenteditable
-      // (browsers collapse \n in innerHTML)
-      result = result.replace(/\n/g, '<br>');
-
-      return result;
+      return temp.innerHTML.trim();
     },
 
     /**
@@ -651,6 +979,11 @@
 
       // Simple HTML to Markdown conversion
       const clone = editorEl.cloneNode(true);
+
+      // Remove editor-only drag handles.
+      clone.querySelectorAll('.issue-block-drag-handle, .list-item-drag-handle, .list-indent-controls').forEach(el => {
+        el.remove();
+      });
 
       // Convert headings
       clone.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {

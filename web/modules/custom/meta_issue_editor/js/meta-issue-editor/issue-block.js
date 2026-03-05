@@ -51,6 +51,8 @@
       const block = document.createElement('div');
       block.className = 'issue-block';
       block.dataset.issueNumber = issueNumber;
+      // Keep issue rows non-editable inside the contenteditable editor surface.
+      block.setAttribute('contenteditable', 'false');
 
       if (issueData) {
         this.issueCache[issueNumber] = issueData;
@@ -78,7 +80,11 @@
 
       block.innerHTML = `
         <div class="issue-block-header">
-          <span class="issue-block-drag-handle" draggable="true">⋮⋮</span>
+          <span class="issue-block-drag-handle"
+                draggable="true"
+                contenteditable="false"
+                title="Drag to reorder"
+                aria-label="Drag issue">⋮⋮</span>
           <a href="${data.url || 'https://www.drupal.org/node/' + issueNumber}"
              target="_blank"
              class="issue-block-number">#${issueNumber}</a>
@@ -110,7 +116,11 @@
       block.classList.add('unknown');
       block.innerHTML = `
         <div class="issue-block-header">
-          <span class="issue-block-drag-handle" draggable="true">⋮⋮</span>
+          <span class="issue-block-drag-handle"
+                draggable="true"
+                contenteditable="false"
+                title="Drag to reorder"
+                aria-label="Drag issue">⋮⋮</span>
           <span class="issue-block-number">#${issueNumber}</span>
           <span class="issue-block-title">(Unknown issue)</span>
           <span class="issue-status-badge status-unknown">⚠ Unknown</span>
@@ -204,21 +214,22 @@
      * Handle drag start.
      */
     handleDragStart: function (e) {
-      const handle = e.target.closest('.issue-block-drag-handle');
+      const handle = e.target.closest('.issue-block-drag-handle, .list-item-drag-handle');
       if (!handle) return;
+      e.stopPropagation();
 
-      const block = handle.closest('.issue-block');
-      if (!block) return;
+      const draggableUnit = this.getDraggableUnitFromHandle(handle);
+      if (!draggableUnit) return;
 
-      this.draggedElement = block;
-      block.classList.add('dragging');
+      this.draggedElement = draggableUnit;
+      draggableUnit.classList.add('dragging');
 
       // Set drag data
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', block.dataset.issueNumber);
+      e.dataTransfer.setData('text/plain', draggableUnit.dataset.issueNumber || 'list-item');
 
-      // Use the block as drag image
-      e.dataTransfer.setDragImage(block, 20, 20);
+      // Use the dragged unit as drag image.
+      e.dataTransfer.setDragImage(draggableUnit, 20, 20);
     },
 
     /**
@@ -231,7 +242,7 @@
       }
 
       // Remove all drop indicators
-      document.querySelectorAll('.issue-block.drop-above, .issue-block.drop-below').forEach(el => {
+      document.querySelectorAll('.drop-above, .drop-below').forEach(el => {
         el.classList.remove('drop-above', 'drop-below');
       });
     },
@@ -243,18 +254,18 @@
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
 
-      const block = e.target.closest('.issue-block');
-      if (!block || block === this.draggedElement) return;
+      const targetUnit = this.getDropTargetUnit(e.target);
+      if (!targetUnit || targetUnit === this.draggedElement || this.draggedElement?.contains(targetUnit)) return;
 
       // Determine if dropping above or below
-      const rect = block.getBoundingClientRect();
+      const rect = targetUnit.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
 
-      block.classList.remove('drop-above', 'drop-below');
+      targetUnit.classList.remove('drop-above', 'drop-below');
       if (e.clientY < midY) {
-        block.classList.add('drop-above');
+        targetUnit.classList.add('drop-above');
       } else {
-        block.classList.add('drop-below');
+        targetUnit.classList.add('drop-below');
       }
     },
 
@@ -269,9 +280,9 @@
      * Handle drag leave.
      */
     handleDragLeave: function (e) {
-      const block = e.target.closest('.issue-block');
-      if (block && !block.contains(e.relatedTarget)) {
-        block.classList.remove('drop-above', 'drop-below');
+      const targetUnit = this.getDropTargetUnit(e.target);
+      if (targetUnit && !targetUnit.contains(e.relatedTarget)) {
+        targetUnit.classList.remove('drop-above', 'drop-below');
       }
     },
 
@@ -281,31 +292,63 @@
     handleDrop: function (e) {
       e.preventDefault();
 
-      const targetBlock = e.target.closest('.issue-block');
-      if (!targetBlock || !this.draggedElement || targetBlock === this.draggedElement) {
+      const targetUnit = this.getDropTargetUnit(e.target);
+      if (!targetUnit || !this.draggedElement || targetUnit === this.draggedElement || this.draggedElement.contains(targetUnit)) {
         return;
       }
 
       // Determine insertion point
-      const rect = targetBlock.getBoundingClientRect();
+      const rect = targetUnit.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       const insertBefore = e.clientY < midY;
 
       // Perform the move
       if (insertBefore) {
-        targetBlock.parentNode.insertBefore(this.draggedElement, targetBlock);
+        targetUnit.parentNode.insertBefore(this.draggedElement, targetUnit);
       } else {
-        targetBlock.parentNode.insertBefore(this.draggedElement, targetBlock.nextSibling);
+        targetUnit.parentNode.insertBefore(this.draggedElement, targetUnit.nextSibling);
       }
 
       // Clean up
-      targetBlock.classList.remove('drop-above', 'drop-below');
+      targetUnit.classList.remove('drop-above', 'drop-below');
+      this.removeEmptyLists();
 
       // Notify that content changed
       const statusEl = document.getElementById('editor-status');
       if (statusEl) {
         statusEl.textContent = 'Issues reordered (remember to save)';
       }
+    },
+
+    /**
+     * Resolve draggable unit from a handle.
+     *
+     * Prefers list item movement so rows stay valid list HTML.
+     */
+    getDraggableUnitFromHandle: function (handle) {
+      return handle.closest('li') || handle.closest('.issue-block');
+    },
+
+    /**
+     * Resolve target unit for drop calculations.
+     */
+    getDropTargetUnit: function (node) {
+      if (!node) {
+        return null;
+      }
+      return node.closest('li') || node.closest('.issue-block');
+    },
+
+    /**
+     * Remove empty lists after cross-list drag and drop.
+     */
+    removeEmptyLists: function () {
+      document.querySelectorAll('#meta-issue-editor-content ul, #meta-issue-editor-content ol').forEach(list => {
+        const hasListItems = Array.from(list.children).some(child => child.tagName === 'LI');
+        if (!hasListItems) {
+          list.remove();
+        }
+      });
     },
 
   };
