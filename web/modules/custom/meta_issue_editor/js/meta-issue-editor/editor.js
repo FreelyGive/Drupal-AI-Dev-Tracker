@@ -168,8 +168,21 @@
         this.checkForIssuePatterns();
       }, 500));
 
-      // Arrow controls are the primary indentation UX for list rows.
+      // List row controls are the primary UX for indentation and new bullets.
       editorEl.addEventListener('click', (e) => {
+        const addBulletBtn = e.target.closest('.list-add-bullet-btn');
+        if (addBulletBtn) {
+          const listItem = addBulletBtn.closest('li');
+          if (!listItem) {
+            return;
+          }
+
+          e.preventDefault();
+          e.stopPropagation();
+          this.insertEmptyBulletAfter(listItem);
+          return;
+        }
+
         const indentBtn = e.target.closest('.list-indent-btn');
         if (!indentBtn) {
           return;
@@ -183,6 +196,42 @@
         e.preventDefault();
         e.stopPropagation();
         this.applyIndentForListItem(listItem, indentBtn.classList.contains('outdent'));
+      });
+
+      // Enter on an issue row should create a new editable bullet below.
+      editorEl.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') {
+          return;
+        }
+
+        const selection = window.getSelection();
+        let node = selection?.anchorNode;
+        if (!node) {
+          return;
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          node = node.parentElement;
+        }
+
+        const issueBlock = node?.closest('.issue-block');
+        const listItem = issueBlock?.closest('li');
+        if (!listItem) {
+          return;
+        }
+
+        e.preventDefault();
+        this.insertEmptyBulletAfter(listItem);
+      });
+
+      // Native list merge/split operations can displace editor controls.
+      // Re-normalize quickly after key-driven mutations.
+      editorEl.addEventListener('keyup', (e) => {
+        if (!['Backspace', 'Delete', 'Enter'].includes(e.key)) {
+          return;
+        }
+        this.normalizeIssueListItems(editorEl);
+        this.ensureListItemDragHandles(editorEl);
       });
     },
 
@@ -225,6 +274,26 @@
         importBtn.addEventListener('click', () => this.showImportDialog());
       }
 
+      const insertIssueBtn = document.getElementById('insert-issue-btn');
+      if (insertIssueBtn) {
+        insertIssueBtn.addEventListener('click', () => this.insertIssueFromToolbar());
+      }
+
+      const insertIssueInput = document.getElementById('insert-issue-number-input');
+      if (insertIssueInput) {
+        insertIssueInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.insertIssueFromToolbar();
+          }
+        });
+      }
+
+      const insertBulletBtn = document.getElementById('insert-bullet-btn');
+      if (insertBulletBtn) {
+        insertBulletBtn.addEventListener('click', () => this.insertBulletFromToolbar());
+      }
+
       // Format buttons
       this.setupFormatButtons();
     },
@@ -236,9 +305,23 @@
       const editorEl = document.getElementById('meta-issue-editor-content');
       if (!editorEl) return;
 
-      document.querySelectorAll('[data-format]').forEach(btn => {
+      document.querySelectorAll('[data-format], [data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (action === 'create-link') {
+            const url = prompt('Enter link URL:');
+            if (!url) {
+              return;
+            }
+            document.execCommand('createLink', false, url);
+            editorEl.focus();
+            return;
+          }
+
           const format = btn.dataset.format;
+          if (!format) {
+            return;
+          }
           let value = btn.dataset.value || null;
 
           // formatBlock requires the tag wrapped in angle brackets.
@@ -294,6 +377,123 @@
       }
 
       this.fetchAndLoadMetaIssue(issueNumber);
+    },
+
+    /**
+     * Insert a specific issue into the current list position.
+     */
+    insertIssueFromToolbar: function () {
+      const input = document.getElementById('insert-issue-number-input');
+      const includeAssigned = !!document.getElementById('insert-include-assigned')?.checked;
+      const issueNumber = parseInt(input?.value, 10);
+      if (!issueNumber || issueNumber < 10000) {
+        alert('Please enter a valid issue number to insert');
+        return;
+      }
+
+      const statusEl = document.getElementById('editor-status');
+      if (statusEl) {
+        statusEl.textContent = 'Loading issue #' + issueNumber + '...';
+      }
+
+      this.ensureIssueData(issueNumber)
+        .then(issueData => {
+          const inlineAssignee = includeAssigned && issueData?.assigned ? issueData.assigned : '';
+          this.insertIssueAtCursor(issueNumber, issueData, inlineAssignee);
+
+          if (statusEl) {
+            statusEl.textContent = 'Inserted issue #' + issueNumber;
+          }
+
+          if (input) {
+            input.value = '';
+            input.focus();
+          }
+        })
+        .catch(err => {
+          // Keep editing flow unblocked: insert as unknown if lookup fails.
+          this.insertIssueAtCursor(issueNumber, null, '');
+          if (statusEl) {
+            statusEl.textContent = 'Inserted issue #' + issueNumber + ' (lookup failed: ' + err.message + ')';
+          }
+        });
+    },
+
+    /**
+     * Ensure issue data is available before insertion.
+     *
+     * @param {number} issueNumber - Issue number.
+     * @returns {Promise<object|null>} - Issue data if found.
+     */
+    ensureIssueData: function (issueNumber) {
+      if (Drupal.metaIssueBlock.issueCache[issueNumber]) {
+        return Promise.resolve(Drupal.metaIssueBlock.issueCache[issueNumber]);
+      }
+
+      return Drupal.metaIssueEditorApi.fetchLocalIssues([issueNumber])
+        .then(result => {
+          const localIssue = result?.issues?.[issueNumber] || result?.issues?.[String(issueNumber)] || null;
+          if (localIssue) {
+            Drupal.metaIssueBlock.issueCache[issueNumber] = localIssue;
+            return localIssue;
+          }
+
+          if (!this.settings.canFetch) {
+            return null;
+          }
+
+          return Drupal.metaIssueEditorApi.fetchFromDrupalOrg([issueNumber]).then(fetchResult => {
+            const fetchedIssue = fetchResult?.issues?.[issueNumber] || fetchResult?.issues?.[String(issueNumber)] || null;
+            if (fetchedIssue) {
+              Drupal.metaIssueBlock.issueCache[issueNumber] = fetchedIssue;
+            }
+            return fetchedIssue;
+          });
+        });
+    },
+
+    /**
+     * Insert an issue block as a new bullet near the current selection.
+     *
+     * @param {number} issueNumber - Issue number.
+     * @param {object|null} issueData - Issue data (optional).
+     * @param {string} inlineAssignee - Optional inline assignee username.
+     */
+    insertIssueAtCursor: function (issueNumber, issueData, inlineAssignee = '') {
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      if (!editorEl) {
+        return;
+      }
+
+      const targetListItem = this.getClosestListItemFromSelection(editorEl);
+      const targetList = targetListItem ? this.getParentListElement(targetListItem) : this.getClosestListFromSelection(editorEl);
+
+      const listItem = document.createElement('li');
+      const block = Drupal.metaIssueBlock.createBlock(issueNumber, issueData, '', {
+        inlineAssignee,
+      });
+      listItem.appendChild(block);
+
+      if (targetListItem && targetList) {
+        if (targetListItem.nextSibling) {
+          targetList.insertBefore(listItem, targetListItem.nextSibling);
+        }
+        else {
+          targetList.appendChild(listItem);
+        }
+      }
+      else if (targetList) {
+        targetList.appendChild(listItem);
+      }
+      else {
+        const newList = document.createElement('ul');
+        newList.appendChild(listItem);
+        editorEl.appendChild(newList);
+      }
+
+      this.normalizeIssueListItems(editorEl);
+      this.ensureListItemDragHandles(editorEl);
+      editorEl.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
     /**
@@ -500,47 +700,102 @@
     ensureListItemDragHandles: function (editorEl) {
       editorEl.querySelectorAll('li').forEach(li => {
         const hasIssueHandle = !!li.querySelector('.issue-block-drag-handle');
-        const existingHandle = Array.from(li.children).find(child => child.classList?.contains('list-item-drag-handle'));
-        const topLevelControls = Array.from(li.children).find(child => child.classList?.contains('list-indent-controls'));
-        const headerControls = li.querySelector('.issue-block-header > .list-indent-controls');
-        const existingControls = topLevelControls || headerControls;
+        const directHandles = Array.from(li.children).filter(child => child.classList?.contains('list-item-drag-handle'));
+        const allHandles = Array.from(li.querySelectorAll('.list-item-drag-handle'));
+        const directControls = Array.from(li.children).filter(child => child.classList?.contains('list-indent-controls'));
+        const allControls = Array.from(li.querySelectorAll('.list-indent-controls'));
+        const header = li.querySelector('.issue-block-header');
 
         if (hasIssueHandle) {
-          if (existingHandle) {
-            existingHandle.remove();
-          }
+          // Issue rows use issue-block drag handle only.
+          allHandles.forEach(handle => handle.remove());
 
-          const header = li.querySelector('.issue-block-header');
+          // Issue rows should only keep controls in the issue header.
+          allControls.forEach(control => {
+            if (!header || control.parentElement !== header) {
+              control.remove();
+            }
+          });
+
           const issueHandle = header?.querySelector('.issue-block-drag-handle');
+          const headerControls = header
+            ? Array.from(header.children).filter(child => child.classList?.contains('list-indent-controls'))
+            : [];
 
-          if (topLevelControls) {
-            topLevelControls.remove();
+          let primaryHeaderControls = headerControls[0] || null;
+          if (!primaryHeaderControls && header && issueHandle) {
+            primaryHeaderControls = this.createIndentControls();
+            header.insertBefore(primaryHeaderControls, issueHandle.nextSibling);
           }
 
-          if (!headerControls && header && issueHandle) {
-            const controls = this.createIndentControls();
-            header.insertBefore(controls, issueHandle.nextSibling);
+          if (headerControls.length > 1) {
+            headerControls.slice(1).forEach(control => control.remove());
+          }
+
+          if (header && issueHandle && primaryHeaderControls && primaryHeaderControls.previousElementSibling !== issueHandle) {
+            header.insertBefore(primaryHeaderControls, issueHandle.nextSibling);
           }
 
           return;
         }
-        else if (!existingHandle) {
-          const handle = document.createElement('span');
-          handle.className = 'list-item-drag-handle';
-          handle.setAttribute('draggable', 'true');
-          handle.setAttribute('contenteditable', 'false');
-          handle.setAttribute('title', 'Drag bullet to reorder');
-          handle.setAttribute('aria-label', 'Drag bullet');
-          handle.textContent = '⋮⋮';
 
-          li.insertBefore(handle, li.firstChild);
+        // Non-issue rows should not keep controls nested in prior header markup.
+        li.querySelectorAll('.issue-block-header > .list-indent-controls').forEach(control => control.remove());
+
+        // Keep controls/handle only as direct li children.
+        allHandles.forEach(handle => {
+          if (handle.parentElement !== li) {
+            handle.remove();
+          }
+        });
+        allControls.forEach(control => {
+          if (control.parentElement !== li) {
+            control.remove();
+          }
+        });
+
+        let primaryControls = directControls[0] || null;
+        if (!primaryControls) {
+          primaryControls = this.createIndentControls();
+          li.insertBefore(primaryControls, li.firstChild);
+        }
+        if (directControls.length > 1) {
+          directControls.slice(1).forEach(control => control.remove());
         }
 
-        if (!existingControls) {
-          const controls = this.createIndentControls();
-          li.insertBefore(controls, li.firstChild);
+        let primaryHandle = directHandles[0] || null;
+        if (!primaryHandle) {
+          primaryHandle = this.createListItemDragHandle();
+          li.insertBefore(primaryHandle, primaryControls.nextSibling);
+        }
+        if (directHandles.length > 1) {
+          directHandles.slice(1).forEach(handle => handle.remove());
+        }
+
+        // Keep deterministic order so controls don't drift into text content.
+        if (li.firstChild !== primaryControls) {
+          li.insertBefore(primaryControls, li.firstChild);
+        }
+        if (primaryControls.nextSibling !== primaryHandle) {
+          li.insertBefore(primaryHandle, primaryControls.nextSibling);
         }
       });
+    },
+
+    /**
+     * Create a drag handle for normal list items.
+     *
+     * @returns {HTMLElement} - Drag handle element.
+     */
+    createListItemDragHandle: function () {
+      const handle = document.createElement('span');
+      handle.className = 'list-item-drag-handle';
+      handle.setAttribute('draggable', 'true');
+      handle.setAttribute('contenteditable', 'false');
+      handle.setAttribute('title', 'Drag bullet to reorder');
+      handle.setAttribute('aria-label', 'Drag bullet');
+      handle.textContent = '⋮⋮';
+      return handle;
     },
 
     /**
@@ -567,9 +822,83 @@
       indentBtn.setAttribute('aria-label', 'Indent bullet');
       indentBtn.textContent = '▶';
 
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'list-add-bullet-btn';
+      addBtn.title = 'Add bullet below';
+      addBtn.setAttribute('aria-label', 'Add bullet below');
+      addBtn.textContent = '+';
+
       controls.appendChild(outdentBtn);
       controls.appendChild(indentBtn);
+      controls.appendChild(addBtn);
       return controls;
+    },
+
+    /**
+     * Insert a new empty bullet from toolbar context.
+     */
+    insertBulletFromToolbar: function () {
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      if (!editorEl) {
+        return;
+      }
+
+      const listItem = this.getClosestListItemFromSelection(editorEl);
+      if (listItem) {
+        this.insertEmptyBulletAfter(listItem);
+        return;
+      }
+
+      const list = this.getClosestListFromSelection(editorEl);
+      if (list) {
+        const newItem = document.createElement('li');
+        newItem.appendChild(document.createElement('br'));
+        list.appendChild(newItem);
+        this.normalizeIssueListItems(editorEl);
+        this.ensureListItemDragHandles(editorEl);
+        this.placeCaretInListItem(newItem);
+        editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+
+      const newList = document.createElement('ul');
+      const newItem = document.createElement('li');
+      newItem.appendChild(document.createElement('br'));
+      newList.appendChild(newItem);
+      editorEl.appendChild(newList);
+      this.normalizeIssueListItems(editorEl);
+      this.ensureListItemDragHandles(editorEl);
+      this.placeCaretInListItem(newItem);
+      editorEl.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
+    /**
+     * Insert a new empty list item directly after a given item.
+     *
+     * @param {HTMLElement} listItem - Existing list item.
+     */
+    insertEmptyBulletAfter: function (listItem) {
+      const editorEl = document.getElementById('meta-issue-editor-content');
+      const parentList = this.getParentListElement(listItem);
+      if (!editorEl || !parentList) {
+        return;
+      }
+
+      const newItem = document.createElement('li');
+      newItem.appendChild(document.createElement('br'));
+
+      if (listItem.nextSibling) {
+        parentList.insertBefore(newItem, listItem.nextSibling);
+      }
+      else {
+        parentList.appendChild(newItem);
+      }
+
+      this.normalizeIssueListItems(editorEl);
+      this.ensureListItemDragHandles(editorEl);
+      this.placeCaretInListItem(newItem);
+      editorEl.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
     /**
@@ -712,9 +1041,49 @@
       if (!selection || !listItem) {
         return;
       }
+      const isIssueOnlyRow = !!listItem.querySelector(':scope > .issue-block');
 
       const range = document.createRange();
-      range.selectNodeContents(listItem);
+      const firstEditableNode = Array.from(listItem.childNodes).find(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return true;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return false;
+        }
+
+        if (
+          node.classList?.contains('list-indent-controls') ||
+          node.classList?.contains('list-item-drag-handle') ||
+          node.classList?.contains('issue-block')
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (firstEditableNode?.nodeType === Node.TEXT_NODE) {
+        range.setStart(firstEditableNode, firstEditableNode.textContent.length);
+      }
+      else if (firstEditableNode?.nodeType === Node.ELEMENT_NODE && firstEditableNode.tagName === 'BR') {
+        const textNode = document.createTextNode('');
+        listItem.insertBefore(textNode, firstEditableNode);
+        range.setStart(textNode, 0);
+      }
+      else if (firstEditableNode) {
+        range.setStart(firstEditableNode, 0);
+      }
+      else {
+        if (isIssueOnlyRow) {
+          return;
+        }
+        const textNode = document.createTextNode('');
+        listItem.appendChild(textNode);
+        range.setStart(textNode, 0);
+      }
+
       range.collapse(true);
       selection.removeAllRanges();
       selection.addRange(range);
@@ -746,6 +1115,34 @@
       }
 
       return node.closest('li');
+    },
+
+    /**
+     * Find closest list element for current selection.
+     *
+     * @param {HTMLElement} editorEl - Editor element.
+     * @returns {HTMLElement|null} - Closest UL/OL element or null.
+     */
+    getClosestListFromSelection: function (editorEl) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return null;
+      }
+
+      let node = selection.anchorNode;
+      if (!node) {
+        return null;
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        node = node.parentElement;
+      }
+
+      if (!node || !editorEl.contains(node)) {
+        return null;
+      }
+
+      return node.closest('ul, ol');
     },
 
     /**
@@ -902,7 +1299,11 @@
       // Replace issue blocks with [#XXXXXX] references
       clone.querySelectorAll('.issue-block').forEach(block => {
         const issueNum = block.dataset.issueNumber;
-        block.replaceWith(document.createTextNode('[#' + issueNum + ']'));
+        const inlineAssignee = (block.dataset.inlineAssignee || '').trim();
+        const issueReference = inlineAssignee
+          ? '[#' + issueNum + '] @' + inlineAssignee
+          : '[#' + issueNum + ']';
+        block.replaceWith(document.createTextNode(issueReference));
       });
 
       // Remove editor-specific elements (notes, metadata panels, drag handles)
@@ -997,8 +1398,12 @@
         const issueNum = block.dataset.issueNumber;
         const data = Drupal.metaIssueBlock.issueCache[issueNum] || {};
         const note = notes[issueNum] || '';
+        const inlineAssignee = (block.dataset.inlineAssignee || '').trim();
 
         let issueText = '[#' + issueNum + ']';
+        if (inlineAssignee) {
+          issueText += ' @' + inlineAssignee;
+        }
         if (data.title) {
           issueText += ' ' + data.title;
         }

@@ -46,14 +46,35 @@
   </div>
 
   <div class="editor-format-toolbar">
-    <button type="button" data-format="bold" title="Bold"><strong>B</strong></button>
-    <button type="button" data-format="italic" title="Italic"><em>I</em></button>
-    <button type="button" data-format="insertUnorderedList" title="Bullet List">• List</button>
-    <button type="button" data-format="insertOrderedList" title="Numbered List">1. List</button>
-    <button type="button" data-format="outdent" title="Outdent">Outdent</button>
-    <button type="button" data-format="indent" title="Indent">Indent</button>
-    <button type="button" data-format="formatBlock" data-value="h2" title="Heading 2">H2</button>
-    <button type="button" data-format="formatBlock" data-value="h3" title="Heading 3">H3</button>
+    <div class="format-group">
+      <button type="button" data-format="bold" title="Bold (Alt+B)"><strong>B</strong></button>
+      <button type="button" data-format="italic" title="Italic (Alt+I)"><em>I</em></button>
+      <button type="button" data-format="strikeThrough" title="Strike-through">S</button>
+      <button type="button" data-format="formatBlock" data-value="h2" title="Heading 2">H2</button>
+      <button type="button" data-format="formatBlock" data-value="h3" title="Heading 3">H3</button>
+      <button type="button" data-format="formatBlock" data-value="h4" title="Heading 4">H4</button>
+      <button type="button" data-format="formatBlock" data-value="blockquote" title="Quote">Quote</button>
+      <button type="button" data-format="formatBlock" data-value="pre" title="Code block">Code</button>
+      <button type="button" data-action="create-link" title="Insert Link">Link</button>
+      <button type="button" data-format="insertOrderedList" title="Numbered List">1. List</button>
+      <button type="button" data-format="insertUnorderedList" title="Bullet List">• List</button>
+      <button type="button" data-format="outdent" title="Outdent">Outdent</button>
+      <button type="button" data-format="indent" title="Indent">Indent</button>
+      <button type="button" id="insert-bullet-btn" title="Insert bullet below current row">+ Bullet</button>
+    </div>
+
+    <div class="insert-issue-group">
+      <label for="insert-issue-number-input">Insert issue</label>
+      <input type="text"
+             id="insert-issue-number-input"
+             placeholder="Issue #"
+             aria-label="Issue number to insert">
+      <label class="checkbox-inline">
+        <input type="checkbox" id="insert-include-assigned" checked>
+        include @assigned
+      </label>
+      <button type="button" id="insert-issue-btn" class="secondary">Add Issue</button>
+    </div>
   </div>
 
   <div class="meta-issue-editor-content" id="meta-issue-editor-content">

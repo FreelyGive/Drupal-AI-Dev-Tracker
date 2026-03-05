@@ -45,22 +45,30 @@
      * @param {number} issueNumber - The issue number.
      * @param {object} issueData - Issue data (optional).
      * @param {string} note - Internal note (optional).
+     * @param {object} options - Render options (optional).
      * @returns {HTMLElement} - The issue block element.
      */
-    createBlock: function (issueNumber, issueData, note) {
+    createBlock: function (issueNumber, issueData, note, options = {}) {
       const block = document.createElement('div');
       block.className = 'issue-block';
       block.dataset.issueNumber = issueNumber;
+      const inlineAssignee = (options.inlineAssignee || '').trim();
+      if (inlineAssignee) {
+        block.dataset.inlineAssignee = inlineAssignee;
+      }
+      else {
+        delete block.dataset.inlineAssignee;
+      }
       // Keep issue rows non-editable inside the contenteditable editor surface.
       block.setAttribute('contenteditable', 'false');
 
       if (issueData) {
         this.issueCache[issueNumber] = issueData;
-        this.renderBlockWithData(block, issueNumber, issueData, note);
+        this.renderBlockWithData(block, issueNumber, issueData, note, inlineAssignee);
       } else if (this.issueCache[issueNumber]) {
-        this.renderBlockWithData(block, issueNumber, this.issueCache[issueNumber], note);
+        this.renderBlockWithData(block, issueNumber, this.issueCache[issueNumber], note, inlineAssignee);
       } else {
-        this.renderUnknownBlock(block, issueNumber);
+        this.renderUnknownBlock(block, issueNumber, inlineAssignee);
       }
 
       return block;
@@ -69,7 +77,7 @@
     /**
      * Render a block with issue data.
      */
-    renderBlockWithData: function (block, issueNumber, data, note) {
+    renderBlockWithData: function (block, issueNumber, data, note, inlineAssignee = '') {
       const status = (data.status || '').toLowerCase();
       const statusClass = this.statusClasses[status] || 'status-unknown';
       const isClosed = this.closedStatuses.includes(status);
@@ -89,6 +97,7 @@
              target="_blank"
              class="issue-block-number">#${issueNumber}</a>
           <span class="issue-block-title">${this.escapeHtml(data.title || 'Untitled')}</span>
+          ${inlineAssignee ? `<span class="issue-inline-assignee">@${this.escapeHtml(inlineAssignee)}</span>` : ''}
           <span class="issue-status-badge ${statusClass}">${this.escapeHtml(data.status || 'Unknown')}</span>
           ${data.priority ? `<span class="issue-priority-badge">${this.escapeHtml(data.priority)}</span>` : ''}
           <button type="button" class="issue-block-expand" onclick="Drupal.metaIssueBlock.toggleExpand(this)">▶ Expand</button>
@@ -112,7 +121,7 @@
     /**
      * Render an unknown issue block.
      */
-    renderUnknownBlock: function (block, issueNumber) {
+    renderUnknownBlock: function (block, issueNumber, inlineAssignee = '') {
       block.classList.add('unknown');
       block.innerHTML = `
         <div class="issue-block-header">
@@ -123,6 +132,7 @@
                 aria-label="Drag issue">⋮⋮</span>
           <span class="issue-block-number">#${issueNumber}</span>
           <span class="issue-block-title">(Unknown issue)</span>
+          ${inlineAssignee ? `<span class="issue-inline-assignee">@${this.escapeHtml(inlineAssignee)}</span>` : ''}
           <span class="issue-status-badge status-unknown">⚠ Unknown</span>
         </div>
       `;
@@ -145,8 +155,9 @@
       const blocks = document.querySelectorAll(`.issue-block[data-issue-number="${issueNumber}"]`);
       blocks.forEach(block => {
         const note = block.querySelector('.issue-note')?.value || '';
+        const inlineAssignee = (block.dataset.inlineAssignee || '').trim();
         block.classList.remove('unknown');
-        this.renderBlockWithData(block, issueNumber, data, note);
+        this.renderBlockWithData(block, issueNumber, data, note, inlineAssignee);
       });
     },
 

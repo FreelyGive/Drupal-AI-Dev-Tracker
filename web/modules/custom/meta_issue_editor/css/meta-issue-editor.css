@@ -164,6 +164,48 @@
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editor-format-toolbar .format-group {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.editor-format-toolbar .insert-issue-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.editor-format-toolbar .insert-issue-group label {
+  font-size: 11px;
+  color: var(--mie-color-text-muted);
+}
+
+.editor-format-toolbar .insert-issue-group input[type="text"] {
+  width: 92px;
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 1px solid var(--mie-color-border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.editor-format-toolbar .checkbox-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--mie-color-text-muted);
+}
+
+.editor-format-toolbar .checkbox-inline input {
+  margin: 0;
 }
 
 .editor-format-toolbar button {
@@ -263,12 +305,12 @@
 }
 
 .list-item-drag-handle {
-  display: inline-flex;
+  display: none;
   align-items: center;
   justify-content: center;
   min-width: 16px;
   min-height: 16px;
-  margin-right: 4px;
+  margin-right: 0;
   border: 1px solid transparent;
   border-radius: 3px;
   color: #8b95a1;
@@ -276,9 +318,8 @@
   font-size: 11px;
   line-height: 1;
   user-select: none;
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s ease, background-color 0.12s ease;
+  transition: background-color 0.12s ease;
 }
 
 .list-item-drag-handle:hover {
@@ -290,14 +331,12 @@
 }
 
 .list-indent-controls {
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: 2px;
-  margin-right: 4px;
+  margin-right: 0;
   vertical-align: middle;
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s ease;
 }
 
 .list-indent-btn {
@@ -313,16 +352,40 @@
   min-height: 12px;
 }
 
+.list-add-bullet-btn {
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #5a6470;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  min-width: 12px;
+  min-height: 12px;
+}
+
 .list-indent-btn:hover {
   background: rgba(6, 120, 190, 0.12);
   color: #1f2937;
 }
 
+.list-add-bullet-btn:hover {
+  background: rgba(6, 120, 190, 0.12);
+  color: #1f2937;
+}
+
 .meta-issue-editor-content li:hover > .list-item-drag-handle,
-.meta-issue-editor-content li:focus-within > .list-item-drag-handle,
+.meta-issue-editor-content li:focus-within > .list-item-drag-handle {
+  display: inline-flex;
+  margin-right: 4px;
+  pointer-events: auto;
+}
+
 .meta-issue-editor-content li:hover .list-indent-controls,
 .meta-issue-editor-content li:focus-within .list-indent-controls {
-  opacity: 1;
+  display: inline-flex;
+  margin-right: 4px;
   pointer-events: auto;
 }
 
@@ -384,6 +447,12 @@
   font-weight: 500;
   font-size: 12px;
   line-height: 1.3;
+}
+
+.issue-inline-assignee {
+  font-size: 11px;
+  color: #57606a;
+  white-space: nowrap;
 }
 
 .issue-block.closed .issue-block-title {
