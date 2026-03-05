@@ -7,7 +7,21 @@
  * - issue_number: The issue number being edited (if any).
  */
 #}
-<div class="meta-issue-editor-wrapper">
+<div class="meta-issue-editor-page">
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/roadmap" class="nav-link">Roadmap</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+      <a href="/ai-dashboard/meta-issue-editor" class="nav-link active">Meta Issue Editor</a>
+    </div>
+  </div>
+
+  <div class="meta-issue-editor-wrapper">
   <div class="meta-issue-editor-toolbar">
     <label for="issue-number-input">Issue #</label>
     <input type="text"
@@ -60,4 +74,5 @@
 
     <span id="editor-status" class="status-message"></span>
   </div>
+</div>
 </div>

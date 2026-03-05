@@ -5,6 +5,7 @@ namespace Drupal\meta_issue_editor\Controller;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Flood\FloodInterface;
 use Drupal\meta_issue_editor\Service\MetaIssueParserService;
 use Drupal\node\NodeInterface;
 use GuzzleHttp\ClientInterface;
@@ -16,6 +17,41 @@ use Symfony\Component\HttpFoundation\Request;
  * Controller for the Meta-Issue-Editor.
  */
 class MetaIssueEditorController extends ControllerBase {
+
+  /**
+   * Maximum issues allowed per fetch request.
+   */
+  protected const MAX_ISSUES_PER_REQUEST = 20;
+
+  /**
+   * Site-wide load/fetch limit per hour.
+   */
+  protected const GLOBAL_LOAD_LIMIT = 300;
+
+  /**
+   * Window for the site-wide load/fetch limit.
+   */
+  protected const GLOBAL_LOAD_WINDOW = 3600;
+
+  /**
+   * Per-IP load/fetch limit per 10 minutes.
+   */
+  protected const IP_LOAD_LIMIT = 40;
+
+  /**
+   * Window for the per-IP load/fetch limit.
+   */
+  protected const IP_LOAD_WINDOW = 600;
+
+  /**
+   * Flood event name for global request limiting.
+   */
+  protected const GLOBAL_FETCH_EVENT = 'meta_issue_editor.fetch.global';
+
+  /**
+   * Flood event name for per-IP request limiting.
+   */
+  protected const IP_FETCH_EVENT = 'meta_issue_editor.fetch.ip';
 
   /**
    * The entity type manager.
@@ -46,6 +82,13 @@ class MetaIssueEditorController extends ControllerBase {
   protected $csrfToken;
 
   /**
+   * The flood service.
+   *
+   * @var \Drupal\Core\Flood\FloodInterface
+   */
+  protected $flood;
+
+  /**
    * Constructs a MetaIssueEditorController object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -56,17 +99,21 @@ class MetaIssueEditorController extends ControllerBase {
    *   The HTTP client.
    * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token
    *   The CSRF token generator.
+   * @param \Drupal\Core\Flood\FloodInterface $flood
+   *   The flood service.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     MetaIssueParserService $parser,
     ClientInterface $http_client,
     CsrfTokenGenerator $csrf_token,
+    FloodInterface $flood,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->parser = $parser;
     $this->httpClient = $http_client;
     $this->csrfToken = $csrf_token;
+    $this->flood = $flood;
   }
 
   /**
@@ -78,6 +125,7 @@ class MetaIssueEditorController extends ControllerBase {
       $container->get('meta_issue_editor.parser'),
       $container->get('http_client'),
       $container->get('csrf_token'),
+      $container->get('flood'),
     );
   }
 
@@ -106,7 +154,9 @@ class MetaIssueEditorController extends ControllerBase {
    */
   public function editor($issue_number = NULL): array {
     $canSave = $this->currentUser()->hasPermission('save meta issue drafts');
-    $canFetch = $this->currentUser()->hasPermission('fetch issues from drupal org');
+    $canLoadDraft = $canSave;
+    // Public editor access requires public fetch access for "Load" to work.
+    $canFetch = TRUE;
 
     $build = [
       '#theme' => 'meta_issue_editor',
@@ -121,6 +171,7 @@ class MetaIssueEditorController extends ControllerBase {
           'metaIssueEditor' => [
             'issueNumber' => $issue_number,
             'canSave' => $canSave,
+            'canLoadDraft' => $canLoadDraft,
             'canFetch' => $canFetch,
             'csrfToken' => $this->csrfToken->get('meta_issue_editor'),
           ],
@@ -129,7 +180,7 @@ class MetaIssueEditorController extends ControllerBase {
     ];
 
     // If issue number provided, try to load existing draft or fetch from d.o.
-    if ($issue_number) {
+    if ($issue_number && $canLoadDraft) {
       $draft = $this->loadDraftBySourceIssue($issue_number);
       if ($draft) {
         $build['#attached']['drupalSettings']['metaIssueEditor']['draft'] = [
@@ -185,19 +236,46 @@ class MetaIssueEditorController extends ControllerBase {
       return new JsonResponse(['error' => 'Invalid CSRF token'], 403);
     }
 
-    $data = json_decode($request->getContent(), TRUE);
+    $data = json_decode($request->getContent(), TRUE) ?? [];
     $issueNumbers = $data['issue_numbers'] ?? [];
+
+    if (!is_array($issueNumbers)) {
+      return new JsonResponse(['error' => 'Issue numbers must be an array'], 400);
+    }
+
+    $issueNumbers = array_values(array_unique(array_filter(array_map('intval', $issueNumbers), static function (int $issueNumber): bool {
+      return $issueNumber >= 10000 && $issueNumber <= 99999999;
+    })));
 
     if (empty($issueNumbers)) {
       return new JsonResponse(['error' => 'No issue numbers provided'], 400);
     }
 
-    // Limit number of issues to prevent timeout (0.5s delay per issue).
-    $maxIssues = 20;
-    if (count($issueNumbers) > $maxIssues) {
+    if (count($issueNumbers) > self::MAX_ISSUES_PER_REQUEST) {
       return new JsonResponse([
-        'error' => "Maximum $maxIssues issues per request",
+        'error' => 'Maximum ' . self::MAX_ISSUES_PER_REQUEST . ' issues per request',
       ], 400);
+    }
+
+    $clientIp = (string) ($request->getClientIp() ?? 'unknown');
+
+    if (!$this->flood->isAllowed(self::GLOBAL_FETCH_EVENT, self::GLOBAL_LOAD_LIMIT, self::GLOBAL_LOAD_WINDOW, 'global')) {
+      return new JsonResponse([
+        'error' => 'Site-wide load limit reached. Please try again later.',
+      ], 429);
+    }
+
+    if (!$this->flood->isAllowed(self::IP_FETCH_EVENT, self::IP_LOAD_LIMIT, self::IP_LOAD_WINDOW, $clientIp)) {
+      return new JsonResponse([
+        'error' => 'Too many loads from your IP. Please wait a few minutes.',
+      ], 429);
+    }
+
+    // Weight flood entries by number of issues requested in this call.
+    $weight = count($issueNumbers);
+    for ($i = 0; $i < $weight; $i++) {
+      $this->flood->register(self::GLOBAL_FETCH_EVENT, self::GLOBAL_LOAD_WINDOW, 'global');
+      $this->flood->register(self::IP_FETCH_EVENT, self::IP_LOAD_WINDOW, $clientIp);
     }
 
     $results = [];
@@ -212,8 +290,8 @@ class MetaIssueEditorController extends ControllerBase {
         else {
           $errors[$issueNumber] = 'Issue not found';
         }
-        // Rate limiting: 0.5s between requests.
-        usleep(500000);
+        // Keep a small delay between drupal.org requests to reduce burst pressure.
+        usleep(250000);
       }
       catch (\Exception $e) {
         $errors[$issueNumber] = $e->getMessage();
@@ -253,10 +331,8 @@ class MetaIssueEditorController extends ControllerBase {
       $issueNumber = (int) $issueNumber;
 
       // Find AI Issue node by issue number.
-      // Using accessCheck(FALSE) is safe here because:
-      // 1. AI Issue nodes are public content (no access restrictions)
-      // 2. This endpoint only returns issue metadata, not sensitive data
-      // 3. Route already requires 'use meta issue editor' permission.
+      // Using accessCheck(FALSE) is safe here because this endpoint is public
+      // and returns only non-sensitive metadata for public AI Issue content.
       $query = $nodeStorage->getQuery()
         ->condition('type', 'ai_issue')
         ->condition('field_issue_number', $issueNumber)
@@ -386,11 +462,8 @@ class MetaIssueEditorController extends ControllerBase {
   protected function loadDraftBySourceIssue(int $source_issue): ?NodeInterface {
     $nodeStorage = $this->entityTypeManager->getStorage('node');
 
-    // Using accessCheck(FALSE) is safe here because:
-    // 1. Meta Issue Draft nodes are internal working documents.
-    // 2. Route already requires 'save meta issue drafts' or
-    //    'use meta issue editor' permission.
-    // 3. This is an internal helper method, not directly exposed to users.
+    // Using accessCheck(FALSE) is safe here because meta issue drafts are only
+    // returned through protected routes/methods and never exposed publicly.
     $query = $nodeStorage->getQuery()
       ->condition('type', 'meta_issue_draft')
       ->condition('field_source_issue', $source_issue)

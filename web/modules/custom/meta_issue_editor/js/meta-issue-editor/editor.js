@@ -48,6 +48,11 @@
     settings: null,
 
     /**
+     * Local storage key for the last loaded issue number.
+     */
+    lastIssueStorageKey: 'metaIssueEditor.lastLoadedIssue',
+
+    /**
      * Initialize the editor.
      */
     init: function (context) {
@@ -55,7 +60,7 @@
       if (!wrapper.length) return;
 
       this.settings = drupalSettings.metaIssueEditor || {};
-      this.sourceIssue = this.settings.issueNumber || null;
+      this.sourceIssue = parseInt(this.settings.issueNumber, 10) || null;
 
       // Initialize editor content area
       this.initEditorArea();
@@ -66,10 +71,77 @@
       // Initialize drag-and-drop for issue blocks
       Drupal.metaIssueBlock.initDragDrop();
 
-      // Load existing draft if available
-      if (this.settings.draft) {
-        this.loadDraftContent(this.settings.draft);
+      const rememberedIssue = this.getRememberedIssueNumber();
+
+      // Path issue number takes precedence over remembered issue number.
+      if (this.sourceIssue) {
+        this.syncLoadedIssue(this.sourceIssue);
+        if (this.settings.draft) {
+          this.loadDraftContent(this.settings.draft);
+        }
+        else {
+          this.loadMetaIssueByNumber(this.sourceIssue, false);
+        }
       }
+      else if (rememberedIssue) {
+        this.loadMetaIssueByNumber(rememberedIssue, true);
+      }
+    },
+
+    /**
+     * Keep issue state in sync across input field, URL, and local storage.
+     *
+     * @param {number} issueNumber - Issue number being loaded.
+     * @param {boolean} updateUrl - Whether to update the browser URL.
+     */
+    syncLoadedIssue: function (issueNumber, updateUrl = true) {
+      this.sourceIssue = issueNumber;
+
+      const input = document.getElementById('issue-number-input');
+      if (input) {
+        input.value = issueNumber;
+      }
+
+      this.rememberIssueNumber(issueNumber);
+
+      if (updateUrl && window.history && window.history.replaceState) {
+        const targetPath = '/ai-dashboard/meta-issue-editor/' + issueNumber;
+        if (window.location.pathname !== targetPath) {
+          window.history.replaceState({}, '', targetPath);
+        }
+      }
+    },
+
+    /**
+     * Save the issue number in local storage.
+     *
+     * @param {number} issueNumber - Issue number to remember.
+     */
+    rememberIssueNumber: function (issueNumber) {
+      try {
+        window.localStorage.setItem(this.lastIssueStorageKey, String(issueNumber));
+      }
+      catch (e) {
+        // Ignore storage errors in private browsing or restricted contexts.
+      }
+    },
+
+    /**
+     * Read the last issue number from local storage.
+     *
+     * @returns {number|null} - Last remembered issue number.
+     */
+    getRememberedIssueNumber: function () {
+      try {
+        const stored = parseInt(window.localStorage.getItem(this.lastIssueStorageKey), 10);
+        if (stored >= 10000) {
+          return stored;
+        }
+      }
+      catch (e) {
+        // Ignore storage errors in private browsing or restricted contexts.
+      }
+      return null;
     },
 
     /**
@@ -168,27 +240,41 @@
     loadMetaIssue: function () {
       const input = document.getElementById('issue-number-input');
       const issueNumber = parseInt(input?.value, 10);
+      this.loadMetaIssueByNumber(issueNumber, true);
+    },
 
+    /**
+     * Load a meta-issue by issue number.
+     *
+     * @param {number} issueNumber - Issue number to load.
+     * @param {boolean} updateUrl - Whether to update browser URL.
+     */
+    loadMetaIssueByNumber: function (issueNumber, updateUrl = true) {
       if (!issueNumber || issueNumber < 10000) {
         alert('Please enter a valid issue number');
         return;
       }
 
-      this.sourceIssue = issueNumber;
+      this.syncLoadedIssue(issueNumber, updateUrl);
 
-      // First check if we have a local draft
-      Drupal.metaIssueEditorApi.loadDraft(issueNumber)
-        .then(result => {
-          if (result.success && result.draft) {
-            this.loadDraftContent(result.draft);
-          } else {
-            // No draft, fetch from drupal.org
+      // First check if we have a local draft (for authorized users).
+      if (this.settings.canLoadDraft) {
+        Drupal.metaIssueEditorApi.loadDraft(issueNumber)
+          .then(result => {
+            if (result.success && result.draft) {
+              this.loadDraftContent(result.draft);
+            } else {
+              // No draft, fetch from drupal.org.
+              this.fetchAndLoadMetaIssue(issueNumber);
+            }
+          })
+          .catch(() => {
             this.fetchAndLoadMetaIssue(issueNumber);
-          }
-        })
-        .catch(() => {
-          this.fetchAndLoadMetaIssue(issueNumber);
-        });
+          });
+        return;
+      }
+
+      this.fetchAndLoadMetaIssue(issueNumber);
     },
 
     /**
@@ -200,7 +286,7 @@
       // Check if user can fetch from drupal.org
       if (!this.settings.canFetch) {
         if (statusEl) {
-          statusEl.textContent = 'Log in to load issues from drupal.org, or paste content directly into the editor.';
+          statusEl.textContent = 'Loading from drupal.org is disabled for this context.';
         }
         return;
       }

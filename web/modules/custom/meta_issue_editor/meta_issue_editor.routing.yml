@@ -4,7 +4,7 @@ meta_issue_editor.editor:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::editor'
     _title: 'Meta-Issue-Editor'
   requirements:
-    _permission: 'use meta issue editor'
+    _access: 'TRUE'
 
 meta_issue_editor.editor_load:
   path: '/ai-dashboard/meta-issue-editor/{issue_number}'
@@ -12,7 +12,7 @@ meta_issue_editor.editor_load:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::editor'
     _title: 'Meta-Issue-Editor'
   requirements:
-    _permission: 'use meta issue editor'
+    _access: 'TRUE'
     issue_number: '\d+'
 
 meta_issue_editor.export:
@@ -21,7 +21,7 @@ meta_issue_editor.export:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::export'
     _title: 'Export Meta-Issue'
   requirements:
-    _permission: 'use meta issue editor'
+    _access: 'TRUE'
     format: 'html|markdown'
   methods: [POST]
 
@@ -31,7 +31,7 @@ meta_issue_editor.api.fetch_issues:
   defaults:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::fetchIssues'
   requirements:
-    _permission: 'fetch issues from drupal org'
+    _access: 'TRUE'
   methods: [POST]
 
 meta_issue_editor.api.local_issues:
@@ -39,7 +39,7 @@ meta_issue_editor.api.local_issues:
   defaults:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::localIssues'
   requirements:
-    _permission: 'use meta issue editor'
+    _access: 'TRUE'
   methods: [GET]
 
 meta_issue_editor.api.save_draft:
@@ -55,6 +55,6 @@ meta_issue_editor.api.load_draft:
   defaults:
     _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::loadDraft'
   requirements:
-    _permission: 'use meta issue editor'
+    _permission: 'save meta issue drafts'
     source_issue: '\d+'
   methods: [GET]
