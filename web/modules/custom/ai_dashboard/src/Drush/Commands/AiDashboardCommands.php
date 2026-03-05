@@ -316,7 +316,7 @@ class AiDashboardCommands extends DrushCommands {
 
       // Clear cache if doing full refresh
       if (!empty($options['full-from'])) {
-        \Drupal::state()->delete('ai_dashboard.user_org.' . $username);
+        \Drupal::state()->delete(\Drupal\ai_dashboard\Controller\CalendarController::buildUserOrganizationCacheKey($username));
       }
 
       $organization = $method->invoke($calendar_controller, $username);
@@ -406,7 +406,7 @@ class AiDashboardCommands extends DrushCommands {
     foreach ($usernames as $username) {
       // Clear cache if doing full refresh
       if (!empty($options['full-from'])) {
-        \Drupal::state()->delete('ai_dashboard.user_org.' . $username);
+        \Drupal::state()->delete(\Drupal\ai_dashboard\Controller\CalendarController::buildUserOrganizationCacheKey($username));
       }
 
       $organization = $method->invoke($calendar_controller, $username);

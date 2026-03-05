@@ -1698,8 +1698,9 @@ class CalendarController extends ControllerBase {
       return $org_cache[$username];
     }
 
-    // Use state API for persistent caching (1 week)
-    $cache_key = 'ai_dashboard.user_org.' . $username;
+    // Use state API for persistent caching (1 week).
+    // Encode usernames to keep keys ASCII-safe for key_value table collation.
+    $cache_key = static::buildUserOrganizationCacheKey($username);
     $cached = \Drupal::state()->get($cache_key);
 
     if ($cached && isset($cached['time']) && (time() - $cached['time']) < 604800) {
@@ -1786,6 +1787,21 @@ class CalendarController extends ControllerBase {
     $org_cache[$username] = NULL;
 
     return NULL;
+  }
+
+  /**
+   * Build a state cache key for user organization lookup.
+   *
+   * Uses URL encoding so non-ASCII usernames are safe in key_value.name.
+   *
+   * @param string $username
+   *   Drupal.org username.
+   *
+   * @return string
+   *   ASCII-safe cache key.
+   */
+  public static function buildUserOrganizationCacheKey(string $username): string {
+    return 'ai_dashboard.user_org.' . rawurlencode(trim($username));
   }
 
   /**
