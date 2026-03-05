@@ -1290,7 +1290,7 @@
      *
      * Converts editor content back to drupal.org edit HTML format.
      * Issue blocks become [#XXXXXX] references.
-     * <br> converted back to newlines.
+     * Output is formatted for readability in drupal.org editor source.
      */
     generateHtmlExport: function (editorEl) {
       // Clone content
@@ -1311,11 +1311,189 @@
         el.remove();
       });
 
-      // Get HTML and convert <br> back to newlines for drupal.org edit format
-      let html = clone.innerHTML;
-      html = html.replace(/<br\s*\/?>/gi, '\n');
+      // Serialize to clean, human-readable HTML:
+      // - no class/style/editor attributes
+      // - no <p> wrappers
+      // - no <br> tags (line breaks are literal newlines)
+      // - one <li> per line for readable list editing
+      const blocks = [];
+      Array.from(clone.childNodes).forEach(node => {
+        const serialized = this.serializeExportNode(node);
+        if (serialized !== '') {
+          blocks.push(serialized);
+        }
+      });
 
-      return html;
+      return blocks.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    },
+
+    /**
+     * Serialize a node for HTML export.
+     *
+     * @param {Node} node - DOM node.
+     * @returns {string} - Serialized output.
+     */
+    serializeExportNode: function (node) {
+      if (!node) {
+        return '';
+      }
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = (node.textContent || '').replace(/\u00a0/g, ' ').trim();
+        return text;
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return '';
+      }
+
+      const tag = node.tagName.toLowerCase();
+
+      if (tag === 'p') {
+        const content = this.serializeInlineContent(node).replace(/\n{2,}/g, '\n');
+        return content ? (content + '\n') : '';
+      }
+
+      if (tag === 'br') {
+        return '';
+      }
+
+      if (tag.match(/^h[1-6]$/)) {
+        return '<' + tag + '>' + this.serializeInlineContent(node) + '</' + tag + '>';
+      }
+
+      if (tag === 'ul' || tag === 'ol') {
+        return this.serializeListForExport(node, tag, 0);
+      }
+
+      if (tag === 'blockquote' || tag === 'pre') {
+        return '<' + tag + '>' + this.serializeInlineContent(node, true) + '</' + tag + '>';
+      }
+
+      // Fallback: flatten container wrappers but keep contained structure.
+      const chunks = [];
+      Array.from(node.childNodes).forEach(child => {
+        const serialized = this.serializeExportNode(child);
+        if (serialized !== '') {
+          chunks.push(serialized);
+        }
+      });
+      return chunks.join('\n');
+    },
+
+    /**
+     * Serialize inline content for export-safe HTML.
+     *
+     * @param {HTMLElement} element - Source element.
+     * @param {boolean} preserveWhitespace - Keep consecutive whitespace.
+     * @returns {string} - Inline serialized HTML.
+     */
+    serializeInlineContent: function (element, preserveWhitespace = false) {
+      const chunks = [];
+
+      Array.from(element.childNodes).forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          let text = (node.textContent || '').replace(/\u00a0/g, ' ');
+          if (!preserveWhitespace) {
+            text = text.replace(/\s+/g, ' ');
+          }
+          chunks.push(text);
+          return;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return;
+        }
+
+        const tag = node.tagName.toLowerCase();
+
+        if (tag === 'br') {
+          chunks.push('\n');
+          return;
+        }
+
+        if (tag === 'strong' || tag === 'b') {
+          chunks.push('<strong>' + this.serializeInlineContent(node, preserveWhitespace) + '</strong>');
+          return;
+        }
+
+        if (tag === 'em' || tag === 'i') {
+          chunks.push('<em>' + this.serializeInlineContent(node, preserveWhitespace) + '</em>');
+          return;
+        }
+
+        if (tag === 's' || tag === 'strike') {
+          chunks.push('<s>' + this.serializeInlineContent(node, preserveWhitespace) + '</s>');
+          return;
+        }
+
+        if (tag === 'code') {
+          chunks.push('<code>' + this.serializeInlineContent(node, true) + '</code>');
+          return;
+        }
+
+        if (tag === 'a') {
+          const href = node.getAttribute('href') || '';
+          const hrefAttr = href ? ' href="' + href.replace(/"/g, '&quot;') + '"' : '';
+          chunks.push('<a' + hrefAttr + '>' + this.serializeInlineContent(node, preserveWhitespace) + '</a>');
+          return;
+        }
+
+        if (tag === 'ul' || tag === 'ol') {
+          // List nesting is handled in block serializer.
+          return;
+        }
+
+        chunks.push(this.serializeInlineContent(node, preserveWhitespace));
+      });
+
+      let result = chunks.join('');
+      if (!preserveWhitespace) {
+        result = result.replace(/[ \t]*\n[ \t]*/g, '\n');
+      }
+      return result.trim();
+    },
+
+    /**
+     * Serialize UL/OL blocks with one LI per line.
+     *
+     * @param {HTMLElement} listEl - UL/OL element.
+     * @param {string} listTag - ul or ol.
+     * @param {number} depth - Nesting depth.
+     * @returns {string} - Serialized list block.
+     */
+    serializeListForExport: function (listEl, listTag, depth) {
+      const indent = '  '.repeat(depth);
+      const lines = [indent + '<' + listTag + '>'];
+
+      Array.from(listEl.children).forEach(child => {
+        if (child.tagName.toLowerCase() !== 'li') {
+          return;
+        }
+
+        const nestedLists = [];
+        const liClone = child.cloneNode(true);
+        Array.from(liClone.querySelectorAll(':scope > ul, :scope > ol')).forEach(nested => {
+          nestedLists.push(nested.cloneNode(true));
+          nested.remove();
+        });
+
+        const itemInline = this.serializeInlineContent(liClone).replace(/\n+/g, '\n').trim();
+
+        if (!nestedLists.length) {
+          lines.push(indent + '  <li>' + itemInline + '</li>');
+          return;
+        }
+
+        lines.push(indent + '  <li>' + itemInline);
+        nestedLists.forEach(nested => {
+          lines.push(this.serializeListForExport(nested, nested.tagName.toLowerCase(), depth + 2));
+        });
+        lines.push(indent + '  </li>');
+      });
+
+      lines.push(indent + '</' + listTag + '>');
+      return lines.join('\n');
     },
 
     /**
@@ -1347,9 +1525,21 @@
         }
       });
 
-      // Remove empty paragraphs produced by API formatting noise.
+      // Preserve intentional blank separator lines between content blocks.
+      // Convert interior empty paragraphs to <p><br></p> so they render as a
+      // visible blank line in the editor instead of being collapsed away.
       temp.querySelectorAll('p').forEach(p => {
-        if (p.textContent.replace(/\u00a0/g, ' ').trim() === '') {
+        if (p.textContent.replace(/\u00a0/g, ' ').trim() !== '') {
+          return;
+        }
+
+        const prev = p.previousElementSibling;
+        const next = p.nextElementSibling;
+        const isInteriorSpacer = !!prev && !!next;
+        if (isInteriorSpacer) {
+          p.innerHTML = '<br>';
+        }
+        else {
           p.remove();
         }
       });
@@ -1444,7 +1634,61 @@
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      return md;
+      return this.normalizeMarkdownParagraphSpacing(md);
+    },
+
+    /**
+     * Normalize markdown spacing so paragraph-internal lines are not double-spaced.
+     *
+     * Keeps blank lines around block boundaries (headings/lists), but removes
+     * accidental blank lines between plain text lines in the same paragraph.
+     *
+     * @param {string} md - Raw markdown content.
+     * @returns {string} - Normalized markdown.
+     */
+    normalizeMarkdownParagraphSpacing: function (md) {
+      const lines = md.split('\n');
+      const normalized = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() !== '') {
+          normalized.push(line);
+          continue;
+        }
+
+        const prevLine = normalized.length ? normalized[normalized.length - 1].trim() : '';
+        let nextLine = '';
+        for (let j = i + 1; j < lines.length; j++) {
+          if (lines[j].trim() !== '') {
+            nextLine = lines[j].trim();
+            break;
+          }
+        }
+
+        const isHeading = text => /^#{1,6}\s/.test(text);
+        const isListItem = text => /^[-*]\s/.test(text) || /^\d+\.\s/.test(text);
+        const isMetaComment = text => /^<!--/.test(text);
+
+        const prevIsBlock = isHeading(prevLine) || isListItem(prevLine) || isMetaComment(prevLine);
+        const nextIsBlock = isHeading(nextLine) || isListItem(nextLine) || isMetaComment(nextLine);
+
+        // Remove empty lines between consecutive plain-text lines.
+        if (prevLine && nextLine && !prevIsBlock && !nextIsBlock) {
+          continue;
+        }
+
+        // Also collapse blank lines between consecutive list items.
+        if (isListItem(prevLine) && isListItem(nextLine)) {
+          continue;
+        }
+
+        if (normalized[normalized.length - 1] !== '') {
+          normalized.push('');
+        }
+      }
+
+      return normalized.join('\n').replace(/\n{3,}/g, '\n\n').trim();
     },
 
     /**

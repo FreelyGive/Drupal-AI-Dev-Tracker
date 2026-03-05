@@ -233,6 +233,10 @@
   margin: 0 0 2px;
 }
 
+.meta-issue-editor-content p + p {
+  margin-top: 10px;
+}
+
 .meta-issue-editor-content ul,
 .meta-issue-editor-content ol {
   margin: 0 0 2px;

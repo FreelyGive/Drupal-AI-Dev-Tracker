@@ -231,8 +231,9 @@ class MetaIssueEditorController extends ControllerBase {
    *   JSON response with fetched issue data.
    */
   public function fetchIssues(Request $request): JsonResponse {
-    // Validate CSRF token to prevent cross-site request forgery.
-    if (!$this->validateCsrfToken($request)) {
+    // Public read-only endpoint: enforce CSRF only for authenticated users.
+    // Anonymous access is protected by strict request validation + flood limits.
+    if ($this->currentUser()->isAuthenticated() && !$this->validateCsrfToken($request)) {
       return new JsonResponse(['error' => 'Invalid CSRF token'], 403);
     }
 
