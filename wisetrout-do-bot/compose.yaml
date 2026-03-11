@@ -1,0 +1,11 @@
+services:
+  do-bot-app:
+    container_name: do-bot-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: '.env'
+    volumes:
+    - type: bind
+      source: .
+      target: /app
