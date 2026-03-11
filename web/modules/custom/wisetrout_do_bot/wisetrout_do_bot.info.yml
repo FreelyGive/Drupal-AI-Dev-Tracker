@@ -1,0 +1,6 @@
+name: Wisetrout DO bot Module
+description: Enables Wisetrout DO bot in Telegram
+package: Custom
+
+type: module
+core_version_requirement: ^10.3 || ^11
