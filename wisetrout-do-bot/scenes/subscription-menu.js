@@ -2,7 +2,7 @@ import { Markup, Scenes } from "telegraf";
 import { getModulesList } from "../api-calls/modules-list.js";
 import { subscribe } from "../api-calls/subscription.js";
 
-const scene = new Scenes.BaseScene('subscription-menu');
+export const scene = new Scenes.BaseScene('subscription-menu');
 
 scene.enter(async ctx => {
     ctx.reply("Subscribe to:",
@@ -23,7 +23,10 @@ scene.action("all", async ctx => {
         subscribe(ctx.from.id)
     ]);
 
-    ctx.session.subscribed = true;
+    ctx.session.userInfo = {
+        subscribed: true,
+        modules: []
+    }
     ctx.reply('Subscription successful!');
     ctx.scene.leave();
 })
@@ -37,10 +40,10 @@ scene.action("specific", async ctx => {
     ;
 
     ctx.session.modules = modules;
-    ctx.session.selectedModules = [];
+    ctx.session.selectedModules = ctx.session.userInfo ? ctx.session.userInfo.modules : [];
 
     await ctx.reply('Please pick the modules you are interested in and click "subscribe".',
-        Markup.inlineKeyboard(createKeyboardRows(modules))
+        Markup.inlineKeyboard(createKeyboardRows(ctx))
     );
 })
 
@@ -49,7 +52,10 @@ scene.action("complete", async ctx => {
         ctx.reply('Subscribing to updates...'),
         subscribe(ctx.from.id, ctx.session.selectedModules)
     ]);
-    ctx.session.subscribed = true;
+    ctx.session.userInfo = {
+        subscribed: true,
+        modules: ctx.session.selectedModules
+    }
     delete ctx.session.selectedModule;
     delete ctx.session.modules;
     ctx.reply('Subscription successful!');
@@ -76,19 +82,18 @@ scene.on("callback_query", async ctx => {
     }
     ctx.editMessageReplyMarkup(
         {
-            inline_keyboard: createKeyboardRows(ctx.session.modules, ctx.session.selectedModules)
+            inline_keyboard: createKeyboardRows(ctx)
         }
     );
 });
 
-const stage = new Scenes.Stage([scene]);
-export const subscriptionMiddleware = stage.middleware();
 
-
-function createKeyboardRows(allModules, selectedModules = []){
+function createKeyboardRows(ctx){
     const keyboardRows = [];
 
-    allModules.forEach((module, moduleIndex) => {
+    const {modules, selectedModules} = ctx.session;
+
+    modules.forEach((module, moduleIndex) => {
 
         const {name, machine_name} = module;
         const moduleSelected = selectedModules.includes(machine_name);
