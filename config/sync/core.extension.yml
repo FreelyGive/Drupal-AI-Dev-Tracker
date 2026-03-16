@@ -94,9 +94,12 @@ module:
   redirect: 0
   redirect_404: 0
   responsive_image: 0
+  rest: 0
+  restui: 0
   sam: 0
   scheduler: 0
   scheduler_content_moderation_integration: 0
+  serialization: 0
   smart_date: 0
   svg_image: 0
   symfony_mailer_lite: 0
@@ -111,6 +114,7 @@ module:
   update: 0
   user: 0
   views_ui: 0
+  wisetrout_do_bot: 0
   workflows: 0
   eca_form: 1
   pathauto: 1
