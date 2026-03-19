@@ -1,0 +1,14 @@
+uuid: f23eae79-6b16-43bf-ad3b-b83a5f456195
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.telegram_bot
+  module:
+    - user
+id: user_add_role_action.telegram_bot
+label: 'Add the Telegram bot role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: telegram_bot

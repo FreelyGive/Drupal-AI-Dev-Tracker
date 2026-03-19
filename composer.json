@@ -38,6 +38,7 @@
         "drupal/project_browser": "@beta",
         "drupal/recipe_installer_kit": "^1-alpha3@alpha",
         "drupal/restui": "^1.22",
+        "drupal/simple_oauth": "^6.1",
         "drupal/webform": "@beta",
         "drush/drush": "^13"
     },

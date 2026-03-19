@@ -1,0 +1,9 @@
+uuid: ee20a0d5-2658-4a72-bfb5-4d6931951d7a
+langcode: en
+status: true
+dependencies: {  }
+id: telegram_bot
+label: 'Telegram bot'
+weight: 4
+is_admin: false
+permissions: {  }

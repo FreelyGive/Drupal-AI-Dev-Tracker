@@ -1,0 +1,14 @@
+uuid: 3ff75386-1efc-4a9a-a519-4ebdd9214266
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.telegram_bot
+  module:
+    - user
+id: user_remove_role_action.telegram_bot
+label: 'Remove the Telegram bot role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: telegram_bot
