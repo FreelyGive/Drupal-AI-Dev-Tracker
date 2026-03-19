@@ -1,0 +1,11 @@
+services:
+  do-bot:
+    build:
+      context: ../wisetrout-do-bot
+    networks: ["default", "ddev_default"]
+    env_file: ../wisetrout-do-bot/.env
+    volumes:
+    - type: bind
+      source: ../wisetrout-do-bot
+      target: /app
+    # command: "sh -c npm install && npm start"
