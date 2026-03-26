@@ -33,18 +33,24 @@ scene.action("all", async ctx => {
 
 scene.action("specific", async ctx => {
 
-    const [modules] = await Promise.all([
-        getModulesList(),
-        ctx.reply("Loading...")
-    ])
-    ;
+    try{
+        const [modules] = await Promise.all([
+            getModulesList(),
+            ctx.reply("Loading...")
+        ]);
 
-    ctx.session.modules = modules;
-    ctx.session.selectedModules = ctx.session.userInfo ? ctx.session.userInfo.modules : [];
+        ctx.session.modules = modules;
+        ctx.session.selectedModules = ctx.session.userInfo ? ctx.session.userInfo.modules : [];
 
-    await ctx.reply('Please pick the modules you are interested in and click "subscribe".',
-        Markup.inlineKeyboard(createKeyboardRows(ctx))
-    );
+        await ctx.reply('Please pick the modules you are interested in and click "subscribe".',
+            Markup.inlineKeyboard(createKeyboardRows(ctx))
+        );
+    }catch(err){
+        ctx.reply('Error');
+        ctx.reply(err);
+    }
+
+    
 })
 
 scene.action("complete", async ctx => {

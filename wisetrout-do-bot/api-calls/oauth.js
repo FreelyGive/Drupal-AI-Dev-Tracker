@@ -16,7 +16,7 @@ export async function getOAuthToken(){
         body: body
         })
 
-        if(!res.ok) throw new Error('Request issue');
+        if(!res.ok) throw new Error(res.status);
 
         const json = await res.json();
 
