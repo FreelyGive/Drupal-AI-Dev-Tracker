@@ -127,6 +127,28 @@
     },
 
     /**
+     * Publish a draft and return share URL.
+     *
+     * @param {number} draftNid - Draft node id.
+     * @returns {Promise} - Promise resolving to publish result.
+     */
+    publishDraft: function (draftNid) {
+      const csrfToken = this.getCsrfToken();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
+      return fetch('/api/meta-issue-editor/publish-draft/' + draftNid, {
+        method: 'POST',
+        headers: headers,
+      })
+      .then(response => this.handleResponse(response));
+    },
+
+    /**
      * Fetch meta-issue body from drupal.org.
      *
      * @param {number} issueNumber - The meta-issue number.

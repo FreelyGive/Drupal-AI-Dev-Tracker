@@ -1,0 +1,96 @@
+{#
+/**
+ * @file
+ * Template for published/private draft review.
+ *
+ * Variables:
+ * - draft: Draft metadata.
+ * - diff_rows: Side-by-side diff rows.
+ * - notes: Draft notes list.
+ */
+#}
+<div class="meta-issue-editor-page">
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/roadmap" class="nav-link">Roadmap</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+      <a href="/ai-dashboard/meta-issue-editor" class="nav-link active">Meta Issue Editor</a>
+    </div>
+  </div>
+
+  <div class="meta-issue-draft-view-wrapper">
+    <h2>{{ draft.title }}</h2>
+    <p>
+      Source issue:
+      <a href="https://www.drupal.org/node/{{ draft.source_issue }}" target="_blank" rel="noopener">#{{ draft.source_issue }}</a>
+      |
+      Updated: {{ draft.updated }}
+      |
+      {% if draft.is_published %}
+        <span class="meta-issue-status-pill published">Published</span>
+      {% else %}
+        <span class="meta-issue-status-pill private">Private</span>
+      {% endif %}
+      {% if draft.editor_url %}
+        | <a href="{{ draft.editor_url }}">Edit Draft</a>
+      {% endif %}
+    </p>
+    <p>Share link: <a href="{{ draft.share_url }}" target="_blank" rel="noopener">{{ draft.share_url }}</a></p>
+
+    <div class="meta-issue-diff-layout">
+      <div class="meta-issue-diff-panel">
+        <h3>Original (drupal.org)</h3>
+        <table class="meta-issue-diff-table">
+          <tbody>
+            {% for row in diff_rows %}
+              <tr class="{{ row.type }}">
+                <td class="left">{{ row.left }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="meta-issue-diff-panel">
+        <h3>Draft</h3>
+        <table class="meta-issue-diff-table">
+          <tbody>
+            {% for row in diff_rows %}
+              <tr class="{{ row.type }}">
+                <td class="right">{{ row.right }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="meta-issue-diff-panel">
+        <h3>Notes</h3>
+        {% if notes %}
+          <ul class="meta-issue-note-list">
+            {% for note in notes %}
+              <li class="meta-issue-note-item">
+                <h4>
+                  #{{ note.issue_number }}
+                  {% if note.title %}
+                    — {{ note.title }}
+                  {% endif %}
+                </h4>
+                <p>{{ note.text }}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="meta-issue-note-item">
+            <p>No notes in this draft.</p>
+          </div>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+</div>

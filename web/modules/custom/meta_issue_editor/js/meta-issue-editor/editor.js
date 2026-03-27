@@ -2,26 +2,9 @@
  * @file
  * Main editor initialization for Meta-Issue-Editor.
  *
- * TECHNICAL NOTE: TipTap Integration Status
- * =========================================
- * This editor currently uses a contenteditable fallback with execCommand
- * for formatting. The TipTap CDN libraries are loaded but not fully
- * integrated because:
- *
- * 1. TipTap is designed as an ES module and CDN UMD builds have
- *    compatibility issues with Drupal's JavaScript loading
- * 2. The execCommand API, while deprecated, still works in all browsers
- *    and provides basic formatting (bold, italic, lists, headings)
- * 3. The primary value of this editor is issue block management and
- *    drag-drop reordering, which work without TipTap
- *
- * To properly integrate TipTap, you would need to:
- * 1. Add a build step (npm/webpack) to bundle TipTap properly
- * 2. Create custom TipTap extensions for issue blocks
- * 3. Replace the contenteditable approach with TipTap's editor instance
- *
- * The current approach is functional for MVP purposes. Full TipTap
- * integration should be done when build tooling is established.
+ * This editor intentionally uses a contenteditable-based implementation
+ * with issue-block enhancements. TipTap is not loaded in production for
+ * this feature to avoid runtime CDN/module compatibility failures.
  */
 
 (function (Drupal, drupalSettings, once) {
@@ -48,6 +31,11 @@
     settings: null,
 
     /**
+     * Current draft node id (if loaded/saved).
+     */
+    currentDraftNid: null,
+
+    /**
      * Local storage key for the last loaded issue number.
      */
     lastIssueStorageKey: 'metaIssueEditor.lastLoadedIssue',
@@ -61,12 +49,18 @@
 
       this.settings = drupalSettings.metaIssueEditor || {};
       this.sourceIssue = parseInt(this.settings.issueNumber, 10) || null;
+      this.currentDraftNid = parseInt(this.settings.draft?.nid, 10) || null;
 
       // Initialize editor content area
       this.initEditorArea();
 
       // Set up event listeners
       this.setupEventListeners();
+      this.updateDraftViewLink(
+        this.settings.draft?.published && this.currentDraftNid
+          ? this.getDraftViewUrl(this.currentDraftNid)
+          : null
+      );
 
       // Initialize drag-and-drop for issue blocks
       Drupal.metaIssueBlock.initDragDrop();
@@ -96,7 +90,12 @@
      * @param {boolean} updateUrl - Whether to update the browser URL.
      */
     syncLoadedIssue: function (issueNumber, updateUrl = true) {
+      const changedIssue = this.sourceIssue !== issueNumber;
       this.sourceIssue = issueNumber;
+      if (changedIssue) {
+        this.currentDraftNid = null;
+        this.updateDraftViewLink(null);
+      }
 
       const input = document.getElementById('issue-number-input');
       if (input) {
@@ -249,6 +248,11 @@
       const saveBtn = document.getElementById('save-draft-btn');
       if (saveBtn) {
         saveBtn.addEventListener('click', () => this.saveDraft());
+      }
+
+      const publishBtn = document.getElementById('publish-draft-btn');
+      if (publishBtn) {
+        publishBtn.addEventListener('click', () => this.publishDraft());
       }
 
       // Export buttons
@@ -535,6 +539,8 @@
       const editorEl = document.getElementById('meta-issue-editor-content');
       const statusEl = document.getElementById('editor-status');
       if (!editorEl) return;
+      this.currentDraftNid = parseInt(draft.nid, 10) || this.currentDraftNid;
+      this.updateDraftViewLink(draft.published ? this.getDraftViewUrl(this.currentDraftNid) : null);
 
       // Parse editor content (handle both key names for compatibility)
       const editorContentRaw = draft.editor_content || draft.content;
@@ -1212,16 +1218,18 @@
     saveDraft: function () {
       if (!this.sourceIssue) {
         alert('Please load or specify an issue number first');
-        return;
+        return Promise.resolve(null);
       }
 
       if (!this.settings.canSave) {
         alert('You do not have permission to save drafts');
-        return;
+        return Promise.resolve(null);
       }
 
       const editorEl = document.getElementById('meta-issue-editor-content');
-      if (!editorEl) return;
+      if (!editorEl) {
+        return Promise.resolve(null);
+      }
 
       const statusEl = document.getElementById('editor-status');
       if (statusEl) statusEl.textContent = 'Saving...';
@@ -1231,21 +1239,106 @@
         notes: Drupal.metaIssueBlock.getAllNotes(),
       };
 
-      Drupal.metaIssueEditorApi.saveDraft(
+      return Drupal.metaIssueEditorApi.saveDraft(
         this.sourceIssue,
         JSON.stringify(content),
         JSON.stringify(Drupal.metaIssueBlock.issueCache)
       )
         .then(result => {
           if (result.success) {
+            this.currentDraftNid = parseInt(result.nid, 10) || this.currentDraftNid;
             if (statusEl) statusEl.textContent = 'Draft saved';
+            this.updateDraftViewLink(result.share_url || null);
+            return result;
           } else {
             if (statusEl) statusEl.textContent = 'Save failed: ' + (result.error || 'Unknown error');
+            return null;
           }
         })
         .catch(err => {
           if (statusEl) statusEl.textContent = 'Save failed: ' + err.message;
+          return null;
         });
+    },
+
+    /**
+     * Publish current draft and expose a review/share URL.
+     */
+    publishDraft: function () {
+      if (!this.settings.canSave) {
+        return;
+      }
+
+      const statusEl = document.getElementById('editor-status');
+      if (statusEl) {
+        statusEl.textContent = 'Publishing draft...';
+      }
+
+      const ensureDraftPromise = this.currentDraftNid
+        ? Promise.resolve({ nid: this.currentDraftNid })
+        : this.saveDraft();
+
+      ensureDraftPromise
+        .then(result => {
+          const draftNid = parseInt(result?.nid || this.currentDraftNid, 10);
+          if (!draftNid) {
+            throw new Error('Please save a draft first.');
+          }
+          this.currentDraftNid = draftNid;
+          return Drupal.metaIssueEditorApi.publishDraft(draftNid);
+        })
+        .then(result => {
+          if (!result?.success) {
+            throw new Error(result?.error || 'Publish failed');
+          }
+
+          this.updateDraftViewLink(result.share_url || this.getDraftViewUrl(this.currentDraftNid));
+          if (statusEl) {
+            statusEl.textContent = 'Draft published. Share link ready.';
+          }
+        })
+        .catch(err => {
+          if (statusEl) {
+            statusEl.textContent = 'Publish failed: ' + err.message;
+          }
+        });
+    },
+
+    /**
+     * Build draft review URL for a given draft nid.
+     *
+     * @param {number|null} draftNid - Draft node id.
+     * @returns {string|null} - Draft review URL.
+     */
+    getDraftViewUrl: function (draftNid) {
+      const nid = parseInt(draftNid, 10);
+      if (!nid) {
+        return null;
+      }
+
+      const base = this.settings.draftViewBasePath || '/ai-dashboard/meta-issue-editor/draft/';
+      return base + nid;
+    },
+
+    /**
+     * Show or hide the "View Draft" link.
+     *
+     * @param {string|null} url - Draft URL.
+     */
+    updateDraftViewLink: function (url) {
+      const viewLink = document.getElementById('view-draft-link');
+      if (!viewLink) {
+        return;
+      }
+
+      if (!url) {
+        viewLink.classList.add('is-hidden');
+        viewLink.removeAttribute('href');
+        return;
+      }
+
+      viewLink.href = url;
+      viewLink.classList.remove('is-hidden');
     },
 
     /**

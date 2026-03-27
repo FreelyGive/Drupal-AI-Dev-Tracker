@@ -6,10 +6,14 @@ use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Flood\FloodInterface;
+use Drupal\Core\Url;
+use Drupal\Component\Diff\Diff;
 use Drupal\meta_issue_editor\Service\MetaIssueParserService;
 use Drupal\node\NodeInterface;
 use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -152,11 +156,12 @@ class MetaIssueEditorController extends ControllerBase {
    * @return array
    *   A render array.
    */
-  public function editor($issue_number = NULL): array {
+  public function editor($issue_number = NULL, Request $request = NULL): array {
     $canSave = $this->currentUser()->hasPermission('save meta issue drafts');
     $canLoadDraft = $canSave;
     // Public editor access requires public fetch access for "Load" to work.
     $canFetch = TRUE;
+    $requestedDraftNid = $request ? (int) $request->query->get('draft', 0) : 0;
 
     $build = [
       '#theme' => 'meta_issue_editor',
@@ -174,17 +179,35 @@ class MetaIssueEditorController extends ControllerBase {
             'canLoadDraft' => $canLoadDraft,
             'canFetch' => $canFetch,
             'csrfToken' => $this->csrfToken->get('meta_issue_editor'),
+            'myDraftsUrl' => Url::fromRoute('meta_issue_editor.my_drafts')->toString(),
+            'draftViewBasePath' => '/ai-dashboard/meta-issue-editor/draft/',
           ],
         ],
       ],
     ];
 
-    // If issue number provided, try to load existing draft or fetch from d.o.
-    if ($issue_number && $canLoadDraft) {
-      $draft = $this->loadDraftBySourceIssue($issue_number);
+    // If explicit draft id is requested, load that draft first.
+    if ($requestedDraftNid && $canLoadDraft) {
+      $draft = $this->loadOwnedDraftByNid($requestedDraftNid);
+      if ($draft) {
+        $issue_number = (int) $draft->get('field_source_issue')->value;
+        $build['#issue_number'] = $issue_number;
+        $build['#attached']['drupalSettings']['metaIssueEditor']['issueNumber'] = $issue_number;
+        $build['#attached']['drupalSettings']['metaIssueEditor']['draft'] = [
+          'nid' => $draft->id(),
+          'published' => $draft->isPublished(),
+          'editor_content' => $draft->get('field_editor_content')->value,
+          'issue_cache' => $draft->get('field_issue_cache')->value,
+        ];
+      }
+    }
+    // Otherwise if issue number provided, load current user's draft.
+    elseif ($issue_number && $canLoadDraft) {
+      $draft = $this->loadDraftBySourceIssue((int) $issue_number);
       if ($draft) {
         $build['#attached']['drupalSettings']['metaIssueEditor']['draft'] = [
           'nid' => $draft->id(),
+          'published' => $draft->isPublished(),
           'editor_content' => $draft->get('field_editor_content')->value,
           'issue_cache' => $draft->get('field_issue_cache')->value,
         ];
@@ -219,6 +242,155 @@ class MetaIssueEditorController extends ControllerBase {
       '#content' => $content,
       '#issue_number' => $issueNumber,
     ];
+  }
+
+  /**
+   * Displays the current user's drafts.
+   *
+   * @return array
+   *   A render array.
+   */
+  public function myDrafts(): array {
+    $uid = (int) $this->currentUser()->id();
+    $storage = $this->entityTypeManager->getStorage('node');
+    $nids = $storage->getQuery()
+      ->condition('type', 'meta_issue_draft')
+      ->condition('uid', $uid)
+      ->accessCheck(FALSE)
+      ->sort('changed', 'DESC')
+      ->execute();
+
+    $drafts = [];
+    if (!empty($nids)) {
+      $nodes = $storage->loadMultiple($nids);
+      foreach ($nodes as $node) {
+        if (!$node instanceof NodeInterface) {
+          continue;
+        }
+
+        $drafts[] = [
+          'nid' => (int) $node->id(),
+          'title' => $node->label(),
+          'source_issue' => (int) $node->get('field_source_issue')->value,
+          'updated' => \Drupal::service('date.formatter')->format($node->getChangedTime(), 'short'),
+          'is_published' => $node->isPublished(),
+          'editor_url' => Url::fromRoute('meta_issue_editor.editor_load', [
+            'issue_number' => (int) $node->get('field_source_issue')->value,
+          ], [
+            'query' => ['draft' => (int) $node->id()],
+          ])->toString(),
+          'review_url' => Url::fromRoute('meta_issue_editor.draft_view', [
+            'draft_nid' => (int) $node->id(),
+          ])->toString(),
+        ];
+      }
+    }
+
+    return [
+      '#theme' => 'meta_issue_editor_my_drafts',
+      '#drafts' => $drafts,
+    ];
+  }
+
+  /**
+   * Displays a published/private draft review with side-by-side comparison.
+   *
+   * @param int $draft_nid
+   *   Draft node id.
+   *
+   * @return array
+   *   A render array.
+   */
+  public function draftView(int $draft_nid): array {
+    $draft = $this->loadDraftNodeByNid($draft_nid);
+    if (!$draft) {
+      throw new NotFoundHttpException();
+    }
+
+    $ownerId = (int) $draft->getOwnerId();
+    $currentUid = (int) $this->currentUser()->id();
+    $isOwner = $currentUid > 0 && $ownerId === $currentUid;
+    $canManage = $isOwner || $this->currentUser()->hasPermission('administer nodes');
+
+    if (!$draft->isPublished() && !$canManage) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $sourceIssue = (int) $draft->get('field_source_issue')->value;
+    $contentRaw = (string) $draft->get('field_editor_content')->value;
+    $draftPayload = json_decode($contentRaw, TRUE) ?: [];
+    $draftHtml = (string) ($draftPayload['html'] ?? '');
+    $notesMap = is_array($draftPayload['notes'] ?? NULL) ? $draftPayload['notes'] : [];
+
+    $issueCacheRaw = (string) $draft->get('field_issue_cache')->value;
+    $issueCache = json_decode($issueCacheRaw, TRUE) ?: [];
+    $notes = $this->formatDraftNotesForView($notesMap, $issueCache);
+
+    $sourceData = $this->fetchIssueFromDrupalOrg($sourceIssue) ?: [];
+    $sourceHtml = (string) ($sourceData['body'] ?? '');
+
+    $sourceLines = $this->htmlToDiffLines($sourceHtml);
+    $draftLines = $this->htmlToDiffLines($draftHtml);
+    $diffRows = $this->buildSideBySideDiffRows($sourceLines, $draftLines);
+
+    return [
+      '#theme' => 'meta_issue_editor_draft_view',
+      '#draft' => [
+        'nid' => $draft_nid,
+        'title' => $draft->label(),
+        'source_issue' => $sourceIssue,
+        'is_published' => $draft->isPublished(),
+        'updated' => \Drupal::service('date.formatter')->format($draft->getChangedTime(), 'short'),
+        'editor_url' => $canManage ? Url::fromRoute('meta_issue_editor.editor_load', [
+          'issue_number' => $sourceIssue,
+        ], ['query' => ['draft' => $draft_nid]])->toString() : NULL,
+        'share_url' => Url::fromRoute('meta_issue_editor.draft_view', [
+          'draft_nid' => $draft_nid,
+        ], ['absolute' => TRUE])->toString(),
+      ],
+      '#diff_rows' => $diffRows,
+      '#notes' => $notes,
+    ];
+  }
+
+  /**
+   * API: Publish a draft and return share URL.
+   *
+   * @param int $draft_nid
+   *   Draft node id.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response.
+   */
+  public function publishDraft(int $draft_nid, Request $request): JsonResponse {
+    if (!$this->validateCsrfToken($request)) {
+      return new JsonResponse(['error' => 'Invalid CSRF token'], 403);
+    }
+
+    $draft = $this->loadOwnedDraftByNid($draft_nid);
+    if (!$draft) {
+      return new JsonResponse(['error' => 'Draft not found'], 404);
+    }
+
+    if (!$draft->isPublished()) {
+      $draft->setPublished(TRUE);
+      $draft->setNewRevision(TRUE);
+      $draft->setRevisionLogMessage('Published for shared review');
+      $draft->save();
+    }
+
+    $shareUrl = Url::fromRoute('meta_issue_editor.draft_view', [
+      'draft_nid' => $draft_nid,
+    ], ['absolute' => TRUE])->toString();
+
+    return new JsonResponse([
+      'success' => TRUE,
+      'nid' => $draft_nid,
+      'share_url' => $shareUrl,
+      'message' => 'Draft published',
+    ]);
   }
 
   /**
@@ -383,7 +555,7 @@ class MetaIssueEditorController extends ControllerBase {
       return new JsonResponse(['error' => 'Source issue number required'], 400);
     }
 
-    // Check for existing draft.
+    // Check for existing draft owned by current user.
     $existing = $this->loadDraftBySourceIssue($sourceIssue);
 
     if ($existing) {
@@ -397,6 +569,9 @@ class MetaIssueEditorController extends ControllerBase {
       return new JsonResponse([
         'success' => TRUE,
         'nid' => $existing->id(),
+        'share_url' => $existing->isPublished()
+          ? Url::fromRoute('meta_issue_editor.draft_view', ['draft_nid' => (int) $existing->id()], ['absolute' => TRUE])->toString()
+          : NULL,
         'message' => 'Draft updated',
       ]);
     }
@@ -406,6 +581,8 @@ class MetaIssueEditorController extends ControllerBase {
       $node = $nodeStorage->create([
         'type' => 'meta_issue_draft',
         'title' => 'Meta #' . $sourceIssue,
+        'uid' => (int) $this->currentUser()->id(),
+        'status' => 0,
         'field_source_issue' => $sourceIssue,
         'field_editor_content' => $editorContent,
         'field_issue_cache' => $issueCache,
@@ -415,6 +592,7 @@ class MetaIssueEditorController extends ControllerBase {
       return new JsonResponse([
         'success' => TRUE,
         'nid' => $node->id(),
+        'share_url' => NULL,
         'message' => 'Draft created',
       ]);
     }
@@ -430,6 +608,13 @@ class MetaIssueEditorController extends ControllerBase {
    *   JSON response.
    */
   public function loadDraft(int $source_issue): JsonResponse {
+    if (!$this->currentUser()->isAuthenticated()) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Login required to load personal drafts.',
+      ], 403);
+    }
+
     $draft = $this->loadDraftBySourceIssue($source_issue);
 
     if ($draft) {
@@ -439,6 +624,7 @@ class MetaIssueEditorController extends ControllerBase {
           'nid' => $draft->id(),
           'title' => $draft->label(),
           'source_issue' => $source_issue,
+          'published' => $draft->isPublished(),
           'editor_content' => $draft->get('field_editor_content')->value,
           'issue_cache' => $draft->get('field_issue_cache')->value,
         ],
@@ -461,14 +647,21 @@ class MetaIssueEditorController extends ControllerBase {
    *   The draft node, or NULL if not found.
    */
   protected function loadDraftBySourceIssue(int $source_issue): ?NodeInterface {
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
+    if (!$this->currentUser()->isAuthenticated()) {
+      return NULL;
+    }
 
-    // Using accessCheck(FALSE) is safe here because meta issue drafts are only
-    // returned through protected routes/methods and never exposed publicly.
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
+    $uid = (int) $this->currentUser()->id();
+
+    // Using accessCheck(FALSE) is safe here because this method enforces
+    // ownership and only returns the current user's draft.
     $query = $nodeStorage->getQuery()
       ->condition('type', 'meta_issue_draft')
       ->condition('field_source_issue', $source_issue)
+      ->condition('uid', $uid)
       ->accessCheck(FALSE)
+      ->sort('changed', 'DESC')
       ->range(0, 1);
 
     $nids = $query->execute();
@@ -478,6 +671,196 @@ class MetaIssueEditorController extends ControllerBase {
     }
 
     return NULL;
+  }
+
+  /**
+   * Load a draft node by nid.
+   *
+   * @param int $draft_nid
+   *   Draft node id.
+   *
+   * @return \Drupal\node\NodeInterface|null
+   *   Draft node if found.
+   */
+  protected function loadDraftNodeByNid(int $draft_nid): ?NodeInterface {
+    $node = $this->entityTypeManager->getStorage('node')->load($draft_nid);
+    if (!$node instanceof NodeInterface || $node->bundle() !== 'meta_issue_draft') {
+      return NULL;
+    }
+    return $node;
+  }
+
+  /**
+   * Load an owned draft node by nid.
+   *
+   * @param int $draft_nid
+   *   Draft node id.
+   *
+   * @return \Drupal\node\NodeInterface|null
+   *   Owned draft node if found.
+   */
+  protected function loadOwnedDraftByNid(int $draft_nid): ?NodeInterface {
+    $draft = $this->loadDraftNodeByNid($draft_nid);
+    if (!$draft) {
+      return NULL;
+    }
+
+    $currentUid = (int) $this->currentUser()->id();
+    $ownerId = (int) $draft->getOwnerId();
+    if ($currentUid > 0 && $ownerId === $currentUid) {
+      return $draft;
+    }
+
+    if ($this->currentUser()->hasPermission('administer nodes')) {
+      return $draft;
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Convert HTML content to normalized line array for diff display.
+   *
+   * @param string $html
+   *   HTML content.
+   *
+   * @return array
+   *   Normalized lines.
+   */
+  protected function htmlToDiffLines(string $html): array {
+    if ($html === '') {
+      return [];
+    }
+
+    $text = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $html);
+    $text = preg_replace('/<\/(p|div|li|ul|ol|h1|h2|h3|h4|h5|h6|blockquote|pre)>/i', "\n", $text);
+    $text = strip_tags($text);
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $text = preg_replace("/[ \t]+\n/", "\n", $text);
+    $text = preg_replace("/\n{3,}/", "\n\n", $text);
+
+    $lines = explode("\n", $text);
+    $normalized = [];
+    foreach ($lines as $line) {
+      $normalized[] = rtrim($line);
+    }
+
+    while (!empty($normalized) && trim((string) $normalized[0]) === '') {
+      array_shift($normalized);
+    }
+    while (!empty($normalized) && trim((string) end($normalized)) === '') {
+      array_pop($normalized);
+    }
+
+    return $normalized;
+  }
+
+  /**
+   * Build side-by-side rows from two line arrays.
+   *
+   * @param array $source_lines
+   *   Source lines (left).
+   * @param array $draft_lines
+   *   Draft lines (right).
+   *
+   * @return array
+   *   Diff rows.
+   */
+  protected function buildSideBySideDiffRows(array $source_lines, array $draft_lines): array {
+    $rows = [];
+    $diff = new Diff($source_lines, $draft_lines);
+
+    foreach ($diff->getEdits() as $edit) {
+      if ($edit->type === 'copy') {
+        foreach ($edit->orig as $line) {
+          $rows[] = [
+            'type' => 'same',
+            'left' => (string) $line,
+            'right' => (string) $line,
+          ];
+        }
+        continue;
+      }
+
+      if ($edit->type === 'delete') {
+        foreach ($edit->orig as $line) {
+          $rows[] = [
+            'type' => 'removed',
+            'left' => (string) $line,
+            'right' => '',
+          ];
+        }
+        continue;
+      }
+
+      if ($edit->type === 'add') {
+        foreach ($edit->closing as $line) {
+          $rows[] = [
+            'type' => 'added',
+            'left' => '',
+            'right' => (string) $line,
+          ];
+        }
+        continue;
+      }
+
+      if ($edit->type === 'change') {
+        $orig = is_array($edit->orig) ? $edit->orig : [];
+        $closing = is_array($edit->closing) ? $edit->closing : [];
+        $max = max(count($orig), count($closing));
+        for ($i = 0; $i < $max; $i++) {
+          $left = (string) ($orig[$i] ?? '');
+          $right = (string) ($closing[$i] ?? '');
+          $rows[] = [
+            'type' => 'changed',
+            'left' => $left,
+            'right' => $right,
+          ];
+        }
+      }
+    }
+
+    return $rows;
+  }
+
+  /**
+   * Format note map for review sidebar.
+   *
+   * @param array $notes_map
+   *   Raw notes keyed by issue number.
+   * @param array $issue_cache
+   *   Draft issue cache map.
+   *
+   * @return array
+   *   Formatted notes.
+   */
+  protected function formatDraftNotesForView(array $notes_map, array $issue_cache): array {
+    $notes = [];
+    foreach ($notes_map as $issue_number => $note) {
+      $noteText = trim((string) $note);
+      if ($noteText === '') {
+        continue;
+      }
+
+      $issueKey = (string) $issue_number;
+      $title = '';
+      if (!empty($issue_cache[$issueKey]['title'])) {
+        $title = (string) $issue_cache[$issueKey]['title'];
+      }
+      elseif (!empty($issue_cache[(int) $issue_number]['title'])) {
+        $title = (string) $issue_cache[(int) $issue_number]['title'];
+      }
+
+      $notes[] = [
+        'issue_number' => (int) $issue_number,
+        'title' => $title,
+        'text' => $noteText,
+      ];
+    }
+
+    usort($notes, static fn(array $a, array $b): int => $a['issue_number'] <=> $b['issue_number']);
+    return $notes;
   }
 
   /**

@@ -25,6 +25,23 @@ meta_issue_editor.export:
     format: 'html|markdown'
   methods: [POST]
 
+meta_issue_editor.my_drafts:
+  path: '/ai-dashboard/meta-issue-editor/my-drafts'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::myDrafts'
+    _title: 'My Meta-Issue Drafts'
+  requirements:
+    _permission: 'save meta issue drafts'
+
+meta_issue_editor.draft_view:
+  path: '/ai-dashboard/meta-issue-editor/draft/{draft_nid}'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::draftView'
+    _title: 'Meta-Issue Draft Review'
+  requirements:
+    _access: 'TRUE'
+    draft_nid: '\d+'
+
 # API endpoints
 meta_issue_editor.api.fetch_issues:
   path: '/api/meta-issue-editor/fetch-issues'
@@ -58,3 +75,12 @@ meta_issue_editor.api.load_draft:
     _permission: 'save meta issue drafts'
     source_issue: '\d+'
   methods: [GET]
+
+meta_issue_editor.api.publish_draft:
+  path: '/api/meta-issue-editor/publish-draft/{draft_nid}'
+  defaults:
+    _controller: '\Drupal\meta_issue_editor\Controller\MetaIssueEditorController::publishDraft'
+  requirements:
+    _permission: 'save meta issue drafts'
+    draft_nid: '\d+'
+  methods: [POST]

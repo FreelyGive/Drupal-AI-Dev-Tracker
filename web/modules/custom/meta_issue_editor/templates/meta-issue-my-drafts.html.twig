@@ -1,0 +1,65 @@
+{#
+/**
+ * @file
+ * Template for current user's meta-issue drafts.
+ *
+ * Variables:
+ * - drafts: Array of draft rows.
+ */
+#}
+<div class="meta-issue-editor-page">
+  <div class="dashboard-navigation">
+    <div class="nav-links">
+      <a href="/ai-dashboard" class="nav-link">Dashboard</a>
+      <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
+      <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
+      <a href="/ai-dashboard/roadmap" class="nav-link">Roadmap</a>
+      <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
+      <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
+      <a href="/ai-dashboard/docs" class="nav-link">Docs</a>
+      <a href="/ai-dashboard/meta-issue-editor" class="nav-link active">Meta Issue Editor</a>
+    </div>
+  </div>
+
+  <div class="meta-issue-drafts-wrapper">
+    <h2>My Drafts</h2>
+
+    {% if drafts %}
+      <table class="meta-issue-drafts-table">
+        <thead>
+          <tr>
+            <th>Draft</th>
+            <th>Source Issue</th>
+            <th>Updated</th>
+            <th>Status</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for draft in drafts %}
+            <tr>
+              <td>#{{ draft.nid }} — {{ draft.title }}</td>
+              <td>#{{ draft.source_issue }}</td>
+              <td>{{ draft.updated }}</td>
+              <td>
+                {% if draft.is_published %}
+                  <span class="meta-issue-status-pill published">Published</span>
+                {% else %}
+                  <span class="meta-issue-status-pill private">Private</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="meta-issue-link-group">
+                  <a href="{{ draft.editor_url }}">Edit</a>
+                  <a href="{{ draft.review_url }}" target="_blank" rel="noopener">Review</a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>You do not have any drafts yet.</p>
+    {% endif %}
+  </div>
+</div>

@@ -44,6 +44,20 @@ function meta_issue_editor_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'meta-issue-export',
     ],
+    'meta_issue_editor_my_drafts' => [
+      'variables' => [
+        'drafts' => [],
+      ],
+      'template' => 'meta-issue-my-drafts',
+    ],
+    'meta_issue_editor_draft_view' => [
+      'variables' => [
+        'draft' => [],
+        'diff_rows' => [],
+        'notes' => [],
+      ],
+      'template' => 'meta-issue-draft-view',
+    ],
   ];
 }
 
@@ -53,6 +67,20 @@ function meta_issue_editor_theme($existing, $type, $theme, $path) {
 function meta_issue_editor_preprocess_meta_issue_export(&$variables) {
   // Attach the export library for copy-to-clipboard functionality.
   $variables['#attached']['library'][] = 'meta_issue_editor/export';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for meta_issue_editor_my_drafts.
+ */
+function meta_issue_editor_preprocess_meta_issue_editor_my_drafts(&$variables) {
+  $variables['#attached']['library'][] = 'meta_issue_editor/review';
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for meta_issue_editor_draft_view.
+ */
+function meta_issue_editor_preprocess_meta_issue_editor_draft_view(&$variables) {
+  $variables['#attached']['library'][] = 'meta_issue_editor/review';
 }
 
 /**
@@ -98,8 +126,11 @@ function meta_issue_editor_node_view(array &$build, EntityInterface $entity, Ent
             'canSave' => $currentUser->hasPermission('save meta issue drafts'),
             'canFetch' => $currentUser->hasPermission('fetch issues from drupal org'),
             'csrfToken' => \Drupal::csrfToken()->get('meta_issue_editor'),
+            'myDraftsUrl' => '/ai-dashboard/meta-issue-editor/my-drafts',
+            'draftViewBasePath' => '/ai-dashboard/meta-issue-editor/draft/',
             'draft' => [
               'nid' => $entity->id(),
+              'published' => $entity->isPublished(),
               'editor_content' => $entity->get('field_editor_content')->value,
               'issue_cache' => $entity->get('field_issue_cache')->value,
             ],
