@@ -2,6 +2,7 @@
 
 namespace Drupal\wisetrout_do_bot\Plugin\rest\resource;
 
+
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
 
@@ -18,20 +19,14 @@ use Drupal\rest\ResourceResponse;
  */
 class ModulesList extends ResourceBase {
   public function get() {
-    $data = [
-        [
-            'name' =>  "Ctools",
-            'machine_name' =>  "ctools"
-        ], 
-        [
-            'name' =>  "Meta tag",
-            'machine_name' =>  "metatag"
-        ], 
-        [
-            'name' =>  "Commerce",
-            'machine_name' =>  "commerce"
-        ], 
-    ];
-    return new ResourceResponse($data);
+
+    $nids = \Drupal::entityQuery('node')
+    ->condition('type', 'ai_module')
+    ->accessCheck(FALSE)
+    ->execute();
+
+    $nodes = \Drupal\node\Entity\node::loadMultiple($nids);
+
+    return new ResourceResponse($nodes);
   }
 }
