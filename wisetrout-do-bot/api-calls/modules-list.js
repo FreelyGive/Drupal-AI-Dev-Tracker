@@ -1,4 +1,4 @@
-import { oAuthToken } from "../oauth";
+import { oAuthToken } from "../oauth.js";
 
 export async function getModulesList(){
     const response = await fetch(process.env.BASE_URL + '/api/telegram/modules-list', {
@@ -8,7 +8,21 @@ export async function getModulesList(){
                }
     })
 
-    if(!response.ok) throw new Error(response.status)
+    if(!response.ok) throw new Error(response.status);
 
-    return await response.json();
+    const resObj = await response.json();
+
+    const modules = [];
+    for(const id in resObj){
+
+        const { field_module_machine_name } = resObj[id];
+
+        modules.push(field_module_machine_name[0].value);
+    }
+
+    modules.sort();
+    
+
+    return modules;
 }
+

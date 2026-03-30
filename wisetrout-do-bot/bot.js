@@ -70,11 +70,11 @@ function activateBot(){
         ctx.scene.enter('wipeout');
     });
 
-    // bot.action('help', async ctx => {
-    //     ctx.reply('You may use the following commands to manage your subscription:',
-    //         createActionsKeyboard(ctx)
-    //     );
-    // });
+    bot.help(async ctx => {
+        ctx.reply('You may use the following commands to manage your subscription:',
+            createActionsKeyboard(ctx)
+        );
+    });
 
     bot.launch();
 
