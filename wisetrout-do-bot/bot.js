@@ -5,7 +5,7 @@ import { createActionsKeyboard } from './markup/keyboards.js';
 import { scene as wipeoutScene } from './scenes/wipeout.js';
 import { subscribe, unsubscribe } from './api-calls/subscription.js';
 import { Stage } from 'telegraf/scenes';
-import { activateOAuthToken, oAuthToken } from './oauth.js';
+import { activateOAuthToken } from './oauth.js';
 
 activateOAuthToken()
 .then(() => {
@@ -26,9 +26,6 @@ function activateBot(){
     bot.use(stage.middleware());
 
     bot.start(ctx => {
-
-        ctx.reply(oAuthToken ? 'Token created' : 'Could not create token')
-
 
         ctx.reply(
             'Welcome to the Wisetrout Drupal org bot!', 

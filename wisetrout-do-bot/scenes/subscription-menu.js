@@ -22,7 +22,7 @@ scene.enter(async ctx => {
 scene.action("all", async ctx => {
     await Promise.all([
         ctx.reply('Subscribing to updates...'),
-        subscribe(ctx.from.id)
+        subscribe(ctx.from)
     ]);
 
     ctx.session.userInfo = {
@@ -76,11 +76,8 @@ scene.action("page_next", ctx => {
 
 scene.command(/.+/, async ctx => {
     const { command } = ctx;
-    console.log('Command:');
-    console.log(command);
-    
 
-    if(['page_back', 'page_next', 'complete', 'cancel', 'all', 'specific', ''].includes(command)) return;
+    if(['page_back', 'page_next', 'save', 'cancel', 'all', 'specific', ''].includes(command)) return;
     
 
     if(ctx.session.selectedModules.includes(command)){
@@ -113,7 +110,7 @@ scene.action("save", async ctx => {
     ctx.session.selectedModules;
     await Promise.all([
         ctx.reply('Subscribing to updates..'),
-        subscribe(ctx.from.id, modulesToSubscribe)
+        subscribe(ctx.from, modulesToSubscribe)
     ]);
     ctx.session.userInfo = {
         subscribed: true,
