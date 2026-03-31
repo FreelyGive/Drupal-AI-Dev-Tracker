@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+
+function wisetrout_do_bot_schema() {
+  $schema['telegram_subscriptions'] = [
+    'description' => 'Stores data about subscriptions to the Telegram bot.',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary Key: Unique identifier for each entry.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'chat_id' => [
+        'description' => 'Chat id to be used for sending messages.',
+        'type' => 'char',
+        'length' => '10',
+        'not null' => TRUE,
+      ],
+      'module' => [
+        'description' => 'Id of the module user has subscribed to.',
+        'type' => 'varchar',
+        'length' => 255, 
+        'not null' => TRUE
+      ],
+      'created' => [
+        'description' => 'The time that the subscription was created.',
+        'type' => 'datetime:normal',
+        'not null' => TRUE,
+        'mysql_type' => 'DATETIME',
+      ],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  return $schema;
+}
+
