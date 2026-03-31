@@ -2,4 +2,6 @@ _core:
   default_config_hash: ci56aVE-Jo4w_Xy5Gkk1coAwO-fj7Q87l0PKc5E9sfo
 scope_provider: dynamic
 token_cron_batch_size: 0
+public_key: ../private/simple_oauth/public.key
+private_key: ../private/simple_oauth/private.key
 disable_openid_connect: false

@@ -1,0 +1,22 @@
+uuid: 4284b1cc-eac2-403f-9b94-db47b6132ebe
+langcode: en
+status: true
+dependencies: {  }
+id: tgbot
+name: tgbot
+description: tgbot
+grant_types:
+  refresh_token:
+    status: true
+    description: ''
+  client_credentials:
+    status: true
+    description: ''
+  authorization_code:
+    status: true
+    description: ''
+umbrella: false
+parent: _none
+granularity_id: role
+granularity_configuration:
+  role: telegram_bot

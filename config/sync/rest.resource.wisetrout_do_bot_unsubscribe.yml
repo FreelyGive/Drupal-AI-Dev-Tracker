@@ -1,0 +1,18 @@
+uuid: 2b20c227-5dd8-4901-bb5e-9f1fb3979f31
+langcode: en
+status: true
+dependencies:
+  module:
+    - serialization
+    - simple_oauth
+    - wisetrout_do_bot
+id: wisetrout_do_bot_unsubscribe
+plugin_id: wisetrout_do_bot_unsubscribe
+granularity: resource
+configuration:
+  methods:
+    - POST
+  formats:
+    - json
+  authentication:
+    - oauth2

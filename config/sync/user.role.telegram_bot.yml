@@ -1,9 +1,22 @@
 uuid: ee20a0d5-2658-4a72-bfb5-4d6931951d7a
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  config:
+    - rest.resource.wisetrout_do_bot_modules_list
+    - rest.resource.wisetrout_do_bot_subscribe
+    - rest.resource.wisetrout_do_bot_unsubscribe
+    - rest.resource.wisetrout_do_bot_user_info
+    - rest.resource.wisetrout_do_bot_wipeout
+  module:
+    - rest
 id: telegram_bot
 label: 'Telegram bot'
 weight: 4
 is_admin: false
-permissions: {  }
+permissions:
+  - 'restful get wisetrout_do_bot_modules_list'
+  - 'restful get wisetrout_do_bot_user_info'
+  - 'restful post wisetrout_do_bot_subscribe'
+  - 'restful post wisetrout_do_bot_unsubscribe'
+  - 'restful post wisetrout_do_bot_wipeout'
