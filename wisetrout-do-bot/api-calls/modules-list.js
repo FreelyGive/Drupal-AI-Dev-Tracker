@@ -10,19 +10,10 @@ export async function getModulesList(){
 
     if(!response.ok) throw new Error(response.status);
 
-    const resObj = await response.json();
-
-    const modules = [];
-    for(const id in resObj){
-
-        const { field_module_machine_name } = resObj[id];
-
-        modules.push(field_module_machine_name[0].value);
-    }
+    const modules = await response.json();
 
     modules.sort();
     
-
     return modules;
 }
 

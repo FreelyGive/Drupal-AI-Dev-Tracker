@@ -27,6 +27,12 @@ class ModulesList extends ResourceBase {
 
     $nodes = \Drupal\node\Entity\node::loadMultiple($nids);
 
-    return new ResourceResponse($nodes);
+    $nodeNames = [];
+
+    foreach($nodes as $node){
+      $nodeNames[] = $node->field_module_machine_name[0]->value;
+    }
+
+    return new ResourceResponse($nodeNames);
   }
 }
