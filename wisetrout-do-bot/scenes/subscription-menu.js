@@ -7,33 +7,6 @@ const MODULES_PER_PAGE = 10;
 export const scene = new Scenes.BaseScene('subscription-menu');
 
 scene.enter(async ctx => {
-    ctx.reply("Subscribe to:",
-        Markup.inlineKeyboard([
-        [
-            Markup.button.callback("✅ All updates", "all"),
-            Markup.button.callback("⚙️ Specific modules", "specific")
-        ],
-        [
-            Markup.button.callback("🚫 Cancel", "cancel")
-        ]
-    ]))
-});
-
-scene.action("all", async ctx => {
-    await Promise.all([
-        ctx.reply('Subscribing to updates...'),
-        subscribe(ctx.from)
-    ]);
-
-    ctx.session.userInfo = {
-        subscribed: true,
-        modules: null
-    }
-    ctx.reply('Subscription successful!');
-    ctx.scene.leave();
-})
-
-scene.action("specific", async ctx => {
 
     try{
         const [modules] = await Promise.all([
@@ -77,7 +50,7 @@ scene.action("page_next", ctx => {
 scene.command(/.+/, async ctx => {
     const { command } = ctx;
 
-    if(['page_back', 'page_next', 'save', 'cancel', 'all', 'specific', ''].includes(command)) return;
+    if(['page_back', 'page_next', 'save', 'nothing', 'select_all', 'select_none'].includes(command)) return;
     
 
     if(ctx.session.selectedModules.includes(command)){
@@ -122,16 +95,6 @@ scene.action("save", async ctx => {
     ctx.reply('Subscription successful!');
     ctx.scene.leave();
 })
-
-
-
-scene.action("cancel", ctx => {
-    ctx.reply("Subscription process cancelled");
-    if(ctx.session.selectedModules) delete ctx.session.selectedModules;
-    if(ctx.session.modules) delete ctx.session.modules;
-    delete ctx.session.menuMessageId;
-    ctx.scene.leave();
-});
 
 function createModulesList(ctx){
     let message = '';
