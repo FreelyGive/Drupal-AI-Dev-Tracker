@@ -27,10 +27,19 @@ function wisetrout_do_bot_schema() {
       ],
       'created' => [
         'description' => 'The time that the subscription was created.',
-        'type' => 'datetime:normal',
+        'type' => 'int',
+        'size' => 'big',
         'not null' => TRUE,
-        'mysql_type' => 'DATETIME',
+        'unsigned' => TRUE,
       ],
+      'status' => [
+        'description' => 'Whether or not the subscription is active. 1 = active, 0 = inactive.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+    ]
     ],
     'primary key' => ['id'],
   ];

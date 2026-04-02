@@ -5,19 +5,19 @@ export async function subscribe(userInfo, modules){
     console.log(userInfo);
     console.log('Modules:');
     console.log(modules);
+    const timestamp = Date.now();
 
-    const body = modules ? 
-    {userInfo, modules} :
-    {userInfo}
+    const body = JSON.stringify(modules ? 
+    {userInfo, modules, timestamp} :
+    {userInfo, timestamp})
     
     try{
-        const url = process.env.BASE_URL + '/api/telegram/subscribe';
-        console.log(url);
         
         const res = await fetch(process.env.BASE_URL + '/api/telegram/subscribe',  {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${oAuthToken}`
+            'Authorization': `Bearer ${oAuthToken}`,
+            'Content-Type': 'application/json'
         },
         body
         })
@@ -59,10 +59,17 @@ export async function checkSubscription(chatId){
         console.log(res);
         
 
-        const json = await res.json();
+        const data = await res.json();
 
         console.log('Data:');
-        console.log(json);
+        console.log(data);
+        
+
+        console.log('User info:');
+        console.log(data.userInfo);
+        
+
+        return data.userInfo;
         
         
 

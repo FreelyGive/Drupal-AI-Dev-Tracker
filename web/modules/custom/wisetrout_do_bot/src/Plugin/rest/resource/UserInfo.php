@@ -17,8 +17,34 @@ use Drupal\rest\ResourceResponse;
  * )
  */
 class UserInfo extends ResourceBase {
-  public function get($cid = NULL) {
-    $data = ['userInfo' => NULL];
-    return new ResourceResponse($data);
+
+    public function get($cid){
+
+    $database = \Drupal::database();
+    $selectQuery = $database->query("SELECT module, status FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid]);
+    $result = $selectQuery->fetchAll();
+
+    $modules = [];
+
+    if(count($result) === 0) {
+      $data = NULL;
+    } else {
+
+      $modules = [];
+
+      foreach($result as $resultRow){
+        $modules[] = $resultRow->module;
+      }
+
+      $data = [
+        'modules' => $modules,
+        'subscribed' => $result[0]->status == 1,
+      ];
+    }
+
+
+    return new ResourceResponse([
+      'userInfo' => $data,
+    ]);
   }
 }
