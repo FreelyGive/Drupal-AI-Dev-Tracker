@@ -40,36 +40,24 @@ public static function create(ContainerInterface $container, array $configuratio
 
     $insertQuery = $database->insert('telegram_subscriptions')->fields(['chat_id', 'module', 'created', 'status']);
 
-    if($params['modules']){
+    foreach($params['modules'] as $module) {
+      $existingSubscription = array_find($existingSubscriptions, function($value){
+        return $value['module'] === $module;
+      });
 
-      foreach($params['modules'] as $module) {
-        $existingSubscription = array_find($existingSubscriptions, function($value){
-          return $value['module'] === $module;
-        });
-
-        if(!$existingSubscription) {
-          $valuesToInsert = [
-            'chat_id' => $cid,
-            'module' => $module,
-            'created' => $params['timestamp'],
-            'status' => 1
-          ];
-          $insertQuery->values($valuesToInsert);
-        }
+      if(!$existingSubscription) {
+        $valuesToInsert = [
+          'chat_id' => $cid,
+          'module' => $module,
+          'created' => $params['timestamp'],
+          'status' => 1
+        ];
+        $insertQuery->values($valuesToInsert);
       }
-
     }
 
-    // } else {
-    //   // If modules === null, this means user has subscribed to all updates
-    // }
 
   $insertQuery->execute();
-
-  // $testQuery = $database->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid]);
-  // $testResult = $testQuery->fetchAll();
-
-  // $testJson = json_encode($testResult);
 
     return new ResourceResponse([
       'message' => 'success',
