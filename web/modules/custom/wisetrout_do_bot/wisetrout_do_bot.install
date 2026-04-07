@@ -19,11 +19,11 @@ function wisetrout_do_bot_schema() {
         'length' => '10',
         'not null' => TRUE,
       ],
-      'module' => [
+      'module_id' => [
         'description' => 'Id of the module user has subscribed to.',
-        'type' => 'varchar',
-        'length' => 255, 
-        'not null' => TRUE
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE
       ],
       'created' => [
         'description' => 'The time that the subscription was created.',
@@ -31,17 +31,35 @@ function wisetrout_do_bot_schema() {
         'size' => 'big',
         'not null' => TRUE,
         'unsigned' => TRUE,
-      ],
-      'status' => [
-        'description' => 'Whether or not the subscription is active. 1 = active, 0 = inactive.',
-        'type' => 'int',
-        'size' => 'tiny',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 1,
-    ]
+      ]
     ],
     'primary key' => ['id'],
+  ];
+
+  $schema['telegram_subscribers'] = [
+    'description' => 'Stores data about Telegram users subscribed to the bot.',
+    'fields' => [
+      'chat_id' => [
+        'description' => 'Chat id to be used for sending messages.',
+        'type' => 'char',
+        'length' => '10',
+        'not null' => TRUE,
+      ],
+      'status' => [
+        'description' => 'Status of subscription. 1 = active, 0 = inactive.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE
+      ],
+      'created' => [
+        'description' => 'The time that the entry was created.',
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ]
+    ],
+    'primary key' => ['chat_id'],
   ];
 
   return $schema;
