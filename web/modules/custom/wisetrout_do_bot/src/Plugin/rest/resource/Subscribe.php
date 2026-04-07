@@ -30,38 +30,84 @@ public static function create(ContainerInterface $container, array $configuratio
 
   public function post() {
     $content = $this->currentRequest->getContent();
+    
     $params = json_decode($content, TRUE);
+    
+    $responseData = [];
 
     $cid = strval($params['userInfo']['id']);
 
     $database = \Drupal::database();
-    $selectQuery = $database->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid]);
-    $existingSubscriptions = $selectQuery->fetchAll();
 
-    $insertQuery = $database->insert('telegram_subscriptions')->fields(['chat_id', 'module', 'created', 'status']);
+    $subscriberData = $database->query("SELECT * FROM {telegram_subscribers} WHERE chat_id = :cid", [':cid' => $cid])->fetchField();
 
-    foreach($params['modules'] as $module) {
-      $existingSubscription = array_find($existingSubscriptions, function($value){
-        return $value['module'] === $module;
+    $responseData['user exists'] = !!$subscriberData;
+
+    if(!$subscriberData){
+      $subsriberCreationResult = $database->insert('telegram_subscribers')
+      ->fields([
+        'chat_id' => $cid, 
+        'status' => 1,
+        'created' => $params['timestamp']
+        ])
+        ->execute();
+    }
+
+    $existingSubscriptions = $database
+    ->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid])
+    ->fetchAll();
+
+    $moduleIds = \Drupal::entityQuery('node')
+    ->condition('type', 'ai_module')
+    ->accessCheck(FALSE)
+    ->condition('field_module_machine_name', $params['modules'], 'IN')
+    ->execute();
+
+    
+    // Subscribe to new modules
+    $modulesIdsToAdd = [];
+    $insertQuery = $database
+    ->insert('telegram_subscriptions')
+    ->fields(['chat_id', 'module_id', 'created']);
+
+  
+    foreach($moduleIds as $moduleId){
+      
+      $subscriptionExists = array_find($existingSubscriptions, function($existingSubscription){
+        return $existingSubscription->module_id === $moduleId;
       });
 
-      if(!$existingSubscription) {
+      if(!$subscriptionExists){
+        $moduleIdsToAdd[] = $moduleId;
         $valuesToInsert = [
           'chat_id' => $cid,
-          'module' => $module,
-          'created' => $params['timestamp'],
-          'status' => 1
+          'module_id' => $moduleId,
+          'created' => $params['timestamp']
         ];
         $insertQuery->values($valuesToInsert);
       }
     }
 
+    // $insertQuery->execute();
 
-  $insertQuery->execute();
+    // Unsubscribe from modules
 
-    return new ResourceResponse([
-      'message' => 'success',
-      'cid' => $cid
-      ]);
+    $moduleIdsToDelete = [];
+
+    foreach($existingSubscriptions as $existingSubscription){
+      $keepSubscription = array_find($moduleIds, function($moduleId){
+        return $moduleId === $existingSubscription->module_id;
+      });
+      if(!$keepSubscription){
+        $moduleIdsToDelete[] = $existingSubscription->module_id;
+      }
+    }
+
+    $responseData['to delete'] = $moduleIdsToDelete;
+    $responseData['to add'] = $moduleIdsToAdd;
+
+    
+
+    return new ResourceResponse($responseData);
   }
 }
