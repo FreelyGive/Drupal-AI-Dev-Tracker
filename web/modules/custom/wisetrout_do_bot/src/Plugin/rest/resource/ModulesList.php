@@ -5,6 +5,7 @@ namespace Drupal\wisetrout_do_bot\Plugin\rest\resource;
 
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
+use Drupal\node\Entity\Node;
 
 /**
  * Provides a resource to get list of modules user can subscribe to.
@@ -25,7 +26,7 @@ class ModulesList extends ResourceBase {
     ->accessCheck(FALSE)
     ->execute();
 
-    $nodes = \Drupal\node\Entity\node::loadMultiple($nids);
+    $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
 
     $nodeNames = [];
 
