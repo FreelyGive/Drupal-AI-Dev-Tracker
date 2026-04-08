@@ -39,7 +39,7 @@ class UserInfo extends ResourceBase {
         $moduleIds[] = $dbRow->module_id;
       }
 
-      $nodes = \Drupal\node\Entity\node::loadMultiple($nids);
+      $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($moduleIds);
 
       $modules = [];
 
