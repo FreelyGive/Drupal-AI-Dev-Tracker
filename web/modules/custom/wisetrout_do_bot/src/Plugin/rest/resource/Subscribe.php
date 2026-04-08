@@ -19,54 +19,48 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class Subscribe extends ResourceBase {
 
-protected $currentRequest;
+  protected $currentRequest;
+  private $database;
 
-public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
-    $instance->currentRequest = $container->get('request_stack')->getCurrentRequest();
-    return $instance;
-  }
+  private function createUserIfNonExistent($cid){
 
-
-  public function post() {
-    $content = $this->currentRequest->getContent();
-    
-    $params = json_decode($content, TRUE);
-    
-    $responseData = [];
-
-    $cid = strval($params['userInfo']['id']);
-
-    $database = \Drupal::database();
-
-    $subscriberData = $database->query("SELECT * FROM {telegram_subscribers} WHERE chat_id = :cid", [':cid' => $cid])->fetchField();
-
-    $responseData['user exists'] = !!$subscriberData;
+    $subscriberData = $this->database
+    ->query("SELECT * FROM {telegram_subscribers} WHERE chat_id = :cid", [':cid' => $cid])
+    ->fetchField();
 
     if(!$subscriberData){
-      $subsriberCreationResult = $database->insert('telegram_subscribers')
+      $subsriberCreationResult = $this->database->insert('telegram_subscribers')
       ->fields([
         'chat_id' => $cid, 
         'status' => 1,
-        'created' => $params['timestamp']
+        'created' => $this->currentRequest->server->get('REQUEST_TIME'),
         ])
         ->execute();
+        return TRUE;
     }
 
-    $existingSubscriptions = $database
+    return FALSE;
+  }
+
+  private function updateModulesList($cid, $moduleNames){
+
+    $existingSubscriptions = $this->database
     ->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid])
     ->fetchAll();
 
     $moduleIds = \Drupal::entityQuery('node')
     ->condition('type', 'ai_module')
     ->accessCheck(FALSE)
-    ->condition('field_module_machine_name', $params['modules'], 'IN')
+    ->condition('field_module_machine_name', $moduleNames, 'IN')
     ->execute();
 
-    
-    // Subscribe to new modules
-    $modulesIdsToAdd = [];
-    $insertQuery = $database
+    $this->subscribeToNewModules($cid, $moduleIds, $existingSubscriptions);
+    $this->unsubscribeFromOldModules($cid, $moduleIds, $existingSubscriptions);
+  }
+
+  private function subscribeToNewModules($cid, $moduleIds, $existingSubscriptions){
+
+    $insertQuery = $this->database
     ->insert('telegram_subscriptions')
     ->fields(['chat_id', 'module_id', 'created']);
 
@@ -78,19 +72,19 @@ public static function create(ContainerInterface $container, array $configuratio
       });
 
       if(!$subscriptionExists){
-        $moduleIdsToAdd[] = $moduleId;
         $valuesToInsert = [
           'chat_id' => $cid,
           'module_id' => $moduleId,
-          'created' => $params['timestamp']
+          'created' => $this->currentRequest->server->get('REQUEST_TIME'),
         ];
         $insertQuery->values($valuesToInsert);
       }
     }
 
-    // $insertQuery->execute();
+    $insertQuery->execute();
+  }
 
-    // Unsubscribe from modules
+  private function unsubscribeFromOldModules($cid, $moduleIds, $existingSubscriptions){
 
     $moduleIdsToDelete = [];
 
@@ -103,11 +97,32 @@ public static function create(ContainerInterface $container, array $configuratio
       }
     }
 
-    $responseData['to delete'] = $moduleIdsToDelete;
-    $responseData['to add'] = $moduleIdsToAdd;
+    $this->database
+    ->delete('telegram_subscriptions')
+    ->condition('module_id', $moduleIdsToDelete, 'IN')
+    ->execute();
 
+  }
+
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+      $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+      $instance->currentRequest = $container->get('request_stack')->getCurrentRequest();
+      $instance->database = \Drupal::database();
+      return $instance;
+  }
+
+
+  public function post() {
+    $content = $this->currentRequest->getContent();
     
+    $params = json_decode($content, TRUE);
 
-    return new ResourceResponse($responseData);
+    $cid = strval($params['userInfo']['id']);
+    $moduleNames = $params['modules'];
+
+    $userCreated = $this->createUserIfNonExistent($cid);
+    $this->updateModulesList($cid, $moduleNames);
+
+    return new ResourceResponse(['userCreated' => $userCreated]);
   }
 }

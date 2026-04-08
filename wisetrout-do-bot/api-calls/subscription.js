@@ -5,11 +5,14 @@ export async function subscribe(userInfo, modules){
     console.log(userInfo);
     console.log('Modules:');
     console.log(modules);
-    const timestamp = Date.now();
 
     const body = JSON.stringify(modules ? 
-    {userInfo, modules, timestamp} :
-    {userInfo, timestamp})
+    {userInfo, modules} :
+    {userInfo});
+
+    console.log('Body:');
+    console.log(body);
+    
     
     try{
         
@@ -61,15 +64,11 @@ export async function checkSubscription(chatId){
 
         const data = await res.json();
 
-        console.log('Data:');
+        console.log('User info:');
         console.log(data);
         
 
-        console.log('User info:');
-        console.log(data.userInfo);
-        
-
-        return data.userInfo;
+        return data;
         
         
 
