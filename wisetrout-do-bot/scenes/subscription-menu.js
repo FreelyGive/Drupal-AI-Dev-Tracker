@@ -78,18 +78,16 @@ scene.action('select_none', ctx => {
 
 
 scene.action("save", async ctx => {
-    const modulesToSubscribe = ctx.session.modules.length === ctx.session.selectedModules.length ?
-    null :
-    ctx.session.selectedModules;
+
     await Promise.all([
         ctx.reply('Subscribing to updates..'),
-        subscribe(ctx.from, modulesToSubscribe)
+        subscribe(ctx.from, ctx.session.selectedModules)
     ]);
     ctx.session.userInfo = {
         subscribed: true,
         modules: ctx.session.selectedModules
     }
-    delete ctx.session.selectedModule;
+    delete ctx.session.selectedModules;
     delete ctx.session.modules;
     delete ctx.session.menuMessageId;
     ctx.reply('Subscription successful!');
