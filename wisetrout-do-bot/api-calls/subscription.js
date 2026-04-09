@@ -44,7 +44,43 @@ export async function subscribe(userInfo, modules){
     }
 }
 
-export async function unsubscribe(chatId){}
+export async function unsubscribe(chatId){
+    console.log('Unsubscribing...');
+
+    const body = JSON.stringify({ chatId });
+
+    console.log('Body:');
+    console.log(body);
+    
+    
+    try{
+        
+        const res = await fetch(process.env.BASE_URL + '/api/telegram/unsubscribe',  {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${oAuthToken}`,
+            'Content-Type': 'application/json'
+        },
+        body
+        })
+
+        if(!res.ok) throw new Error(res.status);
+
+        console.log('Success!');
+        console.log(res);
+        
+
+        const json = await res.json();
+
+        console.log('Data:');
+        console.log(json);
+        
+        
+
+    }catch(err){
+        console.log(err);
+    }
+}
 
 export async function checkSubscription(chatId){
      try{
