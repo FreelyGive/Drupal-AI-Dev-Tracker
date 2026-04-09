@@ -114,11 +114,40 @@ export async function checkSubscription(chatId){
     }
 }
 
-export async function wipeoutData(chatId){}
+export async function wipeoutData(chatId){
+    console.log('Wipeout...');
 
-// Imitation of server request taking time
-async function wait(ms){
-    return await new Promise((res, rej) => {
-        setTimeout(() => res(), ms)
-    })
+    const body = JSON.stringify({ chatId });
+
+    console.log('Body:');
+    console.log(body);
+    
+    
+    try{
+        
+        const res = await fetch(process.env.BASE_URL + '/api/telegram/wipeout',  {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${oAuthToken}`,
+            'Content-Type': 'application/json'
+        },
+        body
+        })
+
+        if(!res.ok) throw new Error(res.status);
+
+        console.log('Success!');
+        console.log(res);
+        
+
+        const json = await res.json();
+
+        console.log('Data:');
+        console.log(json);
+        
+        
+
+    }catch(err){
+        console.log(err);
+    }
 }
