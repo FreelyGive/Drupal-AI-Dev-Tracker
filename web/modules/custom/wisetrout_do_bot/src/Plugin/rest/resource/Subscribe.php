@@ -7,7 +7,7 @@ use Drupal\rest\ResourceResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides a resource to subscribe to Telegram bot.
+ * Provides a resource to update list of modules to follow via Telegram bot.
  *
  * @RestResource(
  * id = "wisetrout_do_bot_subscribe",
@@ -44,18 +44,25 @@ class Subscribe extends ResourceBase {
 
   private function updateModulesList($cid, $moduleNames){
 
-    $existingSubscriptions = $this->database
-    ->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid])
-    ->fetchAll();
+    if(!count($moduleNames)){
+      $this->deleteAllModules($cid);
+     
+    }else{
+      $existingSubscriptions = $this->database
+      ->query("SELECT * FROM {telegram_subscriptions} WHERE chat_id = :cid", [':cid' => $cid])
+      ->fetchAll();
 
-    $moduleIds = \Drupal::entityQuery('node')
-    ->condition('type', 'ai_module')
-    ->accessCheck(FALSE)
-    ->condition('field_module_machine_name', $moduleNames, 'IN')
-    ->execute();
+      $moduleIds = \Drupal::entityQuery('node')
+      ->condition('type', 'ai_module')
+      ->accessCheck(FALSE)
+      ->condition('field_module_machine_name', $moduleNames, 'IN')
+      ->execute();
 
-    $this->subscribeToNewModules($cid, $moduleIds, $existingSubscriptions);
-    $this->unsubscribeFromOldModules($cid, $moduleIds, $existingSubscriptions);
+      $this->subscribeToNewModules($cid, $moduleIds, $existingSubscriptions);
+      $this->unsubscribeFromOldModules($cid, $moduleIds, $existingSubscriptions);
+    }
+
+    
   }
 
   private function subscribeToNewModules($cid, $moduleIds, $existingSubscriptions){
@@ -67,7 +74,7 @@ class Subscribe extends ResourceBase {
   
     foreach($moduleIds as $moduleId){
       
-      $subscriptionExists = array_find($existingSubscriptions, function($existingSubscription){
+      $subscriptionExists = array_find($existingSubscriptions, function($existingSubscription) use ($moduleId){
         return $existingSubscription->module_id === $moduleId;
       });
 
@@ -89,19 +96,30 @@ class Subscribe extends ResourceBase {
     $moduleIdsToDelete = [];
 
     foreach($existingSubscriptions as $existingSubscription){
-      $keepSubscription = array_find($moduleIds, function($moduleId){
+      $keepSubscription = array_find($moduleIds, function($moduleId) use ($existingSubscription){
         return $moduleId === $existingSubscription->module_id;
       });
       if(!$keepSubscription){
         $moduleIdsToDelete[] = $existingSubscription->module_id;
       }
     }
+  
+    if(count($moduleIdsToDelete)) {
+      $this->database
+      ->delete('telegram_subscriptions')
+      ->condition('module_id', $moduleIdsToDelete, 'IN')
+      ->execute();
+    }
 
+    
+
+  }
+
+  private function deleteAllModules($cid){
     $this->database
     ->delete('telegram_subscriptions')
-    ->condition('module_id', $moduleIdsToDelete, 'IN')
+    ->condition('chat_id', $cid)
     ->execute();
-
   }
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -120,9 +138,10 @@ class Subscribe extends ResourceBase {
     $cid = strval($params['userInfo']['id']);
     $moduleNames = $params['modules'];
 
-    $userCreated = $this->createUserIfNonExistent($cid);
-    $this->updateModulesList($cid, $moduleNames);
+    if(count($moduleNames)) {
+      $this->createUserIfNonExistent($cid);
+    }
 
-    return new ResourceResponse(['userCreated' => $userCreated]);
+    return new ResourceResponse(['message': 'success']);
   }
 }
