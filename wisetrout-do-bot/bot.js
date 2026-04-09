@@ -3,7 +3,7 @@ import preferencesMiddleware from './middlewares/preferences-middleware.js';
 import { scene as subscrScene } from './scenes/subscription-menu.js';
 import { createActionsKeyboard } from './markup/keyboards.js';
 import { scene as wipeoutScene } from './scenes/wipeout.js';
-import { subscribe, unsubscribe } from './api-calls/subscription.js';
+import { updateStatus } from './api-calls/subscription.js';
 import { Stage } from 'telegraf/scenes';
 import { activateOAuthToken } from './oauth.js';
 
@@ -40,7 +40,7 @@ function activateBot(){
     bot.action('unsub', async ctx => {
         await Promise.all([
             ctx.reply('Cancelling your subscription...'),
-            unsubscribe(ctx.from.id)
+            updateStatus(ctx.from.id, false)
         ]);
 
         ctx.session.userInfo.subscribed = false;
@@ -53,7 +53,7 @@ function activateBot(){
 
         await Promise.all([
             ctx.reply('Reactivating your subscription...'),
-            subscribe(ctx.from.id, ctx.session.userInfo.modules)
+            updateStatus(ctx.from.id, true)
         ]);
 
         ctx.session.userInfo.subscribed = true;

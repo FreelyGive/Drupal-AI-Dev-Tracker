@@ -44,10 +44,10 @@ export async function subscribe(userInfo, modules){
     }
 }
 
-export async function unsubscribe(chatId){
-    console.log('Unsubscribing...');
+export async function updateStatus(chatId, subscribed){
+    console.log('Updating status...');
 
-    const body = JSON.stringify({ chatId });
+    const body = JSON.stringify({ chatId, subscribed });
 
     console.log('Body:');
     console.log(body);
@@ -55,7 +55,7 @@ export async function unsubscribe(chatId){
     
     try{
         
-        const res = await fetch(process.env.BASE_URL + '/api/telegram/unsubscribe',  {
+        const res = await fetch(process.env.BASE_URL + '/api/telegram/update-status',  {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${oAuthToken}`,

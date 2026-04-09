@@ -7,17 +7,17 @@ use Drupal\rest\ResourceResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides a resource to unsubscribe from Telegram bot.
+ * Provides a resource to pause/renew subscription to Telegram bot.
  *
  * @RestResource(
  * id = "wisetrout_do_bot_unsubscribe",
- * label = @Translation("Telegram bot unsubscription"),
+ * label = @Translation("Telegram bot pause/renew subscription"),
  * uri_paths = {
- * "create" = "/api/telegram/unsubscribe"
+ * "create" = "/api/telegram/update-status"
  * }
  * )
  */
-class Unsubscribe extends ResourceBase {
+class UpdateStatus extends ResourceBase {
 
    protected $currentRequest;
 
@@ -34,13 +34,14 @@ class Unsubscribe extends ResourceBase {
     $params = json_decode($content, TRUE);
 
     $cid = strval($params['chatId']);
+    $newStatus = $params['subscribed'] ? 1 : 0;
 
     $database = \Drupal::database();
 
     $database
     ->update('telegram_subscribers')
     ->fields([ 
-      'status' => 0,
+      'status' => $newStatus,
     ])
     ->condition('chat_id', $cid)
     ->execute();
