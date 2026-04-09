@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides a resource to pause/renew subscription to Telegram bot.
  *
  * @RestResource(
- * id = "wisetrout_do_bot_unsubscribe",
+ * id = "wisetrout_do_bot_update_status",
  * label = @Translation("Telegram bot pause/renew subscription"),
  * uri_paths = {
  * "create" = "/api/telegram/update-status"
