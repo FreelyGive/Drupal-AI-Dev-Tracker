@@ -29,14 +29,6 @@ export async function subscribe(userInfo, modules){
 
         console.log('Success!');
         console.log(res);
-        
-
-        const json = await res.json();
-
-        console.log('Data:');
-        console.log(json);
-        
-        
 
     }catch(err){
         console.log(err);
@@ -69,14 +61,6 @@ export async function updateStatus(chatId, subscribed){
         console.log('Success!');
         console.log(res);
         
-
-        const json = await res.json();
-
-        console.log('Data:');
-        console.log(json);
-        
-        
-
     }catch(err){
         console.log(err);
     }

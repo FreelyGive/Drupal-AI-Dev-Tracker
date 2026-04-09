@@ -46,6 +46,6 @@ class UpdateStatus extends ResourceBase {
     ->condition('chat_id', $cid)
     ->execute();
 
-    return new ResourceResponse(['message' => 'success!']);
+    return new ResourceResponse(NULL, 204);
   }
 }
