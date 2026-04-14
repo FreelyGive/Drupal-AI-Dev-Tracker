@@ -142,6 +142,8 @@ class Subscribe extends ResourceBase {
       $this->createUserIfNonExistent($cid);
     }
 
+    $this->updateModulesList($cid, $moduleNames);
+
     return new ResourceResponse(NULL, 204);
   }
 }
