@@ -1,4 +1,4 @@
-uuid: 2b20c227-5dd8-4901-bb5e-9f1fb3979f31
+uuid: 43d6d24e-9dc0-4bf0-9c2f-077347c4caa2
 langcode: en
 status: true
 dependencies:
@@ -6,8 +6,8 @@ dependencies:
     - serialization
     - simple_oauth
     - wisetrout_do_bot
-id: wisetrout_do_bot_unsubscribe
-plugin_id: wisetrout_do_bot_unsubscribe
+id: wisetrout_do_bot_update_status
+plugin_id: wisetrout_do_bot_update_status
 granularity: resource
 configuration:
   methods:

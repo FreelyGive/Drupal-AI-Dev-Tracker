@@ -5,7 +5,7 @@ dependencies:
   config:
     - rest.resource.wisetrout_do_bot_modules_list
     - rest.resource.wisetrout_do_bot_subscribe
-    - rest.resource.wisetrout_do_bot_unsubscribe
+    - rest.resource.wisetrout_do_bot_update_status
     - rest.resource.wisetrout_do_bot_user_info
     - rest.resource.wisetrout_do_bot_wipeout
   module:
@@ -18,5 +18,5 @@ permissions:
   - 'restful get wisetrout_do_bot_modules_list'
   - 'restful get wisetrout_do_bot_user_info'
   - 'restful post wisetrout_do_bot_subscribe'
-  - 'restful post wisetrout_do_bot_unsubscribe'
+  - 'restful post wisetrout_do_bot_update_status'
   - 'restful post wisetrout_do_bot_wipeout'
