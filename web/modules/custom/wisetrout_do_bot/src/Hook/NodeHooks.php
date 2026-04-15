@@ -1,0 +1,126 @@
+<?php
+
+namespace Drupal\wisetrout_do_bot\Hook;
+
+use Drupal\Core\Entity\EntityEvents;
+use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\node\NodeInterface;
+
+/**
+ * Hook implementations for wisetrout_do_bot.
+ */
+class NodeHooks {
+
+  /**
+   * Reacts to node insertion.
+   */
+  #[Hook('node_insert')]
+  public function onNodeInsert(NodeInterface $node): void {
+    if ($node->isPublished()){
+      if ($node->getType() === 'ai_issue') {
+      $this->notifyAboutIssueCreation($node);
+      }
+      if ($node->getType() === 'ai_module') {
+        $this->notifyAboutModuleCreation($node);
+      }
+    }
+  }
+
+  #[Hook('node_update')]
+  public function onNodeUpdate(NodeInterface $node): void {
+    if ($node->isPublished() && $node->getType() === 'ai_issue'){
+      if($node->original->isPublished()) {
+        $this->notifyAboutIssueUpdate($node);
+      }else {
+        $this->notifyAboutIssueCreation($node);
+      }
+    }
+
+    if ($node->isPublished() && $node->getType() === 'ai_module' && !($node->original->isPublished())){
+      $this->notifyAboutModuleCreation($node);
+    }
+  }
+
+  protected function notifyAboutIssueCreation(NodeInterface $node): void{
+
+    $chatIds = $this->getModuleChatIds($node);
+
+    $message = '🌱<b>New issue created:</b>'
+    . $node->label()
+    ;
+
+
+    $this->sendBotNotifications($chatIds, $message);
+
+  }
+  protected function notifyAboutIssueUpdate(NodeInterface $node): void{
+
+    $chatIds = $this->getModuleChatIds($node);
+
+    $message = '✏️<b>Issue updated:</b>'
+    . $node->label()
+    ;
+
+
+    $this->sendBotNotifications($chatIds, $message);
+  }
+
+  protected function notifyAboutModuleCreation(NodeInterface $node): void{
+    $activeUserIds = $this->getActiveUserIds();
+     $message = '🏷️<b>New module created:</b>'
+    . $node->label()
+    ;
+    $this->sendBotNotifications($activeUserIds, $message);
+  }
+
+  protected function getModuleChatIds($node){
+    $moduleEntity = $node->get('field_issue_module')->entity;
+    $moduleId = $moduleEntity->id();
+    $db = \Drupal::database();
+    $chatIds = $db
+    ->query("SELECT chat_id FROM {telegram_subscriptions} WHERE module_id = :module_id", [
+        ':module_id' => $moduleId,
+    ])
+    ->fetchCol();
+    $activeChatIds = $db
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) and status = 1", [
+        ':chat_ids[]' => $chatIds,
+    ])
+    ->fetchCol();
+    return $activeChatIds;
+  }
+
+  protected function getActiveUserIds(){
+    $db = \Drupal::database();
+    $activeUserIds = $db
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE status = 1")
+    ->fetchCol();
+    return $activeUserIds;
+  }
+
+  protected function sendBotNotifications($chatIds, $message){
+
+
+    $httpClient = \Drupal::httpClient();
+
+    foreach($chatIds as $chatId){
+    
+      $url = 'https://api.telegram.org/bot' 
+      . $_ENV['BOT_TOKEN']
+      . '/sendMessage';
+      $payload = [
+        'chat_id' => $chatId,
+        'text' => $message,
+        "parse_mode" => "HTML",
+      ];
+
+      $response = $httpClient
+      ->post($url, [
+        'body' => json_encode($payload),
+        'headers' => [
+          'Content-Type' => 'application/json',
+        ]
+      ]);
+    }
+  }
+}

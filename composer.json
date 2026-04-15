@@ -40,7 +40,8 @@
         "drupal/restui": "^1.22",
         "drupal/simple_oauth": "^6.1",
         "drupal/webform": "@beta",
-        "drush/drush": "^13"
+        "drush/drush": "^13",
+        "vlucas/phpdotenv": "^5.6"
     },
     "conflict": {
         "drupal/drupal": "*"
