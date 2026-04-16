@@ -77,7 +77,7 @@ class NodeHooks {
 
   protected function notifyAboutModuleCreation(NodeInterface $node): void{
     $activeUserIds = $this->getActiveUserIds();
-     $message = "🏷️<b>New module created:</b>{$node->label()}";
+     $message = "🏷️<b>New module created:</b> {$node->label()}";
     ;
     $this->sendBotNotifications($activeUserIds, $message);
   }
