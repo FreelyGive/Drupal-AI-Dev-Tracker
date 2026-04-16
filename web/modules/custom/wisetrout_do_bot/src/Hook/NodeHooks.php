@@ -45,9 +45,12 @@ class NodeHooks {
 
     $chatIds = $this->getModuleChatIds($node);
 
-    $message = '🌱<b>New issue created:</b>'
-    . $node->label()
-    ;
+    $moduleName = $node->get('field_issue_module')->entity->label();
+
+    $authorName = $node->getOwner()->getDisplayName();
+
+    $message = "🌱 <b>New issue created</b> in {$moduleName} by {$authorName}: {$node->label()}
+    <b>project URL</b>: {$node->get('field_issue_url')->uri}";
 
 
     $this->sendBotNotifications($chatIds, $message);
@@ -57,9 +60,7 @@ class NodeHooks {
 
     $chatIds = $this->getModuleChatIds($node);
 
-    $message = '✏️<b>Issue updated:</b>'
-    . $node->label()
-    ;
+    $message = "✏️<b>Issue updated: {$node->label()}";
 
 
     $this->sendBotNotifications($chatIds, $message);
@@ -67,8 +68,7 @@ class NodeHooks {
 
   protected function notifyAboutModuleCreation(NodeInterface $node): void{
     $activeUserIds = $this->getActiveUserIds();
-     $message = '🏷️<b>New module created:</b>'
-    . $node->label()
+     $message = "🏷️<b>New module created:</b>{$node->label()}";
     ;
     $this->sendBotNotifications($activeUserIds, $message);
   }
