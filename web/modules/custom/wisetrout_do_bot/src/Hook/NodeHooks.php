@@ -59,8 +59,17 @@ class NodeHooks {
   protected function notifyAboutIssueUpdate(NodeInterface $node): void{
 
     $chatIds = $this->getModuleChatIds($node);
+    $updates = $this->findNodeChanges($node);
 
-    $message = "✏️<b>Issue updated: {$node->label()}";
+    if(!count($updates)) {
+      return;
+    }
+
+    $message = "✏️<b>Issue updated </b>: {$node->label()}";
+
+    foreach($updates as $update){
+      $message = $message . "\n{$update['title']}: {$update['old_value']} -> {$update['new_value']}";
+    }
 
 
     $this->sendBotNotifications($chatIds, $message);
@@ -96,6 +105,40 @@ class NodeHooks {
     ->query("SELECT chat_id FROM {telegram_subscribers} WHERE status = 1")
     ->fetchCol();
     return $activeUserIds;
+  }
+
+  protected function findNodeChanges($node){
+    $changedFields = [];
+    $original = $node->original;
+    foreach ($node->getFieldDefinitions() as $fieldName => $fieldDefinition) {
+
+      if (str_starts_with($fieldName, 'field_') && !$node->get($fieldName)->equals($original->get($fieldName))) {
+        
+        $changedFields[] = [
+          'title' => (string) $fieldDefinition->getLabel(),
+          'old_value' => $this->convertFieldToString($original, $fieldName),
+          'new_value' => $this->convertFieldToString($node, $fieldName),
+        ];
+      }
+    }
+
+    return $changedFields;
+  }
+
+  protected function convertFieldToString($node, $fieldName){
+    $field = $node->get($fieldName);
+  
+    if ($field->isEmpty()) {
+      return '';
+    }
+
+    $values = [];
+    foreach ($field as $item) {
+      $itemValues = $item->getValue();
+      $values[] = $itemValues['value'] ?? $item_values['target_id'] ?? (string) reset($itemValues);
+    }
+
+    return implode(', ', $values);
   }
 
   protected function sendBotNotifications($chatIds, $message){
