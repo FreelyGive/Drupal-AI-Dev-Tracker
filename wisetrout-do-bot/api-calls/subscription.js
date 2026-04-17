@@ -1,4 +1,4 @@
-import { oAuthToken } from "../oauth.js";
+import { sendAuthorizedRequest } from "../oauth.js";
 
 export async function subscribe(userInfo, modules){
     console.log('Creating subscription...');
@@ -6,34 +6,22 @@ export async function subscribe(userInfo, modules){
     console.log('Modules:');
     console.log(modules);
 
-    const body = JSON.stringify(modules ? 
-    {userInfo, modules} :
-    {userInfo});
+    const body = JSON.stringify({userInfo, modules});
 
     console.log('Body:');
     console.log(body);
     
-    
-    try{
         
-        const res = await fetch(process.env.BASE_URL + '/api/telegram/subscribe',  {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${oAuthToken}`,
-            'Content-Type': 'application/json'
-        },
-        body
-        })
+    const res = await sendAuthorizedRequest(process.env.BASE_URL + '/api/telegram/subscribe',  {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body
+    });
 
-        if(!res.ok) throw new Error(res.status);
-
-        console.log('Success!');
-        console.log(res);
-
-    }catch(err){
-        console.log(err);
-        return null;
-    }
+    console.log(res);
+    
 }
 
 export async function updateStatus(chatId, subscribed){
@@ -43,59 +31,36 @@ export async function updateStatus(chatId, subscribed){
 
     console.log('Body:');
     console.log(body);
-    
-    
-    try{
-        
-        const res = await fetch(process.env.BASE_URL + '/api/telegram/update-status',  {
+
+    const res = await sendAuthorizedRequest(process.env.BASE_URL + '/api/telegram/update-status',  {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${oAuthToken}`,
             'Content-Type': 'application/json'
         },
         body
-        })
+    });
 
-        if(!res.ok) throw new Error(res.status);
-
-        console.log('Success!');
-        console.log(res);
         
-    }catch(err){
-        console.log(err);
-    }
+    console.log(res);
+        
 }
 
 export async function checkSubscription(chatId){
-     try{
-        
-        const res = await fetch(`${process.env.BASE_URL}/api/telegram/user-info/${chatId}`,  {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${oAuthToken}`
-        }
-        })
+    const res = await sendAuthorizedRequest(`${process.env.BASE_URL}/api/telegram/user-info/${chatId}`,  {
+        method: 'GET'
+    });
 
-        if(!res.ok) throw new Error(res.status);
-
-        console.log('user Info success!');
-        console.log(res);
+    console.log('user Info success!');
+    console.log(res);
         
 
-        const data = await res.json();
+    const data = await res.json();
 
-        console.log('User info:');
-        console.log(data);
-        
+    console.log('User info:');
+    console.log(data);
+    
 
-        return data;
-        
-        
-
-    }catch(err){
-        console.log(err);
-        return null;
-    }
+    return data;
 }
 
 export async function wipeoutData(chatId){
@@ -105,33 +70,15 @@ export async function wipeoutData(chatId){
 
     console.log('Body:');
     console.log(body);
-    
-    
-    try{
-        
-        const res = await fetch(process.env.BASE_URL + '/api/telegram/wipeout',  {
+ 
+    const res = await sendAuthorizedRequest(process.env.BASE_URL + '/api/telegram/wipeout',  {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${oAuthToken}`,
             'Content-Type': 'application/json'
         },
         body
-        })
+    });
 
-        if(!res.ok) throw new Error(res.status);
-
-        console.log('Success!');
-        console.log(res);
-        
-
-        const json = await res.json();
-
-        console.log('Data:');
-        console.log(json);
-        
-        
-
-    }catch(err){
-        console.log(err);
-    }
+    console.log('Success!');
+    console.log(res);
 }
