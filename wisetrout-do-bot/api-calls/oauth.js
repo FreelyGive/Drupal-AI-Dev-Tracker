@@ -1,8 +1,7 @@
 export async function getOAuthToken(){
 
-
     const data = {
-        grant_type: process.env.DRUPAL_AUTH_TOKEN_GRANT_TYPE || '',
+        grant_type: 'client_credentials',
         client_id: process.env.DRUPAL_AUTH_TOKEN_CLIENT_ID || '',
         client_secret: process.env.DRUPAL_AUTH_TOKEN_CLIENT_SECRET || '',
         scope: process.env.DRUPAL_AUTH_TOKEN_SCOPE || '',
@@ -18,11 +17,9 @@ export async function getOAuthToken(){
 
         if(!res.ok) throw new Error(res.status);
 
-        const json = await res.json();
+        const responseData = await res.json();
 
-        const token = json.access_token;
-
-        return token;
+        return responseData;
 
     }catch(err){
         console.log(err);
