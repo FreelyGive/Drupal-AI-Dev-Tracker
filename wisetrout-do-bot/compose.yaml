@@ -5,7 +5,18 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file: '.env'
+    extra_hosts:
+      - drupal-ai-dev-tracker.ddev.site=172.18.0.3
     volumes:
     - type: bind
       source: .
       target: /app
+    networks:
+#      ddev-drupal-ai-dev-tracker_default: {}
+      ddev_default: {}
+
+networks:
+#  ddev-drupal-ai-dev-tracker_default:
+#    external: true
+  ddev_default:
+    external: true

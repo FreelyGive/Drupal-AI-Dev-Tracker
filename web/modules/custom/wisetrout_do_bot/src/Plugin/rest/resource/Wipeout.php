@@ -2,6 +2,7 @@
 
 namespace Drupal\wisetrout_do_bot\Plugin\rest\resource;
 
+use Drupal\Core\Database\Connection;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,6 +21,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class Wipeout extends ResourceBase {
   protected $currentRequest;
 
+  protected Connection $database;
+
   private function deleteUserInfo($cid){
     $this->database
     ->delete('telegram_subscribers')
@@ -37,14 +40,14 @@ class Wipeout extends ResourceBase {
    public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
       $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
       $instance->currentRequest = $container->get('request_stack')->getCurrentRequest();
-      $instance->database = \Drupal::database();
+      $instance->database = $container->get('database');
       return $instance;
   }
 
 
   public function post() {
     $content = $this->currentRequest->getContent();
-    
+
     $params = json_decode($content, TRUE);
 
     $cid = $params['chatId'];

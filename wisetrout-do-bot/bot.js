@@ -9,13 +9,14 @@ import { activateOAuthToken } from './oauth.js';
 
 activateOAuthToken()
 .then(() => {
+  console.log('Oauth complete');
     activateBot();
 });
 
 
 
 function activateBot(){
-    
+
     const bot = new Telegraf(process.env.BOT_TOKEN);
 
     bot.use(session());
@@ -28,7 +29,7 @@ function activateBot(){
     bot.start(ctx => {
 
         ctx.reply(
-            'Welcome to the Wisetrout Drupal org bot!', 
+            'Welcome to the Wisetrout Drupal org bot!',
             createActionsKeyboard(ctx)
         )
     });
@@ -44,7 +45,7 @@ function activateBot(){
         ]);
 
         ctx.session.userInfo.subscribed = false;
-        ctx.reply('Unsubscribed from all updates. We will keep your preferences saved in case you want to renew your subscription.', 
+        ctx.reply('Unsubscribed from all updates. We will keep your preferences saved in case you want to renew your subscription.',
             createActionsKeyboard(ctx)
         );
     });
@@ -57,7 +58,7 @@ function activateBot(){
         ]);
 
         ctx.session.userInfo.subscribed = true;
-        ctx.reply('Subscription reactivated', 
+        ctx.reply('Subscription reactivated',
             createActionsKeyboard(ctx)
         );
 

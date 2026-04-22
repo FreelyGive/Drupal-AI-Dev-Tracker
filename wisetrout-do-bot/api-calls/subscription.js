@@ -10,8 +10,8 @@ export async function subscribe(userInfo, modules){
 
     console.log('Body:');
     console.log(body);
-    
-        
+
+
     const res = await sendAuthorizedRequest(process.env.BASE_URL + '/api/telegram/subscribe',  {
     method: 'POST',
     headers: {
@@ -21,7 +21,7 @@ export async function subscribe(userInfo, modules){
     });
 
     console.log(res);
-    
+
 }
 
 export async function updateStatus(chatId, subscribed){
@@ -40,9 +40,9 @@ export async function updateStatus(chatId, subscribed){
         body
     });
 
-        
+
     console.log(res);
-        
+
 }
 
 export async function checkSubscription(chatId){
@@ -52,13 +52,21 @@ export async function checkSubscription(chatId){
 
     console.log('user Info success!');
     console.log(res);
-        
+    const text = await res.text();
+    if (!text) {
+        throw new Error('Empty response from server');
+    }
 
-    const data = await res.json();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error('Failed to parse JSON. Response text was:', text);
+        throw new Error('Invalid JSON response from server');
+    }
 
     console.log('User info:');
     console.log(data);
-    
 
     return data;
 }
@@ -70,7 +78,7 @@ export async function wipeoutData(chatId){
 
     console.log('Body:');
     console.log(body);
- 
+
     const res = await sendAuthorizedRequest(process.env.BASE_URL + '/api/telegram/wipeout',  {
         method: 'POST',
         headers: {

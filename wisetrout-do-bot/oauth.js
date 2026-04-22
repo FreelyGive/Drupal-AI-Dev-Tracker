@@ -31,7 +31,10 @@ export async function sendAuthorizedRequest(url, { method, body, headers }){
             return newResponse;
         }
 
-        if(!response.ok) throw new Error(response.status);
+        if(!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
 
         return response;
 

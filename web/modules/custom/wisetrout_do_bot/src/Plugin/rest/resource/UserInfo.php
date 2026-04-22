@@ -55,18 +55,16 @@ class UserInfo extends ResourceBase {
     public function get($cid){
 
     $database = \Drupal::database();
-    
-    $userStatus = $this->readUserStatus($cid, $database);
-    $responseData;
 
-    if($userStatus === null) {
-      $responseData = null;
-    }else {
-      $modulesList = $this->readModulesList($cid, $database);
-      $responseData = [
-        'subscribed' => !!$userStatus,
-        'modules' => $modulesList,
-      ];
+    $userStatus = $this->readUserStatus($cid, $database);
+
+    $responseData = [
+      'subscribed' => !!$userStatus,
+      'modules' => [],
+    ];
+
+    if ($userStatus !== null) {
+      $responseData['modules'] = $this->readModulesList($cid, $database);
     }
 
     return new ResourceResponse($responseData);
