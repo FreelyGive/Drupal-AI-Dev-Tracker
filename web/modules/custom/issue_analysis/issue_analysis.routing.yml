@@ -1,0 +1,16 @@
+issue_analysis.daily_digest_cron:
+  path: '/issue-analysis/cron'
+  defaults:
+    _controller: '\Drupal\issue_analysis\Controller\DailyDigestCronController::run'
+  requirements:
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+issue_analysis.daily_digest_admin:
+  path: '/admin/config/services/issue-analysis/daily-digest'
+  defaults:
+    _form: '\Drupal\issue_analysis\Form\DailyDigestForm'
+    _title: 'Daily Newsletter Digest'
+  requirements:
+    _permission: 'generate issue analysis newsletter'

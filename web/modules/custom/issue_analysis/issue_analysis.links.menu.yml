@@ -1,0 +1,6 @@
+issue_analysis.daily_digest_admin:
+  title: 'Daily Issues Digest'
+  description: 'Generate the daily AI module activity summary.'
+  route_name: issue_analysis.daily_digest_admin
+  parent: system.admin_config_services
+  weight: 10
