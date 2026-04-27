@@ -37,15 +37,13 @@ class CronHooks {
         $moduleSummaryNotifications = $this->createModuleSummaryNotifications($subscriptions, $moduleSummaries);
         $moduleCreationNotifications = $this->createModuleCreationNotifications($chatIds, $newModulesSummary);
     
-        // Fetch the queue service.
         $queue = \Drupal::queue('telegram_bot_queue');
         
         $items_to_process = array_merge($moduleCreationNotifications, $moduleCreationNotifications);
 
         foreach ($items_to_process as $item_data) {
-        // Create an item in the queue.
-        $queue->createItem($item_data);
-    }
+          $queue->createItem($item_data);
+        }
 
     // Update the last run time.
     \Drupal::state()->set('wisetrout_do_bot.cron_last_run', $current_time);
