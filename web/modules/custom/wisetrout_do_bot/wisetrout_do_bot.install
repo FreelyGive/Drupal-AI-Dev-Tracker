@@ -45,6 +45,13 @@ function wisetrout_do_bot_schema() {
         'length' => '10',
         'not null' => TRUE,
       ],
+      'type' => [
+        'description' => 'Subscription type (instant or daily)',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+        'default' => 'instant',
+      ],
       'status' => [
         'description' => 'Status of subscription. 1 = active, 0 = inactive.',
         'type' => 'int',
@@ -63,5 +70,18 @@ function wisetrout_do_bot_schema() {
   ];
 
   return $schema;
+}
+
+function wisetrout_do_bot_update_11001(){
+  $schema = \Drupal::database()->schema();
+  $spec = [
+    'description' => 'Subscription type (instant or daily)',
+    'type' => 'varchar',
+    'not null' => TRUE,
+    'default' => 'instant',
+    'length' => 255,
+  ];
+  
+  $schema->addField('telegram_subscribers', 'type', $spec);
 }
 

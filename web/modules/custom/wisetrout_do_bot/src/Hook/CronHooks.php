@@ -22,13 +22,20 @@ class CronHooks {
     // Check if today is a different day than the last run.
     if (date('Y-m-d', $current_time) !== date('Y-m-d', $last_run)) {
 
-        $chatIds = $this->getActiveDailySubscriberIds();
-        $updates = $this->getIssueUpdatesData();
-        $subscriptions = $this->getDailySubscriptions($chatIds);
-        $newModules = $this->getnewModules();
 
-        $moduleSummaryNotifications = $this->createModuleSummaryNotifications($subscriptions, $updates);
-        $moduleCreationNotifications = $this->createModuleCreationNotifications($chatIds, $newModules);
+        $creations = $this->getCreatedIssues();
+        $updates = $this->getUpdatedIssues();
+
+        $moduleSummaries = $this->createModuleSummaries($updates, $creations);
+        $newModulesSummary = $this->createNewModulesSummary();
+
+        $chatIds = $this->getActiveDailySubscriberIds();
+        
+        $subscriptions = $this->getDailySubscriptions($chatIds);
+        
+
+        $moduleSummaryNotifications = $this->createModuleSummaryNotifications($subscriptions, $moduleSummaries);
+        $moduleCreationNotifications = $this->createModuleCreationNotifications($chatIds, $newModulesSummary);
     
         // Fetch the queue service.
         $queue = \Drupal::queue('telegram_bot_queue');
@@ -51,15 +58,6 @@ class CronHooks {
     ->fetchCol();
   }
 
-  protected function getIssueUpdatesData(){
-
-    $createdIssuesData = $this->getCreatedIssuesData();
-    $updatedIssuesData = $this->getUpdatedIssuesData();
-
-    return array_merge($updatedIssuesData, $createdIssuesData);
-
-  }
-
   protected function getDailySubscriptions($chatIds){
     return \Drupal::database()
     ->query("SELECT chat_id, module_id FROM {telegram_subscriptions} WHERE chat_id IN (:chat_ids[])", [
@@ -68,30 +66,8 @@ class CronHooks {
     ->fetchAllAssoc();
   }
 
-  protected function getNewModules(){
-    $yesterday = strtotime('-1 day');
-    $storage = \Drupal::entityTypeManager()->getStorage('node');
-    $createdIds = \Drupal::entityQuery('node')
-    ->condition('type', 'ai_module')
-    ->condition('created', $yesterday, '>=')
-    ->accessCheck(FALSE)
-    ->execute();
 
-    $createdModuleNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-    $createdModuleNames = array_map(function($node){
-        return $node->field_module_machine_name[0]->value;
-    }, $createdModuleNodes);
-    return $createdModuleNames;
-  }
-
-  protected function createModuleSummaryNotifications($subscriptions, $updates){
-    $notifications = [];
-    
-  }
-
-  protected function createModuleCreationNotifications(){}
-
-  protected function getCreatedIssuesData(){
+  protected function getCreatedIssues(){
     $yesterday = strtotime('-1 day');
     $storage = \Drupal::entityTypeManager()->getStorage('node');
     $createdIds = \Drupal::entityQuery('node')
@@ -104,20 +80,19 @@ class CronHooks {
  
     $createdIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
 
-    $data = array_map(function($issueNode){
-        return [
-            'id' => $issueNode->id(),
-            'name' => $issueNode->label(),
-            'module' => $issueNode->->get('field_issue_module')->entity->id(),
-            'action' => 'created',
-        ];
-    }, $createdIssueNodes);
+    // $data = array_map(function($issueNode){
+    //     return [
+    //         'node' => $issueNode,
+    //         'module' => $issueNode->->get('field_issue_module')->entity,
+    //         'action' => 'created',
+    //     ];
+    // }, $createdIssueNodes);
 
-    return $data;
+    return $createdIssueNodes;
 
   }
 
-  protected function getUpdatedIssuesData(){
+  protected function getUpdatedIssues(){
     $yesterday = strtotime('-1 day');
     $storage = \Drupal::entityTypeManager()->getStorage('node');
 
@@ -132,23 +107,115 @@ class CronHooks {
  
     $updatedIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
 
-    foreach ($updatedIssueNodes as $issueNode) {
-        $vids = $storage->revisionIds($issueNode);
-        if (count($vids) >= 2) {
-            $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
-            $changes = getChangedFields($issueNode, $previousRev);
-            $data[] = [
-                'id' => $issueNode->id(),
-                'name' => $issueNode->label(),
-                'module' => $issueNode->->get('field_issue_module')->entity->id(),
-                'action' => 'updated',
-                'changes' => $changes,
-            ];
-        }
+    // foreach ($updatedIssueNodes as $issueNode) {
+    //     $vids = $storage->revisionIds($issueNode);
+    //     if (count($vids) >= 2) {
+    //         $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
+    //         $changes = getChangedFields($issueNode, $previousRev);
+    //         $data[] = [
+    //             'id' => $issueNode->id(),
+    //             'name' => $issueNode->label(),
+    //             'module' => $issueNode->->get('field_issue_module')->entity,
+    //             'action' => 'updated',
+    //             'changes' => $changes,
+    //         ];
+    //     }
+    // }
+
+    // return $data;
+
+    return $updatedIssueNodes;
+  }
+
+  
+
+  protected function createModuleSummaries($updatedNodes, $createdNodes){
+    $summaries = [];
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+
+    foreach($updatedNodes as $issueNode){
+      $vids = $storage->revisionIds($issueNode);
+      if(count($vids) < 2) continue;
+
+      $updateMessage = "\n✏️<b>Issue updated </b>: {$node->label()}:";
+
+      $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
+      $changes = getChangedFields($issueNode, $previousRev);
+        
+      foreach($changes as $change){
+        $changeMessage = "\n{$change['name']}: {$change['old']} -> {$change['new']}";
+        $updateMessage = $updateMessage . $changeMessage;
+      }
+
+      
+      $moduleId = $issueNnode->get('field_issue_module')->entity->id();
+
+      if($summaries[$moduleId]){
+        $summaries[$moduleId] = $summaries[$moduleId] . $updateMessage;
+      } else{
+        $summaries[$moduleId] = "🏷️${$issueNode->get('field_issue_module')->entity->label()} updates:" . $updateMessage;
+      }
+
     }
 
-    return $data;
+    foreach($createdNodes as $issueNode){
+
+      $creationMessage = "\n🌱<b>Issue created </b>: {$node->label()}.";
+      
+      $moduleId = $issueNnode->get('field_issue_module')->entity->id();
+
+      if($summaries[$moduleId]){
+        $summaries[$moduleId] = $summaries[$moduleId] . $creationMessage;
+      } else{
+        $summaries[$moduleId] = "🏷️${$issueNode->get('field_issue_module')->entity->label()} updates:" . $creationMessage;
+      }
+
+    }
+
+    return $summaries;
+
   }
+
+  protected function createNewModulesSummary(){
+    $yesterday = strtotime('-1 day');
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $createdIds = \Drupal::entityQuery('node')
+    ->condition('type', 'ai_module')
+    ->condition('created', $yesterday, '>=')
+    ->accessCheck(FALSE)
+    ->execute();
+
+    $createdModuleNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
+    $createdModuleNames = array_map(function($node){
+        return $node->field_module_machine_name[0]->value;
+    }, $createdModuleNodes);
+
+    $modulesList = join(', ', $createdModuleNames);
+
+    $summary = "🏷️ New modules created: {$modulesList}.";
+    return $summary;
+  }
+
+  protected function createModuleSummaryNotifications($subscriptions, $moduleSummaries){
+    $notifications = array_map(function($subscription) use ($moduleSummaries){
+      return [
+        "chatId" => $subscription['chat_id'],
+        "message" => $moduleSummaries[$subscription['module_id']],
+      ];
+    }, $subscriptions);
+    return $notifications;
+  }
+
+  protected function createModuleCreationNotifications($chatIds, $summary){
+    $notifications = array_map(function($chatId) use ($summary){
+      return [
+        "chatId" => $chatId,
+        "message" => $summary,
+      ];
+    }, $chatIds);
+    return $notifications;
+  }
+
 
   protected function getChangedFields($newNode, $oldNode){
     $changes = [];
