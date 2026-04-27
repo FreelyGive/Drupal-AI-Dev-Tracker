@@ -64,9 +64,9 @@ class DailyDigestService {
     file_put_contents("$newsletterDir/1d-data.md", $dataMarkdown . "\n");
     $log("Data overview written to $dataFile");
 
-    // Dev + CEO newsletters.
-    foreach (['developer', 'ceo'] as $persona) {
-      $suffix = $persona === 'ceo' ? '-ceo' : '-dev';
+    // Developer + Executive newsletters.
+    foreach (['developer', 'executive'] as $persona) {
+      $suffix = $persona === 'executive' ? '-executive' : '-dev';
       $log("Summarising modules ($persona persona)...");
 
       $sections = [];
@@ -96,13 +96,13 @@ class DailyDigestService {
       $outFile = $this->resolveOutputPath($period, $dateStr, 'md', $suffix);
       file_put_contents($outFile, $newsletter . "\n");
 
-      $stableName = $persona === 'ceo' ? '1d-summary-ceo.md' : '1d-summary-dev.md';
+      $stableName = $persona === 'executive' ? '1d-summary-executive.md' : '1d-summary-dev.md';
       file_put_contents("$newsletterDir/$stableName", $newsletter . "\n");
       $log("Newsletter ($persona) written to $outFile");
     }
 
     // Sidebar.
-    $sidebar = "* [Executive audience](1d-summary-ceo.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n";
+    $sidebar = "* [Home](/README.md)\n * [Executive audience](1d-summary-executive.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n";
     file_put_contents("$newsletterDir/_sidebar.md", $sidebar);
 
     // Record last run timestamp.
@@ -129,7 +129,7 @@ class DailyDigestService {
 
     // Steps 2 — summarise each module × persona. We don't know the module list
     // yet, so we add a single dispatcher operation that fans out internally.
-    foreach (['developer', 'ceo'] as $persona) {
+    foreach (['developer', 'executive'] as $persona) {
       $operations[] = [
         [static::class, 'batchSummarisePersona'],
         [$persona],
@@ -249,9 +249,9 @@ class DailyDigestService {
     file_put_contents("$newsletterDir/1d-data.md", $dataMarkdown . "\n");
 
     // Newsletters.
-    foreach (['developer', 'ceo'] as $persona) {
-      $suffix = $persona === 'ceo' ? '-ceo' : '-dev';
-      $stableName = $persona === 'ceo' ? '1d-summary-ceo.md' : '1d-summary-dev.md';
+    foreach (['developer', 'executive'] as $persona) {
+      $suffix = $persona === 'executive' ? '-executive' : '-dev';
+      $stableName = $persona === 'executive' ? '1d-summary-executive.md' : '1d-summary-dev.md';
       $sections = $allSections[$persona]['sections'] ?? [];
       $tldr = $allSections[$persona]['tldr'] ?? NULL;
 
@@ -261,7 +261,7 @@ class DailyDigestService {
     }
 
     // Sidebar.
-    file_put_contents("$newsletterDir/_sidebar.md", "* [Executive audience](1d-summary-ceo.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n");
+    file_put_contents("$newsletterDir/_sidebar.md", "* [Home](/README.md)\n * [Executive audience](1d-summary-executive.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n");
 
     // Record last run.
     \Drupal::service('state')->set(self::STATE_LAST_RUN, $generatedAt);
@@ -309,7 +309,7 @@ class DailyDigestService {
    * @param string $format
    *   Output format: "markdown" or "plain".
    * @param string $persona
-   *   Target audience: "developer" or "ceo".
+   *   Target audience: "developer" or "executive".
    *
    * @return string
    *   LLM-generated Markdown or plain-text section.
@@ -359,9 +359,15 @@ class DailyDigestService {
       ? "Format your response as Markdown. Start with the exact heading \"### $title\" then use subsections as needed."
       : 'Format your response as plain text with no Markdown.';
 
-    $personaInstruction = match ($persona) {
-      'ceo' => "You are writing for a non-technical executive audience (CEO/leadership level).\nFocus on: business impact, strategic progress, risks, and what is being delivered.\nAvoid technical jargon. Do not mention branch names, function names, or API details.\nExplain what each piece of work means for users or the project's goals.",
-      default => "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
+    [$personaInstruction, $howToHelpProjectInstruction] = match ($persona) {
+      'executive' => [
+        "You are writing for a non-technical executive audience (CEO/leadership level).\nFocus on: business impact, strategic progress, risks, and what is being delivered.\nAvoid technical jargon. Do not mention branch names, function names, or API details.\nExplain what each piece of work means for users or the project's goals.",
+        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+      ],
+      default => [
+        "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
+        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+      ],
     };
 
     $confidentialNote = $confidentialCount > 0
@@ -380,6 +386,8 @@ Do not list every issue/MR individually — synthesise into prose. Keep it under
 Do not use emoticons or mdashes.
 $confidentialNote
 $formatInstruction
+
+$howToHelpProjectInstruction
 
 --- ISSUES UPDATED ($period) ---
 $issueSection
@@ -404,7 +412,7 @@ PROMPT;
    * @param string $format
    *   Output format: "markdown" or "plain".
    * @param string $persona
-   *   Target audience: "developer" or "ceo".
+   *   Target audience: "developer" or "executive".
    *
    * @return string
    *   LLM-generated TL;DR with Shipped and Ongoing sections.
@@ -413,7 +421,7 @@ PROMPT;
     $combined = implode("\n\n---\n\n", $sections);
 
     $personaInstruction = match ($persona) {
-      'ceo' => 'You are writing for a non-technical executive (CEO/leadership). Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
+      'executive' => 'You are writing for a non-technical executive audience. Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
       default => 'You are writing for a technical developer audience. Be specific — name modules, merged features, and critical bugs.',
     };
 
@@ -500,7 +508,7 @@ PROMPT;
         if (preg_match('/^###\s+(.+)$/m', $text, $m)) {
           $title = trim($m[1]);
         }
-        $anchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title));
+        $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
         $lines[] = "- [$title](#$anchor)";
       }
       $lines[] = "";
@@ -508,7 +516,7 @@ PROMPT;
       $lines[] = "";
 
       // Per-module sections with injected data link under the heading.
-      $dataBase = '/1d-data';
+      $dataBase = '1d-data';
       foreach ($sections as $machineName => $text) {
         // Derive the anchor from the LLM-generated title so it matches the
         // ## heading in the data document (docsify uses the heading text).
@@ -516,7 +524,7 @@ PROMPT;
         if (preg_match('/^###\s+(.+)$/m', $text, $tm)) {
           $sectionTitle = trim($tm[1]);
         }
-        $dataAnchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle));
+        $dataAnchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle)), '-');
         $dataLink = "_[View issues data]({$dataBase}?id={$dataAnchor})_";
         $text = preg_replace(
           '/^(###\s+.+)$/m',
@@ -588,7 +596,7 @@ PROMPT;
 
     foreach ($active as $m) {
       $title = $m['title'] ?? $m['machine_name'];
-      $anchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title));
+      $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
       $lines[] = sprintf('- [%s](#%s) — %d issues, %d MRs, %d commits', $title, $anchor, count($m['issues']), count($m['merge_requests']), count($m['commits']));
     }
 
@@ -672,7 +680,7 @@ PROMPT;
    * @param string $ext
    *   File extension without dot (e.g. "json", "md").
    * @param string $suffix
-   *   Optional suffix before the extension (e.g. "-ceo", "-data").
+   *   Optional suffix before the extension (e.g. "-executive", "-data").
    *
    * @return string
    *   Absolute filesystem path to the output file.

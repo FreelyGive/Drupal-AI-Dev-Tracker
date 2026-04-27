@@ -27,7 +27,7 @@ ddev drush ia-daily --module=ai   # single module for testing
 
 **Output files:**
 - `web/issue_analysis/1d-summary-dev.md` — developer newsletter
-- `web/issue_analysis/1d-summary-ceo.md` — executive newsletter
+- `web/issue_analysis/1d-summary-executive.md` — executive newsletter
 - `web/issue_analysis/1d-data.md` — raw data with navigation index (confidential issues omitted)
 - `web/issue_analysis/_sidebar.md` — docsify sidebar
 - `sites/default/files/issues-digest/24h_{date}.json` — raw JSON archive (includes confidential flag)
@@ -60,15 +60,15 @@ Reads a JSON file from `ia-nf` and calls the LLM per module.
 
 ```bash
 ddev drush ia-ns /var/www/html/web/sites/default/files/issues-digest/7d_2026-04-17.json
-ddev drush ia-ns /path/to/file.json --persona=ceo
+ddev drush ia-ns /path/to/file.json --persona=executive
 ddev drush ia-ns /path/to/file.json --module=ai --persona=developer
 ```
 
-**Options:** `--persona=developer|ceo`, `--module=<name>`, `--format=markdown|plain`, `--output=<path>`
+**Options:** `--persona=developer|executive`, `--module=<name>`, `--format=markdown|plain`, `--output=<path>`
 
 Confidential issues are excluded from the LLM prompt. If any exist, the generated section will note how many were omitted.
 
-Default output: `sites/default/files/issues-digest/{period}_{date}-dev.md` or `-ceo.md`.
+Default output: `sites/default/files/issues-digest/{period}_{date}-dev.md` or `-executive.md`.
 
 ---
 
@@ -169,5 +169,5 @@ ddev drush ia-daily
 ```bash
 ddev drush ia-nf 7d
 ddev drush ia-ns /var/www/html/web/sites/default/files/issues-digest/7d_2026-04-17.json
-ddev drush ia-ns /var/www/html/web/sites/default/files/issues-digest/7d_2026-04-17.json --persona=ceo
+ddev drush ia-ns /var/www/html/web/sites/default/files/issues-digest/7d_2026-04-17.json --persona=executive
 ```

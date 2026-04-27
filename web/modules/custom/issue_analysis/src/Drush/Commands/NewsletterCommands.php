@@ -108,11 +108,11 @@ class NewsletterCommands extends DrushCommands {
   // ---------------------------------------------------------------------------
 
   /**
-   * Fetch the last 24h of activity and generate both developer and CEO newsletters.
+   * Fetch the last 24h of activity and generate both developer and executive newsletters.
    */
   #[CLI\Command(name: 'issue-analysis:daily-digest', aliases: ['ia-daily'])]
   #[CLI\Option(name: 'module', description: 'Machine name of a single module. Omit to process all.')]
-  #[CLI\Usage(name: 'drush ia-daily', description: 'Fetch 24h data and generate dev + CEO newsletters.')]
+  #[CLI\Usage(name: 'drush ia-daily', description: 'Fetch 24h data and generate developer + executive newsletters.')]
   #[CLI\Usage(name: 'drush ia-daily --module=ai', description: 'Run the daily digest for the "ai" module only.')]
   public function dailyDigest(
     array $options = ['module' => NULL],
@@ -140,10 +140,10 @@ class NewsletterCommands extends DrushCommands {
   #[CLI\Option(name: 'output', description: 'Write the newsletter text to this file instead of stdout.')]
   #[CLI\Option(name: 'format', description: 'Output format: markdown (default) or plain.')]
   #[CLI\Option(name: 'module', description: 'Summarise only this module from the file (machine name).')]
-  #[CLI\Option(name: 'persona', description: 'Target audience: developer (default) or ceo.')]
+  #[CLI\Option(name: 'persona', description: 'Target audience: developer (default) or executive.')]
   #[CLI\Usage(name: 'drush ia-ns /tmp/report.json', description: 'Summarise all modules in the file.')]
   #[CLI\Usage(name: 'drush ia-ns /tmp/report.json --module=ai --output=/tmp/newsletter.md', description: 'Summarise the "ai" module and save.')]
-  #[CLI\Usage(name: 'drush ia-ns /tmp/report.json --persona=ceo --output=/tmp/exec.md', description: 'Executive-style summary for non-technical readers.')]
+  #[CLI\Usage(name: 'drush ia-ns /tmp/report.json --persona=executive --output=/tmp/exec.md', description: 'Executive-style summary for non-technical readers.')]
   public function newsletterSummarise(
     string $inputFile,
     array $options = ['output' => NULL, 'format' => 'markdown', 'module' => NULL, 'persona' => 'developer'],
@@ -176,8 +176,8 @@ class NewsletterCommands extends DrushCommands {
     $until = $data['until'] ?? '';
     $format = $options['format'] ?? 'markdown';
     $persona = $options['persona'] ?? 'developer';
-    if (!in_array($persona, ['developer', 'ceo'], TRUE)) {
-      $this->logger()->error("Invalid --persona '$persona'. Use: developer, ceo.");
+    if (!in_array($persona, ['developer', 'executive'], TRUE)) {
+      $this->logger()->error("Invalid --persona '$persona'. Use: developer, executive.");
       return;
     }
 
@@ -222,7 +222,7 @@ class NewsletterCommands extends DrushCommands {
     $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since, $until, $format);
 
     $ext = $format === 'plain' ? 'txt' : 'md';
-    $suffix = $persona === 'ceo' ? '-ceo' : '-dev';
+    $suffix = $persona === 'executive' ? '-executive' : '-dev';
     $outputFile = $options['output'] ?? $this->resolveOutputPath($period, $since, $ext, $suffix);
     file_put_contents($outputFile, $newsletter . "\n");
     $this->io()->success("Newsletter written to $outputFile");
@@ -269,7 +269,7 @@ class NewsletterCommands extends DrushCommands {
    * @param string $format
    *   Output format: "markdown" or "plain".
    * @param string $persona
-   *   Target audience: "developer" or "ceo".
+   *   Target audience: "developer" or "executive".
    *
    * @return string
    *   LLM-generated summary text.
@@ -320,18 +320,24 @@ class NewsletterCommands extends DrushCommands {
       ? "Format your response as Markdown. Start with the exact heading \"### $title\" then use subsections as needed."
       : 'Format your response as plain text with no Markdown.';
 
-    $personaInstruction = match ($persona) {
-      'ceo' => <<<'TXT'
+    [$personaInstruction, $howToHelpProjectInstruction] = match ($persona) {
+      'executive' => [
+        <<<'TXT'
 You are writing for a non-technical executive audience (CEO/leadership level).
 Focus on: business impact, strategic progress, risks, and what is being delivered.
 Avoid technical jargon. Do not mention branch names, function names, or API details.
 Explain what each piece of work means for users or the project's goals.
 TXT,
-      default => <<<'TXT'
+        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+      ],
+      default => [
+        <<<'TXT'
 You are writing for a technical developer audience.
 Focus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.
 Be specific — mention function names, module names, and MR references where relevant.
 TXT,
+        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+      ],
     };
 
     $confidentialNote = $confidentialCount > 0
@@ -350,6 +356,8 @@ Do not list every issue/MR individually — synthesise into prose. Keep it under
 Do not use emoticons or mdashes.
 $confidentialNote
 $formatInstruction
+
+$howToHelpProjectInstruction
 
 --- ISSUES UPDATED ($period) ---
 $issueSection
@@ -374,7 +382,7 @@ PROMPT;
    * @param string $format
    *   Output format: "markdown" or "plain".
    * @param string $persona
-   *   Target audience: "developer" or "ceo".
+   *   Target audience: "developer" or "executive".
    *
    * @return string
    *   LLM-generated TL;DR text with Shipped and Ongoing sections.
@@ -383,7 +391,7 @@ PROMPT;
     $combined = implode("\n\n---\n\n", $sections);
 
     $personaInstruction = match ($persona) {
-      'ceo' => 'You are writing for a non-technical executive (CEO/leadership). Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
+      'executive' => 'You are writing for a non-technical executive audience. Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
       default => 'You are writing for a technical developer audience. Be specific — name modules, merged features, and critical bugs.',
     };
 
@@ -487,7 +495,7 @@ PROMPT;
         if (preg_match('/^###\s+(.+)$/m', $text, $m)) {
           $title = trim($m[1]);
         }
-        $anchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title));
+        $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
         $lines[] = "- [$title](#$anchor)";
       }
       $lines[] = "";
@@ -495,13 +503,13 @@ PROMPT;
       $lines[] = "";
 
       // Per-module sections with injected data link.
-      $dataBase = '/1d-data';
+      $dataBase = '1d-data';
       foreach ($sections as $machineName => $text) {
         $sectionTitle = $machineName;
         if (preg_match('/^###\s+(.+)$/m', $text, $tm)) {
           $sectionTitle = trim($tm[1]);
         }
-        $dataAnchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle));
+        $dataAnchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle)), '-');
         $dataLink = "_[View issues data]({$dataBase}?id={$dataAnchor})_";
         $text = preg_replace('/^(###\s+.+)$/m', "$1\n\n{$dataLink}", $text, 1);
         $lines[] = $text;
@@ -607,7 +615,7 @@ PROMPT;
     // Navigation index.
     foreach ($active as $m) {
       $title = $m['title'] ?? $m['machine_name'];
-      $anchor = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title));
+      $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
       $issueCount = count($m['issues']);
       $mrCount = count($m['merge_requests']);
       $commitCount = count($m['commits']);
@@ -707,7 +715,7 @@ PROMPT;
    * Resolves a default output file path under sites/default/files/issues-digest/.
    *
    * Filename format: {period}_{YYYY-MM-DD}{suffix}.{ext}
-   * e.g. 24h_2026-04-24.json, 7d_2026-04-17-ceo.md
+   * e.g. 24h_2026-04-24.json, 7d_2026-04-17-executive.md
    *
    * @param string $period
    *   The period string (e.g. "24h", "7d", "30d").
@@ -716,7 +724,7 @@ PROMPT;
    * @param string $ext
    *   File extension without dot (e.g. "json", "md", "txt").
    * @param string $suffix
-   *   Optional suffix before the extension (e.g. "-ceo").
+   *   Optional suffix before the extension (e.g. "-executive").
    */
   private function resolveOutputPath(string $period, string $since, string $ext, string $suffix = ''): string {
     $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';

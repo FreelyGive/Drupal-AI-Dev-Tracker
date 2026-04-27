@@ -39,7 +39,7 @@ class DailyDigestForm extends FormBase {
 
     $form['description'] = [
       '#type' => 'markup',
-      '#markup' => '<p>' . $this->t('Clicking the button will fetch the last 24 hours of GitLab activity for all AI modules and generate the developer and CEO newsletters. Progress is shown in real time.') . '</p>',
+      '#markup' => '<p>' . $this->t('Clicking the button will fetch the last 24 hours of GitLab activity for all AI modules and generate the developer and executive newsletters. Progress is shown in real time.') . '</p>',
     ];
 
     $form['actions'] = ['#type' => 'actions'];

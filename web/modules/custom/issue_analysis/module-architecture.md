@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `issue_analysis` module fetches activity from GitLab and drupal.org for every AI-related Drupal module, summarises it using an LLM, and publishes two daily newsletters (developer and CEO) plus a raw data document to `web/issue_analysis/` for docsify rendering.
+The `issue_analysis` module fetches activity from GitLab and drupal.org for every AI-related Drupal module, summarises it using an LLM, and publishes two daily newsletters (developer and executive) plus a raw data document to `web/issue_analysis/` for docsify rendering.
 
 ---
 
@@ -51,7 +51,7 @@ Orchestrates the full daily digest pipeline. Designed to be callable from three 
 Key methods:
 
 - `run(?string $module, ?callable $logger): void` — synchronous full run; used by the `ia-daily` Drush command. Calls fetch → summarise (both personas) → assemble → write all files → record last run timestamp.
-- `buildBatch(?string $module): array` — returns a Batch API definition with four operations (fetch, summarise-developer, summarise-ceo, finalise). Called by `DailyDigestForm`.
+- `buildBatch(?string $module): array` — returns a Batch API definition with four operations (fetch, summarise-developer, summarise-executive, finalise). Called by `DailyDigestForm`.
 - `lastRunFormatted(): ?string` — reads the `issue_analysis.daily_digest_last_run` state key and returns it as "YYYY-MM-DD HH:MM GMT", or NULL.
 
 Static batch callbacks (required by Drupal Batch API):
@@ -78,10 +78,10 @@ Public helper methods (called by static batch callbacks via `\Drupal::service()`
 | `public://issues-digest/24h_YYYY-MM-DD.json` | Raw structured data |
 | `public://issues-digest/24h_YYYY-MM-DD-data.md` | Timestamped data document |
 | `public://issues-digest/24h_YYYY-MM-DD-dev.md` | Timestamped developer newsletter |
-| `public://issues-digest/24h_YYYY-MM-DD-ceo.md` | Timestamped CEO newsletter |
+| `public://issues-digest/24h_YYYY-MM-DD-executive.md` | Timestamped executive newsletter |
 | `web/issue_analysis/1d-data.md` | Stable symlink-style copy for docsify |
 | `web/issue_analysis/1d-summary-dev.md` | Stable copy for docsify |
-| `web/issue_analysis/1d-summary-ceo.md` | Stable copy for docsify |
+| `web/issue_analysis/1d-summary-executive.md` | Stable copy for docsify |
 | `web/issue_analysis/_sidebar.md` | docsify navigation sidebar |
 
 **Dependencies:** `@issue_analysis.newsletter_fetcher`, `@issue_analysis.summariser`, `@state`
