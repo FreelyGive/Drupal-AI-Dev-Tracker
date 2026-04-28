@@ -1,0 +1,56 @@
+/**
+ * Site-specific CSS tweaks for the Gin theme.
+ */
+
+h1.page-title {
+  max-width: 100%;
+  text-align: center;
+}
+#block-gin-page-title{
+  text-align: center;
+}
+.region-header nav {
+  background: linear-gradient(135deg, #0073aa, #005a87);
+  padding: 1rem;
+  margin-bottom: 0;
+}
+.region-header ul.menu {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
+
+  list-style: none;
+  gap: 1rem;
+}
+.region-header .menu li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.region-header .menu li a{
+  padding: 0.5rem 1rem;
+  display: block;
+  text-decoration: none;
+  box-shadow: .1em .25em .5em var(--gin-color-primary-light);
+  color: var(--gin-color-button-text);
+  border-radius: var(--gin-border-m);
+}
+.region-header .menu li.menu-item--active-trail a {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/** Remove the sticky button **/
+/*#simplenews-subscriber-account-form .gin-sticky-form-actions ,*/
+/*#user-form .gin-sticky-form-actions ,*/
+/*#user-pass-reset .gin-sticky-form-actions ,*/
+/*#user-register-form .gin-sticky-form-actions {*/
+/*  height: auto !important;*/
+/*  width: auto !important;*/
+/*  position: relative !important;*/
+/*}*/
