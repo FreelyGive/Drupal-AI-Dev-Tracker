@@ -3,38 +3,37 @@ import { getModulesList } from "../api-calls/modules-list.js";
 import { subscribe } from "../api-calls/subscription.js";
 
 const MODULES_PER_PAGE = 10;
+const cancelBtn = Markup.button.callback("Cancel", "cancel");
 
 export const scene = new Scenes.BaseScene('subscription-menu');
 
 scene.enter(async ctx => {
 
-    try{
-        const [modules] = await Promise.all([
-            getModulesList(),
-            ctx.reply("Loading...")
-        ]);
-        
+    ctx.reply(`Pick subscription type: 
+        "instant" will send you notifications immediately when updates happen
+        "Daily" will once a day send you a summary of all changes related to modules you watch`, Markup.inlineKeyboard([
+        [
+            Markup.button.callback("⚡Instant", "instant"),
+            Markup.button.callback("☀️ Daily", "daily")
+        ],
+        [cancelBtn]
+    ]));
 
-        ctx.session.modules = modules;
-        ctx.session.selectedModules = ctx.session.userInfo ? ctx.session.userInfo.modules : [];
-        ctx.session.page = 0;
+});
 
-        await ctx.reply('Please pick the modules you are interested in and click "subscribe"');
+scene.action("instant", ctx => {
+    ctx.session.type = 'instant';
+    offerModulesList(ctx);
 
-        const messageData = await ctx.reply(createModulesList(ctx), Markup.inlineKeyboard(createMenuRows(ctx)));
-
-        const { message_id } = messageData;
-        
-
-        ctx.session.menuMessageId = message_id;
-        
-    }catch(err){
-        ctx.reply('Error');
-        ctx.reply(err);
-    }
-
-    
 })
+
+scene.action("daily", ctx => {
+    ctx.session.type = 'daily';
+    offerModulesList(ctx);
+
+})
+
+   
 
 scene.action("page_back", ctx => {
     ctx.session.page--;
@@ -50,9 +49,9 @@ scene.action("page_next", ctx => {
 scene.command(/.+/, async ctx => {
     const { command } = ctx;
 
-    if(['page_back', 'page_next', 'save', 'nothing', 'select_all', 'select_none'].includes(command)) return;
+    console.log('Command triggered');
+    console.log(command);
     
-
     if(ctx.session.selectedModules.includes(command)){
         ctx.session.selectedModules = ctx.session.selectedModules.filter(m => m != command);
     }else{
@@ -81,18 +80,50 @@ scene.action("save", async ctx => {
 
     await Promise.all([
         ctx.reply('Subscribing to updates..'),
-        subscribe(ctx.from, ctx.session.selectedModules)
+        subscribe(ctx.from, ctx.session.selectedModules, ctx.session.type)
     ]);
     ctx.session.userInfo = {
         subscribed: true,
-        modules: ctx.session.selectedModules
+        modules: ctx.session.selectedModules,
+        type: ctx.session.type
     }
-    delete ctx.session.selectedModules;
-    delete ctx.session.modules;
-    delete ctx.session.menuMessageId;
+    clearSceneData(ctx);
     ctx.reply('Subscription successful!');
     ctx.scene.leave();
 })
+
+scene.action("cancel", async ctx => {
+    clearSceneData(ctx);
+    ctx.reply('Change cancelled');
+    ctx.scene.leave();
+})
+
+async function offerModulesList(ctx){
+     try{
+        const [modules] = await Promise.all([
+            getModulesList(),
+            ctx.reply("Loading...")
+        ]);
+        
+
+        ctx.session.modules = modules;
+        ctx.session.selectedModules = ctx.session.userInfo ? ctx.session.userInfo.modules : [];
+        ctx.session.page = 0;
+
+        await ctx.reply('Please pick the modules you are interested in and click "subscribe"');
+
+        const messageData = await ctx.reply(createModulesList(ctx), Markup.inlineKeyboard(createMenuRows(ctx)));
+
+        const { message_id } = messageData;
+        
+
+        ctx.session.menuMessageId = message_id;
+        
+    }catch(err){
+        ctx.reply('Error');
+        ctx.reply(err);
+    }
+}
 
 function createModulesList(ctx){
     let message = '';
@@ -136,7 +167,8 @@ function createMenuRows(ctx){
                 backBtn,
                 Markup.button.callback("✔️ Save", "save"),
                 forwardButton
-            ]
+            ],
+            [cancelBtn]
         ];
 }
 
@@ -154,3 +186,12 @@ function refreshMenu(ctx){
     }
     
 }
+
+function clearSceneData(ctx){
+    delete ctx.session.selectedModules;
+    delete ctx.session.modules;
+    delete ctx.session.menuMessageId;
+    delete ctx.session.page;
+    delete ctx.session.type;
+}
+

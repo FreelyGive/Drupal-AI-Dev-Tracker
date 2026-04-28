@@ -1,12 +1,12 @@
 import { sendAuthorizedRequest } from "../oauth.js";
 
-export async function subscribe(userInfo, modules){
+export async function subscribe(userInfo, modules, type){
     console.log('Creating subscription...');
     console.log(userInfo);
     console.log('Modules:');
     console.log(modules);
 
-    const body = JSON.stringify({userInfo, modules});
+    const body = JSON.stringify({userInfo: {...userInfo, type}, modules});
 
     console.log('Body:');
     console.log(body);
@@ -52,7 +52,8 @@ export async function checkSubscription(chatId){
 
     console.log('user Info success!');
     console.log(res);
-        
+
+    if(res.status === 204) return null;
 
     const data = await res.json();
 
