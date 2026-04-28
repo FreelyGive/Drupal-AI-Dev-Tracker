@@ -6,15 +6,15 @@ h1.page-title {
   max-width: 100%;
   text-align: center;
 }
-#block-gin-page-title{
+#block-gin-page-title {
   text-align: center;
 }
-.region-header nav {
+.region-header nav#block-gin-mainnavigation {
   background: linear-gradient(135deg, #0073aa, #005a87);
   padding: 1rem;
   margin-bottom: 0;
 }
-.region-header ul.menu {
+.region-header nav#block-gin-mainnavigation ul.menu {
   display: flex;
   flex-wrap: wrap;
   background: rgba(255, 255, 255, 0.1);
@@ -27,12 +27,12 @@ h1.page-title {
   list-style: none;
   gap: 0.5rem 1rem;
 }
-.region-header .menu li {
+.region-header nav#block-gin-mainnavigation ul.menu li {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.region-header .menu li a{
+.region-header nav#block-gin-mainnavigation ul.menu li a{
   padding: 0.5rem 1rem;
   display: block;
   text-decoration: none;
@@ -40,7 +40,7 @@ h1.page-title {
   color: var(--gin-color-button-text);
   border-radius: var(--gin-border-m);
 }
-.region-header .menu li.menu-item--active-trail a {
+.region-header nav#block-gin-mainnavigation ul.menu li.menu-item--active-trail a {
   text-decoration: none;
   background: rgba(255, 255, 255, 0.2);
   color: white;

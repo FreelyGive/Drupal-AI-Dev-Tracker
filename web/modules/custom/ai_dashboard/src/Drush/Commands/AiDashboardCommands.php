@@ -98,7 +98,7 @@ class AiDashboardCommands extends DrushCommands {
     name: 'full-from',
     description: 'Perform full sync starting from the date in format YYYY-mm-dd')
   ]
-  #[CLI\Usage('--full-from=2025-07-01')]
+  #[CLI\Usage(name: '--full-from=2025-07-01')]
   public function importSingleConfiguration(string $config_id, array $options = [
     'full-from' => NULL,
   ]) {

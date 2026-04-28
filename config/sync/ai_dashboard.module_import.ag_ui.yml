@@ -1,0 +1,25 @@
+uuid: d72b342d-d82c-4bee-96a7-da9eee9e59ab
+langcode: en
+status: true
+dependencies: {  }
+id: ag_ui
+label: AG-UI
+source_type: drupal_org
+project_id: '3563757'
+project_name: agui
+filter_tags: ''
+filter_component: ''
+status_filter:
+  - '1'
+  - '8'
+  - '13'
+  - '14'
+  - '15'
+  - '2'
+  - '4'
+  - '16'
+max_issues: null
+date_filter: null
+active: true
+import_audiences:
+  - dev
