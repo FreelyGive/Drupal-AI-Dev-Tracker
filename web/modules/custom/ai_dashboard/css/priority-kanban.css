@@ -116,8 +116,6 @@ body[class*="path-ai-dashboard/priority-kanban"] .main-content,
 body[class*="path-ai-dashboard/priority-kanban"] .layout-content {
   max-width: none !important;
   width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
   overflow-x: hidden !important;
 }
 
@@ -130,12 +128,6 @@ body[class*="path-ai-dashboard/priority-kanban"] .site-footer,
 body[class*="path-ai-dashboard/priority-kanban"] .site-navigation,
 body[class*="path-ai-dashboard/priority-kanban"] .sidebar {
   display: none !important;
-}
-
-body.path-ai-dashboard-priority-kanban,
-body[class*="path-ai-dashboard/priority-kanban"] {
-  margin: 0;
-  padding: 0;
 }
 
 .ai-priority-kanban .kanban-board {

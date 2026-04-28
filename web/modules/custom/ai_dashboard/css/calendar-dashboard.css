@@ -10,9 +10,6 @@ body.path-ai-dashboard .site-main,
 body.path-ai-dashboard .main-content,
 body.path-ai-dashboard .layout-content {
   max-width: none !important;
-  width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
   overflow-x: hidden !important;
 }
 

@@ -60,25 +60,6 @@ class AiDashboardController extends ControllerBase {
     $build['#prefix'] = '<div class="ai-dashboard-container">';
     $build['#suffix'] = '</div>';
 
-    // Dashboard header.
-    $build['header'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['dashboard-header']],
-      'title' => ['#markup' => '<h1>AI Contribution Dashboard</h1>'],
-      'subtitle' => ['#markup' => '<div class="subtitle">Companies, Contributors, and Current Issues</div>'],
-      'navigation' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['dashboard-navigation']],
-        '#markup' => '<div class="nav-links">
-          <a href="/ai-dashboard" class="nav-link active">Dashboard</a>
-          <a href="/ai-dashboard/calendar" class="nav-link">Calendar View</a>
-          <a href="/ai-dashboard/calendar/organizational" class="nav-link">Organizational View</a>
-          <a href="/ai-dashboard/priority-kanban" class="nav-link">Kanban</a>
-          <a href="/ai-dashboard/projects" class="nav-link">Projects</a>
-        </div>',
-      ],
-    ];
-
     // Get consolidated data.
     $companies_data = $this->getConsolidatedCompaniesData();
 
