@@ -1,0 +1,5 @@
+tweaks:
+  version: VERSION
+  css:
+    theme:
+      css/tweaks.css: {}

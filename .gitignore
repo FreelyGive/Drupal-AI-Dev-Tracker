@@ -203,3 +203,5 @@ test-kanban-login.js
 
 # Ignore local development code scratchpad
 .code/
+
+.devpanel/salt.txt

@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * CSS overrides and template tweaks for the Gin theme.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ */
+function site_tweaks_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'site_tweaks/tweaks';
+}

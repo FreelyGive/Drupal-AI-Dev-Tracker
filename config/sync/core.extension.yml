@@ -82,6 +82,7 @@ module:
   menu_link_attributes: 0
   menu_link_content: 0
   menu_ui: 0
+  modeler_api: 0
   mysql: 0
   navigation: 0
   node: 0
@@ -97,6 +98,7 @@ module:
   sam: 0
   scheduler: 0
   scheduler_content_moderation_integration: 0
+  site_tweaks: 0
   smart_date: 0
   svg_image: 0
   symfony_mailer_lite: 0
