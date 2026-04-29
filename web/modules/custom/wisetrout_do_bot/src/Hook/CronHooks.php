@@ -35,19 +35,21 @@ class CronHooks {
         
 
         $moduleSummaryNotifications = $this->createModuleSummaryNotifications($subscriptions, $moduleSummaries);
-        $moduleCreationNotifications = $this->createModuleCreationNotifications($chatIds, $newModulesSummary);
-    
+        
         $queue = \Drupal::queue('telegram_bot_queue');
         
-        $items_to_process = array_merge($moduleCreationNotifications, $moduleCreationNotifications);
+        $items_to_process = $newModulesSummary ?
+        array_merge($moduleSummaryNotifications, $this->createModuleCreationNotifications($chatIds, $newModulesSummary)):
+        $moduleSummaryNotifications;
 
         foreach ($items_to_process as $item_data) {
           $queue->createItem($item_data);
         }
 
+    }
+
     // Update the last run time.
     \Drupal::state()->set('wisetrout_do_bot.cron_last_run', $current_time);
-    }
   }
 
   protected function getActiveDailySubscriberIds(){
@@ -58,10 +60,10 @@ class CronHooks {
 
   protected function getDailySubscriptions($chatIds){
     return \Drupal::database()
-    ->query("SELECT chat_id, module_id FROM {telegram_subscriptions} WHERE chat_id IN (:chat_ids[])", [
+    ->query("SELECT id, chat_id, module_id FROM {telegram_subscriptions} WHERE chat_id IN (:chat_ids[])", [
         ':chat_ids[]' => $chatIds,
     ])
-    ->fetchAllAssoc();
+    ->fetchAll();
   }
 
 
@@ -76,15 +78,7 @@ class CronHooks {
 
     $data = [];
  
-    $createdIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-
-    // $data = array_map(function($issueNode){
-    //     return [
-    //         'node' => $issueNode,
-    //         'module' => $issueNode->->get('field_issue_module')->entity,
-    //         'action' => 'created',
-    //     ];
-    // }, $createdIssueNodes);
+    $createdIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($createdIds);
 
     return $createdIssueNodes;
 
@@ -103,24 +97,7 @@ class CronHooks {
 
     $data = [];
  
-    $updatedIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
-
-    // foreach ($updatedIssueNodes as $issueNode) {
-    //     $vids = $storage->revisionIds($issueNode);
-    //     if (count($vids) >= 2) {
-    //         $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
-    //         $changes = getChangedFields($issueNode, $previousRev);
-    //         $data[] = [
-    //             'id' => $issueNode->id(),
-    //             'name' => $issueNode->label(),
-    //             'module' => $issueNode->->get('field_issue_module')->entity,
-    //             'action' => 'updated',
-    //             'changes' => $changes,
-    //         ];
-    //     }
-    // }
-
-    // return $data;
+    $updatedIssueNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($updatedIds);
 
     return $updatedIssueNodes;
   }
@@ -130,46 +107,80 @@ class CronHooks {
   protected function createModuleSummaries($updatedNodes, $createdNodes){
     $summaries = [];
     $storage = \Drupal::entityTypeManager()->getStorage('node');
+    $moduleUpdates = [];
 
-    foreach($updatedNodes as $issueNode){
-      $vids = $storage->revisionIds($issueNode);
-      if(count($vids) < 2) continue;
+    foreach($createdNodes as $createdNode){
 
-      $updateMessage = "\n✏️<b>Issue updated </b>: {$node->label()}:";
+      $moduleId = $createdNode->get('field_issue_module')->entity->id();
 
-      $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
-      $changes = getChangedFields($issueNode, $previousRev);
-        
-      foreach($changes as $change){
-        $changeMessage = "\n{$change['name']}: {$change['old']} -> {$change['new']}";
-        $updateMessage = $updateMessage . $changeMessage;
+      if($moduleUpdates[$moduleId]){
+        $createdIssues = $moduleUpdates[$moduleId]['created'];
+        if($moduleUpdates[$moduleId]['created']){
+          $moduleUpdates[$moduleId]['created'][] = $createdNode;
+        }else{
+          $moduleUpdates[$moduleId]['created'] = [$createdNode];
+        }
+      }else{
+        $moduleUpdates[$moduleId] = [
+          'label' => $createdNode->get('field_issue_module')->entity->label(),
+          'created' => [$createdNode],
+        ];
       }
+    }
 
-      
-      $moduleId = $issueNnode->get('field_issue_module')->entity->id();
+    foreach($updatedNodes as $updatedNode){
 
-      if($summaries[$moduleId]){
-        $summaries[$moduleId] = $summaries[$moduleId] . $updateMessage;
-      } else{
-        $summaries[$moduleId] = "🏷️${$issueNode->get('field_issue_module')->entity->label()} updates:" . $updateMessage;
+      $moduleId = $updatedNode->get('field_issue_module')->entity->id();
+
+      if($moduleUpdates[$moduleId]){
+        if($moduleUpdates[$moduleId]['updated']){
+          $moduleUpdates[$moduleId]['updated'][] = $updatedNode;
+        }else{
+          $moduleUpdates[$moduleId]['updated'] = [$updatedNode];
+        }
+      }else{
+        $moduleUpdates[$moduleId] = [
+          'label' => $updatedNode->get('field_issue_module')->entity->label(),
+          'updated' => [$updatedNode],
+        ];
       }
 
     }
 
-    foreach($createdNodes as $issueNode){
+    foreach($moduleUpdates as $moduleId => $moduleInfo){
 
-      $creationMessage = "\n🌱<b>Issue created </b>: {$node->label()}.";
-      
-      $moduleId = $issueNnode->get('field_issue_module')->entity->id();
+      $text = "🏷️<b>{$moduleInfo["label"]}:</b> updates:\n";
 
-      if($summaries[$moduleId]){
-        $summaries[$moduleId] = $summaries[$moduleId] . $creationMessage;
-      } else{
-        $summaries[$moduleId] = "🏷️${$issueNode->get('field_issue_module')->entity->label()} updates:" . $creationMessage;
+      if($moduleInfo['created']){
+        $text .= "<b>New issue(s):</b>\n";
+        foreach($moduleInfo['created'] as $createdNode){
+          $text .= "🌱{$createdNode->label()}\n";
+        }
       }
 
-    }
+      if($moduleInfo['updated']){
+        $text .= "<b>Issue updates: </b>\n";
+        foreach($moduleInfo['updated'] as $issueNode){
 
+          $vids = $storage->revisionIds($issueNode);
+          // if(count($vids) < 2) continue;
+
+          $text .= "✏️{$issueNode->label()}:\n";
+
+          $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
+          $changes = $this->getChangedFields($issueNode, $previousRev);
+            
+          foreach($changes as $change){
+            $text .= "{$change['name']}: {$change['old']} -> {$change['new']}\n";
+          }
+
+        }
+      }
+
+      $summaries[$moduleId] = $text;
+
+    }
+    
     return $summaries;
 
   }
@@ -183,7 +194,9 @@ class CronHooks {
     ->accessCheck(FALSE)
     ->execute();
 
-    $createdModuleNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($nids);
+    if(!count($createdIds)) return null;
+
+    $createdModuleNodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($createdIds);
     $createdModuleNames = array_map(function($node){
         return $node->field_module_machine_name[0]->value;
     }, $createdModuleNodes);
@@ -195,12 +208,18 @@ class CronHooks {
   }
 
   protected function createModuleSummaryNotifications($subscriptions, $moduleSummaries){
-    $notifications = array_map(function($subscription) use ($moduleSummaries){
-      return [
-        "chatId" => $subscription['chat_id'],
-        "message" => $moduleSummaries[$subscription['module_id']],
-      ];
-    }, $subscriptions);
+
+    $notifications = [];
+
+    foreach($subscriptions as $subscription){
+      if($moduleSummaries[$subscription->module_id]){
+        $notifications[] = [
+          "chatId" => $subscription->chat_id,
+          "message" => $moduleSummaries[$subscription->module_id],
+        ];
+      }
+    }
+
     return $notifications;
   }
 
@@ -219,13 +238,13 @@ class CronHooks {
     $changes = [];
 
     foreach ($newNode->getFields() as $fieldName => $fieldItem) {
-        if (!str_starts_with($filedName, 'field_')) continue;
+        if (!str_starts_with($fieldName, 'field_')) continue;
 
         if (!$newNode->get($fieldName)->equals($oldNode->get($fieldName))) {
             $changes[] = [
-                'name': $fieldName,
-                'old': $oldNode->get($fieldName),
-                'new': $newNode->get($fieldName),
+                'name' => $fieldItem->getFieldDefinition()->getLabel(),
+                'old' => $oldNode->get($fieldName)->getValue()[0]['value'],
+                'new' => $newNode->get($fieldName)->getValue()[0]['value'],
             ];
         }
      }

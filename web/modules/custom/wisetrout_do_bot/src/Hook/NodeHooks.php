@@ -92,7 +92,7 @@ class NodeHooks {
     ])
     ->fetchCol();
     $activeChatIds = $db
-    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) and status = 1", [
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) and status = 1 AND type = 'instant'", [
         ':chat_ids[]' => $chatIds,
     ])
     ->fetchCol();
@@ -102,7 +102,7 @@ class NodeHooks {
   protected function getActiveUserIds(){
     $db = \Drupal::database();
     $activeUserIds = $db
-    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE status = 1")
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE status = 1 AND type = 'instant'")
     ->fetchCol();
     return $activeUserIds;
   }
