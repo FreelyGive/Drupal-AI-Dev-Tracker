@@ -60,7 +60,7 @@ class CronHooks {
 
   protected function getDailySubscriptions($chatIds){
     return \Drupal::database()
-    ->query("SELECT id, chat_id, module_id FROM {telegram_subscriptions} WHERE chat_id IN (:chat_ids[])", [
+    ->query("SELECT chat_id, module_id FROM {telegram_subscriptions} WHERE chat_id IN (:chat_ids[])", [
         ':chat_ids[]' => $chatIds,
     ])
     ->fetchAll();
@@ -162,13 +162,9 @@ class CronHooks {
         $text .= "<b>Issue updates: </b>\n";
         foreach($moduleInfo['updated'] as $issueNode){
 
-          $vids = $storage->revisionIds($issueNode);
-          // if(count($vids) < 2) continue;
+          $changes = $this->findDailyChanges($issueNode);
 
           $text .= "✏️{$issueNode->label()}:\n";
-
-          $previousRev = $storage->loadRevision(end(array_slice($vids, -2, 1)));
-          $changes = $this->getChangedFields($issueNode, $previousRev);
             
           foreach($changes as $change){
             $text .= "{$change['name']}: {$change['old']} -> {$change['new']}\n";
@@ -231,6 +227,31 @@ class CronHooks {
       ];
     }, $chatIds);
     return $notifications;
+  }
+
+  protected function findDailyChanges($node){
+          
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+    
+    $current_time = \Drupal::time()->getRequestTime();
+    $yesterday = strtotime('-1 day');
+
+    $oldVid = $this->getRevisionBeforeTimestamp($node->id(), $yesterday);
+    $oldNode = $storage->loadRevision($oldVid);
+
+    return $this->getChangedFields($node, $oldNode);
+  }
+
+  protected function getRevisionBeforeTimestamp($nid, $timestamp) {
+    $database = \Drupal::database();
+    return $database->select('node_revision', 'nr')
+      ->fields('nr', ['vid'])
+      ->condition('nid', $nid)
+      ->condition('revision_timestamp', $timestamp, '<')
+      ->orderBy('revision_timestamp', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
   }
 
 
