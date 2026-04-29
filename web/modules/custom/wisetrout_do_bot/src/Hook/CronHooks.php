@@ -149,7 +149,7 @@ class CronHooks {
 
     foreach($moduleUpdates as $moduleId => $moduleInfo){
 
-      $text = "🏷️<b>{$moduleInfo["label"]}:</b> updates:\n";
+      $text = "🏷️<b>{$moduleInfo["label"]}</b> updates:\n";
 
       if($moduleInfo['created']){
         $text .= "<b>New issue(s):</b>\n";
@@ -244,6 +244,8 @@ class CronHooks {
 
   protected function getRevisionBeforeTimestamp($nid, $timestamp) {
     $database = \Drupal::database();
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
+
     return $database->select('node_revision', 'nr')
       ->fields('nr', ['vid'])
       ->condition('nid', $nid)
@@ -257,19 +259,43 @@ class CronHooks {
 
   protected function getChangedFields($newNode, $oldNode){
     $changes = [];
+    $storage = \Drupal::entityTypeManager()->getStorage('node');
 
     foreach ($newNode->getFields() as $fieldName => $fieldItem) {
         if (!str_starts_with($fieldName, 'field_')) continue;
 
         if (!$newNode->get($fieldName)->equals($oldNode->get($fieldName))) {
+
+            $oldValue;
+            $newValue;
+
+            $oldValue = $oldNode->get($fieldName)->getString();
+            $newValue = $fieldItem->getString();
+
+            if($fieldItem->getFieldDefinition()->getType() === "entity_reference"){
+                $oldValue = $this->convertIdsToLabels($oldValue, $storage);
+                $newValue = $this->convertIdsToLabels($newValue, $storage);
+            }
+
             $changes[] = [
                 'name' => $fieldItem->getFieldDefinition()->getLabel(),
-                'old' => $oldNode->get($fieldName)->getValue()[0]['value'],
-                'new' => $newNode->get($fieldName)->getValue()[0]['value'],
+                'old' => $oldValue ? $oldValue : '(none)',
+                'new' => $newValue ? $newValue : '(none)',
             ];
         }
      }
 
   return $changes;
+  }
+
+  function convertIdsToLabels($string, $storage){
+    if($string === "") return null;
+    $idsArray = explode(',', $string);
+    $nodesArray = $storage->loadMultiple($idsArray);
+    $nodeLabels = array_map(function($node){
+      return $node->label();
+    }, $nodesArray);
+    $labelsString = implode(', ', $nodeLabels);
+    return $labelsString;
   }
 }
