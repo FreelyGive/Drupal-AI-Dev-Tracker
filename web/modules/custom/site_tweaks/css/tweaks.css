@@ -78,3 +78,7 @@ body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily
 /*  width: auto !important;*/
 /*  position: relative !important;*/
 /*}*/
+
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .form-item--mergevars-persona {
+  display: block;
+}
