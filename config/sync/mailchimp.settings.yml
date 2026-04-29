@@ -1,0 +1,15 @@
+_core:
+  default_config_hash: 7Ml-sDtRf3JRL4NJLwt_twa-rdBi4hFnwPSd2vb1_JA
+api_key: ''
+domain: www.drupalstarforge.ai
+use_oauth: true
+api_timeout: 10
+cron: false
+batch_limit: 100
+api_classname: Mailchimp\Mailchimp
+test_mode: false
+enable_connected: false
+connected_id: null
+connected_paths: null
+webhook_hash: 83a53c154da79d570b777ec5afbbd49a
+optin_check_email_msg: 'Please check your email to confirm your subscription.'

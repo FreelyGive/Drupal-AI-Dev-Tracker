@@ -35,6 +35,8 @@
         "drupal/drupal_cms_project": "~1.1.0",
         "drupal/drupal_cms_seo_tools": "~1.1.0",
         "drupal/drupal_cms_starter": "~1.1.0",
+        "drupal/mailchimp": "*",
+        "drupal/mailchimp_transactional": "^1.2",
         "drupal/project_browser": "@beta",
         "drupal/recipe_installer_kit": "^1-alpha3@alpha",
         "drupal/webform": "@beta",

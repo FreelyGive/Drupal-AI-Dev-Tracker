@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8c16dbf61bb5a2b4719cea2dac35115c",
+    "content-hash": "9760c1207c1951e5d0376a1542e52ef4",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -5780,6 +5780,169 @@
             }
         },
         {
+            "name": "drupal/mailchimp",
+            "version": "3.1.3",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/mailchimp.git",
+                "reference": "3.1.3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/mailchimp-3.1.3.zip",
+                "reference": "3.1.3",
+                "shasum": "ecf184d15d63eb4ed0f77711765f03895e62342a"
+            },
+            "require": {
+                "drupal/core": "^10 || ^11",
+                "thinkshout/mailchimp-api-php": "^3.1.2"
+            },
+            "require-dev": {
+                "drupal/eca": "^2 || ^3",
+                "drupal/mailchimp_events": "*",
+                "drupal/mailchimp_lists": "*"
+            },
+            "suggest": {
+                "drupal/webform": "Provide mailchimp events for webform submissions"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "3.1.3",
+                    "datestamp": "1761839200",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "aprice42",
+                    "homepage": "https://www.drupal.org/user/369147"
+                },
+                {
+                    "name": "bdimaggio",
+                    "homepage": "https://www.drupal.org/user/70688"
+                },
+                {
+                    "name": "brendanthinkshout",
+                    "homepage": "https://www.drupal.org/user/3578399"
+                },
+                {
+                    "name": "gcb",
+                    "homepage": "https://www.drupal.org/user/1682976"
+                },
+                {
+                    "name": "kescoto-thinkshout",
+                    "homepage": "https://www.drupal.org/user/3664824"
+                },
+                {
+                    "name": "levelos",
+                    "homepage": "https://www.drupal.org/user/54135"
+                },
+                {
+                    "name": "mariacha1",
+                    "homepage": "https://www.drupal.org/user/2210776"
+                },
+                {
+                    "name": "maximumpotter",
+                    "homepage": "https://www.drupal.org/user/3653774"
+                },
+                {
+                    "name": "mshaver",
+                    "homepage": "https://www.drupal.org/user/39079"
+                },
+                {
+                    "name": "olivier.bouwman",
+                    "homepage": "https://www.drupal.org/user/2799483"
+                },
+                {
+                    "name": "tauno",
+                    "homepage": "https://www.drupal.org/user/105595"
+                },
+                {
+                    "name": "wxactly",
+                    "homepage": "https://www.drupal.org/user/3181097"
+                },
+                {
+                    "name": "xenophyle",
+                    "homepage": "https://www.drupal.org/user/664428"
+                }
+            ],
+            "description": "Mailchimp is an integration with the Mailchimp Mass email tool.",
+            "homepage": "http://drupal.org/project/mailchimp",
+            "support": {
+                "source": "https://git.drupalcode.org/project/mailchimp"
+            }
+        },
+        {
+            "name": "drupal/mailchimp_transactional",
+            "version": "1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/mailchimp_transactional.git",
+                "reference": "1.2.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/mailchimp_transactional-1.2.0.zip",
+                "reference": "1.2.0",
+                "shasum": "b55dc6319e7d398ad00eae2dd616ebe60cf19dc4"
+            },
+            "require": {
+                "drupal/core": "^9 || ^10 || ^11",
+                "drupal/mailsystem": "^4",
+                "mailchimp/transactional": "^1.0.47"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "1.2.0",
+                    "datestamp": "1762178674",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "bdimaggio",
+                    "homepage": "https://www.drupal.org/user/70688"
+                },
+                {
+                    "name": "dieterholvoet",
+                    "homepage": "https://www.drupal.org/user/3567222"
+                },
+                {
+                    "name": "gcb",
+                    "homepage": "https://www.drupal.org/user/1682976"
+                },
+                {
+                    "name": "levelos",
+                    "homepage": "https://www.drupal.org/user/54135"
+                },
+                {
+                    "name": "tauno",
+                    "homepage": "https://www.drupal.org/user/105595"
+                }
+            ],
+            "description": "Allow for site emails to be sent through Mailchimp Transactional.",
+            "homepage": "https://www.drupal.org/project/mailchimp_transactional",
+            "support": {
+                "source": "https://git.drupalcode.org/project/mailchimp_transactional"
+            }
+        },
+        {
             "name": "drupal/mailsystem",
             "version": "4.5.0",
             "source": {
@@ -9010,6 +9173,60 @@
                 }
             ],
             "time": "2023-07-12T21:21:09+00:00"
+        },
+        {
+            "name": "mailchimp/transactional",
+            "version": "1.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mailchimp/mailchimp-transactional-php.git",
+                "reference": "4a83b10fd0f77ea8c932e4a11a242fb78c01f8fa"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mailchimp/mailchimp-transactional-php/zipball/4a83b10fd0f77ea8c932e4a11a242fb78c01f8fa",
+                "reference": "4a83b10fd0f77ea8c932e4a11a242fb78c01f8fa",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "guzzlehttp/guzzle": "^6.4 || ^7.2",
+                "php": ">=7.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "~2.12",
+                "phpunit/phpunit": "^8",
+                "squizlabs/php_codesniffer": "~2.6"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MailchimpTransactional\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Mailchimp",
+                    "homepage": "https://github.com/mailchimp/mailchimp-transactional-php"
+                }
+            ],
+            "homepage": "http://swagger.io",
+            "keywords": [
+                "api",
+                "php",
+                "sdk",
+                "swagger"
+            ],
+            "support": {
+                "source": "https://github.com/mailchimp/mailchimp-transactional-php/tree/v1.4.1"
+            },
+            "time": "2026-03-24T16:27:24+00:00"
         },
         {
             "name": "masterminds/html5",
@@ -13878,6 +14095,50 @@
                 }
             ],
             "time": "2025-12-04T18:11:45+00:00"
+        },
+        {
+            "name": "thinkshout/mailchimp-api-php",
+            "version": "v3.1.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/thinkshout/mailchimp-api-php.git",
+                "reference": "b88d2b5de6e6d489f62505b12180646bf257238c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/thinkshout/mailchimp-api-php/zipball/b88d2b5de6e6d489f62505b12180646bf257238c",
+                "reference": "b88d2b5de6e6d489f62505b12180646bf257238c",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^6.5.8|^7.4.5",
+                "php": ">=5.4.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^6.2.2|^7.0|^8.0|^9.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Mailchimp\\": "src/",
+                    "Mailchimp\\http\\": "src/http/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "PHP library for v3 of the MailChimp API",
+            "homepage": "https://github.com/thinkshout/mailchimp-api-php",
+            "keywords": [
+                "mail",
+                "mailchimp"
+            ],
+            "support": {
+                "issues": "https://github.com/thinkshout/mailchimp-api-php/issues",
+                "source": "https://github.com/thinkshout/mailchimp-api-php/tree/v3.1.3"
+            },
+            "time": "2025-12-30T19:54:56+00:00"
         },
         {
             "name": "tijsverkoyen/css-to-inline-styles",

@@ -4,13 +4,16 @@ status: true
 dependencies:
   config:
     - dashboard.dashboard.welcome
+    - filter.format.mailchimp_campaign
   module:
     - captcha
     - coffee
     - dashboard
     - file
+    - filter
     - honeypot
     - klaro
+    - mailchimp_signup
     - media
     - node
     - system
@@ -23,10 +26,12 @@ is_admin: false
 permissions:
   - 'access coffee'
   - 'access content'
+  - 'access mailchimp signup pages'
   - 'bypass honeypot protection'
   - 'delete own files'
   - 'skip CAPTCHA'
   - 'use klaro'
+  - 'use text format mailchimp_campaign'
   - 'view media'
   - 'view own unpublished content'
   - 'view welcome dashboard'

@@ -21,7 +21,7 @@ h1.page-title {
   border-radius: 8px;
   padding: 4px;
   justify-content: center;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 
   list-style: none;
@@ -44,6 +44,29 @@ h1.page-title {
   text-decoration: none;
   background: rgba(255, 255, 255, 0.2);
   color: white;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form {
+  text-align: center;
+
+}
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .js-form-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .gin-sticky-form-actions ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .gin-sticky-form-actions {
+  height: auto !important;
+  width: auto !important;
+  position: relative !important;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
 }
 
 /** Remove the sticky button **/

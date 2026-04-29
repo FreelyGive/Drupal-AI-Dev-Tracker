@@ -1,0 +1,18 @@
+_core:
+  default_config_hash: 95y8Nwk_3F68aEzGoWqJ8KgXvppkF5ojDTeOr1OKNv8
+from_name: null
+from_email: jamie@freelygive.org.uk
+subaccount: ''
+filter_format: ''
+track_opens: true
+track_clicks: true
+url_strip_qs: false
+analytics_campaign: ''
+batch_log_queued: true
+queue_worker_timeout: 15
+log_defaulted_sends: false
+api_key: ''
+api_timeout: 60
+api_classname: \Drupal\mailchimp_transactional\DrupalMailchimpTransactional
+mail_key_denylist: user_password_reset
+process_async: false

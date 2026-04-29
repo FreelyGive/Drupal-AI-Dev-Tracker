@@ -4,6 +4,7 @@ status: true
 dependencies:
   module:
     - klaro
+    - mailchimp_signup
     - media
     - system
 _core:
@@ -14,5 +15,6 @@ weight: 0
 is_admin: false
 permissions:
   - 'access content'
+  - 'access mailchimp signup pages'
   - 'use klaro'
   - 'view media'
