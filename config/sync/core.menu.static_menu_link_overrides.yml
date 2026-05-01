@@ -13,3 +13,45 @@ definitions:
     parent: ''
     expanded: false
     weight: 0
+  ai_dashboard__main_nav_dashboard:
+    weight: -49
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  ai_dashboard__main_nav_org:
+    weight: -48
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  ai_dashboard__main_nav_roadmap:
+    weight: -47
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  ai_dashboard__main_nav_kanban:
+    weight: -46
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  ai_dashboard__main_nav_projects:
+    weight: -45
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  ai_dashboard__main_nav_docs:
+    weight: -44
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: true
+  issue_analysis__main_nav_digest_signup:
+    weight: -42
+    menu_name: main
+    parent: ''
+    expanded: false
+    enabled: false

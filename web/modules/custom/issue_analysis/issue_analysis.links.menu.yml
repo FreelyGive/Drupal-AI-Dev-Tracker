@@ -1,6 +1,6 @@
 issue_analysis.main_nav_digest_signup:
   title: '24h Digest'
-  route_name: mailchimp_signup.signup_form
+  url: internal:/newsletter/signup
   menu_name: main
   weight: 7
 

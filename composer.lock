@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e6246af7b99790a6d4c48c40409d4dad",
+    "content-hash": "f7e7a749831ec933d475e50e5253bdc2",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -6206,6 +6206,68 @@
             "homepage": "http://drupal.org/project/mailchimp",
             "support": {
                 "source": "https://git.drupalcode.org/project/mailchimp"
+            }
+        },
+        {
+            "name": "drupal/mailchimp_transactional",
+            "version": "1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/mailchimp_transactional.git",
+                "reference": "1.2.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://ftp.drupal.org/files/projects/mailchimp_transactional-1.2.0.zip",
+                "reference": "1.2.0",
+                "shasum": "b55dc6319e7d398ad00eae2dd616ebe60cf19dc4"
+            },
+            "require": {
+                "drupal/core": "^9 || ^10 || ^11",
+                "drupal/mailsystem": "^4",
+                "mailchimp/transactional": "^1.0.47"
+            },
+            "type": "drupal-module",
+            "extra": {
+                "drupal": {
+                    "version": "1.2.0",
+                    "datestamp": "1762178674",
+                    "security-coverage": {
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "bdimaggio",
+                    "homepage": "https://www.drupal.org/user/70688"
+                },
+                {
+                    "name": "dieterholvoet",
+                    "homepage": "https://www.drupal.org/user/3567222"
+                },
+                {
+                    "name": "gcb",
+                    "homepage": "https://www.drupal.org/user/1682976"
+                },
+                {
+                    "name": "levelos",
+                    "homepage": "https://www.drupal.org/user/54135"
+                },
+                {
+                    "name": "tauno",
+                    "homepage": "https://www.drupal.org/user/105595"
+                }
+            ],
+            "description": "Allow for site emails to be sent through Mailchimp Transactional.",
+            "homepage": "https://www.drupal.org/project/mailchimp_transactional",
+            "support": {
+                "source": "https://git.drupalcode.org/project/mailchimp_transactional"
             }
         },
         {
