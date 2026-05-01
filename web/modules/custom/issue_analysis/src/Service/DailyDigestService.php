@@ -918,22 +918,46 @@ PROMPT;
   }
 
   /**
-   * Deletes prompt log and JSON files older than 7 days from the output dir.
+   * Deletes attached files from digest nodes older than 7 days, and removes
+   * orphaned JSON/TXT files from the output directory.
    */
   public function cleanupOldFiles(): void {
-    $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
-    if (!is_dir($dir)) {
-      return;
+    $cutoff = \Drupal::time()->getRequestTime() - (7 * 24 * 60 * 60);
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
+    $fileStorage = $this->entityTypeManager->getStorage('file');
+
+    // Remove attached files from digest nodes older than 7 days.
+    $old = $nodeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'daily_digest')
+      ->condition('created', $cutoff, '<')
+      ->execute();
+
+    foreach ($nodeStorage->loadMultiple($old) as $node) {
+      foreach ($node->get('field_data_file') as $item) {
+        $file = $item->entity;
+        if ($file) {
+          $realpath = \Drupal::service('file_system')->realpath($file->getFileUri());
+          if ($realpath && file_exists($realpath)) {
+            @unlink($realpath);
+          }
+          $file->delete();
+        }
+      }
+      $node->set('field_data_file', []);
+      $node->save();
     }
-    $cutoff = time() - (7 * 24 * 60 * 60);
-    foreach (glob("$dir/*.{json,txt}", GLOB_BRACE) as $file) {
-      if (filemtime($file) < $cutoff) {
-        @unlink($file);
-        // Also remove the Drupal managed file entity if one exists.
-        $uri = 'public://issues-digest/' . basename($file);
-        $fileStorage = $this->entityTypeManager->getStorage('file');
-        foreach ($fileStorage->loadByProperties(['uri' => $uri]) as $managed) {
-          $managed->delete();
+
+    // Clean up any orphaned files in the output directory.
+    $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
+    if (is_dir($dir)) {
+      foreach (glob("$dir/*.{json,txt}", GLOB_BRACE) as $file) {
+        if (filemtime($file) < $cutoff) {
+          @unlink($file);
+          $uri = 'public://issues-digest/' . basename($file);
+          foreach ($fileStorage->loadByProperties(['uri' => $uri]) as $managed) {
+            $managed->delete();
+          }
         }
       }
     }
