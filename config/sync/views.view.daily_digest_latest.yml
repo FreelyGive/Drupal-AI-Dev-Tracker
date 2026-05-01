@@ -47,7 +47,12 @@ display:
       cache:
         type: tag
         options: {  }
-      empty: {  }
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          plugin_id: text_custom
       sorts:
         created:
           id: created
@@ -157,6 +162,7 @@ display:
     display_plugin: page
     position: 1
     display_options:
+      empty: {  }
       filters:
         status:
           id: status
@@ -180,6 +186,7 @@ display:
         groups:
           1: AND
       defaults:
+        empty: false
         filters: false
         filter_groups: false
       display_extenders: {  }
@@ -235,6 +242,18 @@ display:
                   hide_label: false
                   field_classes: ''
                   sort_options_unsupported: ''
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text_custom
+          empty: true
+          content: 'We could not find any digest published on the selected date. Try again.'
+          tokenize: false
       filters:
         status:
           id: status
@@ -306,6 +325,7 @@ display:
         groups:
           1: AND
       defaults:
+        empty: false
         exposed_form: false
         filters: false
         filter_groups: false
