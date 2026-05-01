@@ -88,11 +88,19 @@
 .daily-digest__toc a:hover {
   text-decoration: underline;
 }
+.view-daily-digest-latest code {
+  font-size: 0.88em;
+}
 .view-daily-digest-latest h4{
   font-weight: 400;
 }
-@media (max-width: 600px) {
-  .daily-digest__toc ul {
-    columns: 1;
+.digest-meta {
+  font-size: 0.85em;
+  color: #666;
+}
+  @media (max-width: 600px) {
+    .daily-digest__toc ul {
+      columns: 1;
+    }
   }
 }

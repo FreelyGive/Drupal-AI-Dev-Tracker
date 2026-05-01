@@ -93,11 +93,11 @@
     {% endfor %}
 
     {% if prompt_url %}
-      <div class="daily-digest__prompts">
-        <h4>AI Prompts</h4>
+      <div class="digest-meta">
         <p>To view the full AI prompts used to generate this digest check this file:
           <a href="{{ prompt_url }}">{{ prompt_name }}</a>
         </p>
+        <p>Looking for older digests? <a href="ai-dashboard/daily-digest-history" title="Browse all digests here">Browse all digests here.</a></p>
       </div>
     {% endif %}
 

@@ -46,7 +46,7 @@ class DailyDigestService {
 
     $results = $this->fetcher->fetchAllModulesData($module, $since, $until);
     $dateStr = $since->format('Y-m-d');
-    $generatedLine = 'Generated: ' . $generatedAt->format('Y-m-d H:i') . ' GMT';
+    $generatedLine = 'Generated: ' . $generatedAt->format('j F Y H:i') . ' GMT';
 
     // JSON.
     $json = json_encode([
@@ -232,7 +232,7 @@ class DailyDigestService {
     $service = \Drupal::service('issue_analysis.daily_digest');
     $period = '24h';
     $dateStr = substr($since, 0, 10);
-    $generatedLine = 'Generated: ' . substr($generatedAt, 0, 16) . ' GMT';
+    $generatedLine = 'Generated: ' . (new \DateTimeImmutable($generatedAt, new \DateTimeZone('UTC')))->format('j F Y H:i') . ' GMT';
 
     // JSON.
     $json = json_encode([
@@ -697,8 +697,8 @@ PROMPT;
       };
     }
 
-    $sinceDate = substr($since, 0, 10);
-    $untilDate = substr($until, 0, 10);
+    $sinceDate = (new \DateTimeImmutable(substr($since, 0, 10)))->format('j F Y');
+    $untilDate = (new \DateTimeImmutable(substr($until, 0, 10)))->format('j F Y');
 
     if ($format === 'html') {
       $parts = [];
