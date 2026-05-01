@@ -205,3 +205,4 @@ test-kanban-login.js
 .code/
 
 .devpanel/salt.txt
+config/sync/mailchimp.settings.yml
