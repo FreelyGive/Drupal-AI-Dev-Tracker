@@ -88,6 +88,9 @@
 .daily-digest__toc a:hover {
   text-decoration: underline;
 }
+.view-daily-digest-latest h4{
+  font-weight: 400;
+}
 @media (max-width: 600px) {
   .daily-digest__toc ul {
     columns: 1;
