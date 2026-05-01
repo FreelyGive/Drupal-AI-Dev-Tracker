@@ -1,3 +1,39 @@
+ai_dashboard.main_nav_dashboard:
+  title: 'Dashboard'
+  route_name: ai_dashboard.main
+  menu_name: main
+  weight: 1
+
+ai_dashboard.main_nav_org:
+  title: 'Organisational view'
+  route_name: ai_dashboard.calendar_non_dev
+  menu_name: main
+  weight: 2
+
+ai_dashboard.main_nav_roadmap:
+  title: 'Roadmap'
+  route_name: ai_dashboard.roadmap
+  menu_name: main
+  weight: 3
+
+ai_dashboard.main_nav_kanban:
+  title: 'Kanban'
+  route_name: ai_dashboard.priority_kanban
+  menu_name: main
+  weight: 4
+
+ai_dashboard.main_nav_projects:
+  title: 'Projects'
+  route_name: ai_dashboard.projects
+  menu_name: main
+  weight: 5
+
+ai_dashboard.main_nav_docs:
+  title: 'Docs'
+  route_name: ai_dashboard.public_docs
+  menu_name: main
+  weight: 6
+
 ai_dashboard.admin:
   title: 'AI Issue Tracker'
   description: 'Manage AI contribution tracking and issue assignments'

@@ -1,3 +1,9 @@
+issue_analysis.main_nav_digest_signup:
+  title: '24h Digest'
+  route_name: mailchimp_signup.signup_form
+  menu_name: main
+  weight: 7
+
 issue_analysis.daily_digest_admin:
   title: 'Daily Issues Digest'
   description: 'Generate the daily AI module activity summary.'

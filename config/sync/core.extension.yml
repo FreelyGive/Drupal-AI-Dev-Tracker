@@ -18,7 +18,6 @@ module:
   ai_provider_openai: 0
   announcements_feed: 0
   automatic_updates: 0
-  automatic_updates_extensions: 0
   autosave_form: 0
   backup_migrate: 0
   better_exposed_filters: 0
