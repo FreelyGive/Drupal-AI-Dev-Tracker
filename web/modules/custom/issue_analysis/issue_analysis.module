@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * @file
+ * Issue Analysis module hooks.
+ */
+
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for nodes.
+ *
+ * Creates a Mailchimp campaign draft when a new daily_digest node is saved.
+ */
+function issue_analysis_node_insert(NodeInterface $node): void {
+  if ($node->bundle() === 'daily_digest' && $node->isPublished()) {
+    \Drupal::service('issue_analysis.mailchimp_digest')->createCampaignDraft($node);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function issue_analysis_theme(): array {
+  return [
+    'daily_digest_view' => [
+      'variables' => [
+        'title' => NULL,
+        'file_path' => NULL,
+        'node' => NULL,
+      ],
+    ],
+    'node__daily_digest' => [
+      'template' => 'node--daily-digest',
+      'base hook' => 'node',
+    ],
+  ];
+}

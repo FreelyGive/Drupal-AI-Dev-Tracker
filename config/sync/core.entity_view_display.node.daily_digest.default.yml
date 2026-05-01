@@ -1,0 +1,46 @@
+uuid: d3f0f0c9-4224-4713-8e25-392c3add6131
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.daily_digest.field_data_file
+    - field.field.node.daily_digest.field_developer_summary
+    - field.field.node.daily_digest.field_executive_summary
+    - node.type.daily_digest
+  module:
+    - file
+    - text
+    - user
+id: node.daily_digest.default
+targetEntityType: node
+bundle: daily_digest
+mode: default
+content:
+  field_data_file:
+    type: file_default
+    label: above
+    settings:
+      use_description_as_link_text: true
+    third_party_settings: {  }
+    weight: 103
+    region: content
+  field_developer_summary:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 102
+    region: content
+  field_executive_summary:
+    type: text_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 101
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
+hidden: {  }

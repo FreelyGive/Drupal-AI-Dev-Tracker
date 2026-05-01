@@ -1,0 +1,11 @@
+issue_analysis.daily_digest_admin:
+  title: 'Generate Digest'
+  route_name: issue_analysis.daily_digest_admin
+  base_route: issue_analysis.daily_digest_admin
+  weight: 0
+
+issue_analysis.mailchimp_settings:
+  title: 'Mailchimp Settings'
+  route_name: issue_analysis.mailchimp_settings
+  base_route: issue_analysis.daily_digest_admin
+  weight: 10

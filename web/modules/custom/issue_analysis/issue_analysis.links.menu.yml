@@ -1,0 +1,19 @@
+issue_analysis.main_nav_digest_signup:
+  title: '24h Digest'
+  route_name: mailchimp_signup.signup_form
+  menu_name: main
+  weight: 7
+
+issue_analysis.daily_digest_admin:
+  title: 'Daily Issues Digest'
+  description: 'Generate the daily AI module activity summary.'
+  route_name: issue_analysis.daily_digest_admin
+  parent: system.admin_config_services
+  weight: 10
+
+issue_analysis.mailchimp_settings:
+  title: 'Mailchimp Campaign Settings'
+  description: 'Configure Mailchimp audience, segments, and sender details for digest campaigns.'
+  route_name: issue_analysis.mailchimp_settings
+  parent: system.admin_config_services
+  weight: 11

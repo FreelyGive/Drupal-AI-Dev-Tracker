@@ -1,0 +1,24 @@
+uuid: de7cc972-d70c-4ea1-bb15-d61bbe5242a5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_executive_summary
+    - node.type.daily_digest
+  module:
+    - text
+id: node.daily_digest.field_executive_summary
+field_name: field_executive_summary
+entity_type: node
+bundle: daily_digest
+label: 'Executive summary'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: true
+  required_summary: true
+  allowed_formats: {  }
+field_type: text_with_summary

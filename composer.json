@@ -17,6 +17,9 @@
     },
     "require": {
         "composer/installers": "^2.3",
+        "cweagans/composer-patches": "^2.0",
+        "drupal/ai_provider_amazeeio": "^1.1",
+        "drupal/ai_provider_litellm": "^1.2",
         "drupal/backup_migrate": "^5.1",
         "drupal/config_ignore": "^3.3",
         "drupal/core-composer-scaffold": "^11.1.5",
@@ -28,15 +31,16 @@
         "drupal/drupal_cms_blog": "~1.1.0",
         "drupal/drupal_cms_case_study": "~1.1.0",
         "drupal/drupal_cms_events": "~1.1.0",
-        "drupal/drupal_cms_forms": "~1.1.0",
+        "drupal/drupal_cms_forms": "^1.1",
         "drupal/drupal_cms_news": "~1.1.0",
         "drupal/drupal_cms_page": "~1.1.0",
         "drupal/drupal_cms_person": "~1.1.0",
         "drupal/drupal_cms_project": "~1.1.0",
         "drupal/drupal_cms_seo_tools": "~1.1.0",
         "drupal/drupal_cms_starter": "~1.1.0",
-        "drupal/mailchimp": "*",
         "drupal/mailchimp_transactional": "^1.2",
+        "drupal/mailchimp": "^3.1",
+        "drupal/markdown": "3.0.x-dev@dev",
         "drupal/project_browser": "@beta",
         "drupal/recipe_installer_kit": "^1-alpha3@alpha",
         "drupal/webform": "@beta",
@@ -58,6 +62,7 @@
     "config": {
         "allow-plugins": {
             "composer/installers": true,
+            "cweagans/composer-patches": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "drupal/core-composer-scaffold": true,
             "drupal/core-project-message": true,
@@ -67,6 +72,14 @@
         "optimize-autoloader": true
     },
     "extra": {
+        "composer-patches": {
+            "default-patching-strategy": "gnu-patch"
+        },
+        "patches": {
+            "drupal/mailchimp": {
+                "Fix stdClass default value crash in campaign edit form": "patches/mailchimp_campaign-stdclass-default-value.patch"
+            }
+        },
         "drupal-scaffold": {
             "locations": {
                 "web-root": "web/"
@@ -103,6 +116,8 @@
         "behat/mink-browserkit-driver": "^2.2",
         "behat/mink-selenium2-driver": "^1.7",
         "drupal/coder": "^8.3",
+        "drupal/dev_mode": "^2.7",
+        "drupal/devel": "^5.5",
         "mikey179/vfsstream": "^1.6",
         "phpspec/prophecy-phpunit": "^2.4",
         "phpunit/phpunit": "^11.5",

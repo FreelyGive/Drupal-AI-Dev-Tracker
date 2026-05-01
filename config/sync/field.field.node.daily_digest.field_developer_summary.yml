@@ -1,0 +1,24 @@
+uuid: 70b8c150-d02c-4a08-ae92-5d0728fdeea7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_developer_summary
+    - node.type.daily_digest
+  module:
+    - text
+id: node.daily_digest.field_developer_summary
+field_name: field_developer_summary
+entity_type: node
+bundle: daily_digest
+label: 'Developer summary'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: true
+  required_summary: true
+  allowed_formats: {  }
+field_type: text_with_summary

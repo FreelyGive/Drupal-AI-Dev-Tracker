@@ -1,0 +1,48 @@
+services:
+  issue_analysis.summariser:
+    class: Drupal\issue_analysis\Service\AiSummariserService
+    arguments:
+      - '@ai.provider'
+
+  issue_analysis.service:
+    class: Drupal\issue_analysis\Service\IssueAnalysisService
+    arguments:
+      - '@issue_analysis.summariser'
+      - '@http_client'
+
+  issue_analysis.newsletter_fetcher:
+    class: Drupal\issue_analysis\Service\NewsletterDataFetcherService
+    arguments:
+      - '@entity_type.manager'
+      - '@http_client'
+
+  issue_analysis.daily_digest:
+    class: Drupal\issue_analysis\Service\DailyDigestService
+    arguments:
+      - '@issue_analysis.newsletter_fetcher'
+      - '@issue_analysis.summariser'
+      - '@state'
+      - '@entity_type.manager'
+
+  issue_analysis.commands:
+    class: Drupal\issue_analysis\Drush\Commands\IssueAnalysisCommands
+    arguments:
+      - '@issue_analysis.service'
+    tags:
+      - { name: drush.command }
+
+  issue_analysis.mailchimp_digest:
+    class: Drupal\issue_analysis\Service\MailchimpDigestService
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+      - '@renderer'
+
+  issue_analysis.newsletter_commands:
+    class: Drupal\issue_analysis\Drush\Commands\NewsletterCommands
+    arguments:
+      - '@issue_analysis.newsletter_fetcher'
+      - '@issue_analysis.summariser'
+      - '@issue_analysis.daily_digest'
+    tags:
+      - { name: drush.command }

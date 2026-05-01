@@ -1,0 +1,74 @@
+.daily-digest__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #ddd;
+  margin-bottom: 1.5em;
+}
+.daily-digest__tab {
+  padding: 0.6em 1.4em;
+  border: 2px solid transparent;
+  border-bottom: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: -2px;
+  border-radius: 4px 4px 0 0;
+  transition: color 0.15s;
+}
+.daily-digest__tab:hover {
+  color: #0056b3;
+}
+.daily-digest__tab--active {
+  border-color: #ddd;
+  border-bottom-color: #fff;
+  background: #fff;
+  color: #0056b3;
+}
+.daily-digest__panel--hidden {
+  display: none;
+}
+.daily-digest__tldr {
+  background: #f0f6ff;
+  border-left: 4px solid #0056b3;
+  border-radius: 4px;
+  padding: 1em 1.25em;
+  margin-bottom: 1.5em;
+}
+.daily-digest__tldr h4 {
+  margin-top: 0;
+  color: #0056b3;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.daily-digest__toc {
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0.75em 1.25em;
+  margin-bottom: 1.75em;
+}
+.daily-digest__toc ul {
+  margin: 0;
+  padding-left: 1.25em;
+  columns: 2;
+  column-gap: 2em;
+}
+.daily-digest__toc li {
+  margin: 0.2em 0;
+  break-inside: avoid;
+}
+.daily-digest__toc a {
+  text-decoration: none;
+  color: #0056b3;
+}
+.daily-digest__toc a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  .daily-digest__toc ul {
+    columns: 1;
+  }
+}

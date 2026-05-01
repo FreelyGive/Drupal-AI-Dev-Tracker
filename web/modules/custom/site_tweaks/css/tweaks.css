@@ -79,6 +79,29 @@ body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily
 /*  position: relative !important;*/
 /*}*/
 
-body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .form-item--mergevars-persona {
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form {
+  text-align: center;
+
+}
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .js-form-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .gin-sticky-form-actions ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .gin-sticky-form-actions {
+  height: auto !important;
+  width: auto !important;
+  position: relative !important;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item-mergevars-persona {
   display: block;
 }
