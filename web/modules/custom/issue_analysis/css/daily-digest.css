@@ -1,3 +1,24 @@
+.newsletter-signup__intro {
+  background: #f0f6ff;
+  border: 1px solid #0056b3;
+  border-radius: 4px;
+  padding: 1em 1.25em;
+  margin: 0 auto;
+  margin-bottom: 1.75em;
+  max-width: 600px;
+}
+.newsletter-signup__intro strong {
+  display: inline-block;
+  color: #0056b3;
+  margin-bottom: 0.4em;
+}
+.newsletter-signup__intro p {
+  margin: 0;
+}
+.newsletter-signup__intro.go-left {
+  margin-left: 0;
+}
+
 .daily-digest__tabs {
   display: flex;
   gap: 0;

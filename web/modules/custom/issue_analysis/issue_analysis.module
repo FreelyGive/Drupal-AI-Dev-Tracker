@@ -34,5 +34,11 @@ function issue_analysis_theme(): array {
       'template' => 'node--daily-digest',
       'base hook' => 'node',
     ],
+    'newsletter_signup' => [
+      'template' => 'newsletter-signup',
+      'variables' => [
+        'embed_code' => NULL,
+      ],
+    ],
   ];
 }

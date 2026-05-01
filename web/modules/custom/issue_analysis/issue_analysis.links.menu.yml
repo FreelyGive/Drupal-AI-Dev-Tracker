@@ -1,6 +1,6 @@
 issue_analysis.main_nav_digest_signup:
   title: '24h Digest'
-  url: internal:/newsletter/signup
+  url: internal:/ai-dashboard/daily-digest
   menu_name: main
   weight: 7
 

@@ -84,6 +84,19 @@ class MailchimpSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('mailchimp_list_id_test') ?? '',
     ];
 
+    $form['signup_form'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Signup form'),
+    ];
+
+    $form['signup_form']['mailchimp_embed_code'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Embed code'),
+      '#description' => $this->t('Paste the HTML embed code from Mailchimp (Audience → Signup forms → Embedded forms). This is rendered at <code>/newsletter/signup</code>.'),
+      '#default_value' => $config->get('mailchimp_embed_code') ?? '',
+      '#rows' => 10,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -96,6 +109,7 @@ class MailchimpSettingsForm extends ConfigFormBase {
       ->set('mailchimp_interest_executive', trim($form_state->getValue('mailchimp_interest_executive')))
       ->set('mailchimp_interest_developer', trim($form_state->getValue('mailchimp_interest_developer')))
       ->set('mailchimp_list_id_test', trim($form_state->getValue('mailchimp_list_id_test')))
+      ->set('mailchimp_embed_code', $form_state->getValue('mailchimp_embed_code'))
       ->save();
 
     parent::submitForm($form, $form_state);

@@ -23,6 +23,14 @@ issue_analysis.mailchimp_settings:
   requirements:
     _permission: 'generate issue analysis newsletter'
 
+issue_analysis.newsletter_signup:
+  path: '/newsletter/signup'
+  defaults:
+    _controller: '\Drupal\issue_analysis\Controller\NewsletterSignupController::page'
+    _title: 'Daily Digest Signup'
+  requirements:
+    _access: 'TRUE'
+
 issue_analysis.daily_digest_view:
   path: '/ai-dashboard/daily-digest/{node}'
   defaults:
