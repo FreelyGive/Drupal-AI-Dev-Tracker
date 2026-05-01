@@ -6,11 +6,15 @@ module:
   addtocal_augment: 0
   ai: 0
   ai_agents: 0
+  ai_agents_explorer: 0
+  ai_api_explorer: 0
   ai_assistant_api: 0
   ai_chatbot: 0
   ai_dashboard: 0
   ai_image_alt_text: 0
+  ai_provider_amazeeio: 0
   ai_provider_anthropic: 0
+  ai_provider_litellm: 0
   ai_provider_openai: 0
   announcements_feed: 0
   automatic_updates: 0
@@ -65,6 +69,7 @@ module:
   honeypot: 0
   image: 0
   inline_form_errors: 0
+  issue_analysis: 0
   jquery_ui: 0
   jquery_ui_resizable: 0
   key: 0
@@ -76,7 +81,13 @@ module:
   link: 0
   linkit: 0
   login_emailusername: 0
+  mailchimp: 0
+  mailchimp_campaign: 0
+  mailchimp_eca: 0
+  mailchimp_lists: 0
+  mailchimp_signup: 0
   mailsystem: 0
+  markdown: 0
   media: 0
   media_library: 0
   menu_link_attributes: 0

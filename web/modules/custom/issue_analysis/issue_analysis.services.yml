@@ -22,6 +22,7 @@ services:
       - '@issue_analysis.newsletter_fetcher'
       - '@issue_analysis.summariser'
       - '@state'
+      - '@entity_type.manager'
 
   issue_analysis.commands:
     class: Drupal\issue_analysis\Drush\Commands\IssueAnalysisCommands
@@ -29,6 +30,13 @@ services:
       - '@issue_analysis.service'
     tags:
       - { name: drush.command }
+
+  issue_analysis.mailchimp_digest:
+    class: Drupal\issue_analysis\Service\MailchimpDigestService
+    arguments:
+      - '@config.factory'
+      - '@logger.factory'
+      - '@renderer'
 
   issue_analysis.newsletter_commands:
     class: Drupal\issue_analysis\Drush\Commands\NewsletterCommands

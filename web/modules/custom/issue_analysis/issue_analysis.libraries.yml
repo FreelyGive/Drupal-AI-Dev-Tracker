@@ -1,0 +1,10 @@
+daily-digest:
+  version: VERSION
+  css:
+    theme:
+      css/daily-digest.css: {}
+  js:
+    js/daily-digest.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

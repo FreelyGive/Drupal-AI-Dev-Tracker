@@ -1,0 +1,93 @@
+--- a/modules/mailchimp_campaign/src/Form/MailchimpCampaignForm.php
++++ b/modules/mailchimp_campaign/src/Form/MailchimpCampaignForm.php
+@@ -284,7 +284,7 @@
+         foreach ($mc_template->info->sections as $section => $content) {
+           // Set the default value and text format to either saved campaign
+           // values or defaults coming from the Mailchimp template.
+-          $default_value = $content;
++          $default_value = is_scalar($content) ? $content : '';
+           $format = 'mailchimp_campaign';
+
+           if (($campaign_template != NULL) && isset($campaign_template[$section])) {
+--- a/modules/mailchimp_campaign/src/Entity/MailchimpCampaignViewBuilder.php
++++ b/modules/mailchimp_campaign/src/Entity/MailchimpCampaignViewBuilder.php
+@@ -51,7 +51,8 @@
+     // Prepare rendered content.
+     /** @var \Drupal\mailchimp_campaign\Entity\MailchimpCampaign $entity */
+-    $content = $this->renderTemplate($entity->getTemplate());
++    $template = $entity->getTemplate();
++    $content = is_array($template) ? $this->renderTemplate($template) : [];
+     $rendered = '';
+     foreach ($content as $key => $section) {
+--- a/modules/mailchimp_campaign/src/MailchimpCampaignAccessControlHandler.php
++++ b/modules/mailchimp_campaign/src/MailchimpCampaignAccessControlHandler.php
+@@ -22,12 +22,20 @@
+     // Ensure the associated audience still exists.
+     if (!$entity->mc_data) {
+       \Drupal::messenger()->addError($this->t('Data for this campaign is missing. Were the audiences deleted? Were settings changed?'), 'error');
+-      return parent::access($entity, $operation, $account, $return_as_object);
++      // Always allow delete so orphaned Drupal entities can be cleaned up.
++      if ($operation === 'delete') {
++        return AccessResult::allowed();
++      }
++      return parent::access($entity, $operation, $account, $return_as_object);
+     }
+
+     $status = $entity->mc_data->status;
+     $return = NULL;
+     switch ($operation) {
+       case 'send':
+       case 'sendtestmail':
+       case 'edit':
+-      case 'delete':
+         $return = ($status == MAILCHIMP_STATUS_SENT) ? AccessResult::forbidden() : AccessResult::allowed();
+         break;
++
++      case 'delete':
++        // Always allow delete regardless of sent status.
++        $return = AccessResult::allowed();
++        break;
+--- a/modules/mailchimp_campaign/mailchimp_campaign.module
++++ b/modules/mailchimp_campaign/mailchimp_campaign.module
+@@ -283,14 +283,22 @@
+-  // Delete campaign from Mailchimp.
+-  try {
+-    if (!$mcapi) {
+-      throw new Exception('Cannot delete campaign without Mailchimp API. Check API key has been entered.');
++  // Delete campaign from Mailchimp if mc_data is available.
++  if ($campaign->mc_data && $mcapi) {
++    try {
++      $mcapi->delete($campaign->mc_data->id);
+     }
+-    $mcapi->delete($campaign->mc_data->id);
+-    $campaign->delete();
+-
+-    return TRUE;
+-  }
+-
+-  catch (\Exception $e) {
+-    \Drupal::messenger()->addError($e->getMessage());
+-    \Drupal::logger('mailchimp_campaign')->error('An error occurred while deleting this campaign: {message}', [
+-      'message' => $e->getMessage(),
+-    ]);
+-    return FALSE;
++    catch (\Exception $e) {
++      \Drupal::messenger()->addWarning($e->getMessage());
++      \Drupal::logger('mailchimp_campaign')->warning('Could not delete campaign from Mailchimp API: {message}', [
++        'message' => $e->getMessage(),
++      ]);
++    }
++  }
++
++  // Always delete the Drupal entity so orphaned records can be cleaned up.
++  try {
++    $campaign->delete();
++    return TRUE;
++  }
++  catch (\Exception $e) {
++    \Drupal::messenger()->addError($e->getMessage());
++    \Drupal::logger('mailchimp_campaign')->error('An error occurred while deleting the campaign entity: {message}', [
++      'message' => $e->getMessage(),
++    ]);
++    return FALSE;
+   }

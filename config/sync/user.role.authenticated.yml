@@ -11,6 +11,7 @@ dependencies:
     - file
     - honeypot
     - klaro
+    - mailchimp_signup
     - media
     - node
     - system
@@ -23,6 +24,7 @@ is_admin: false
 permissions:
   - 'access coffee'
   - 'access content'
+  - 'access mailchimp signup pages'
   - 'bypass honeypot protection'
   - 'delete own files'
   - 'skip CAPTCHA'

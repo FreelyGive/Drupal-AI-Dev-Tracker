@@ -4,3 +4,10 @@ issue_analysis.daily_digest_admin:
   route_name: issue_analysis.daily_digest_admin
   parent: system.admin_config_services
   weight: 10
+
+issue_analysis.mailchimp_settings:
+  title: 'Mailchimp Campaign Settings'
+  description: 'Configure Mailchimp audience, segments, and sender details for digest campaigns.'
+  route_name: issue_analysis.mailchimp_settings
+  parent: system.admin_config_services
+  weight: 11

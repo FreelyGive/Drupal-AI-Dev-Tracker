@@ -1,0 +1,100 @@
+{#
+/**
+ * @file
+ * Template for the Daily Digest content type.
+ *
+ * Available variables:
+ * - node: The node entity.
+ * - label: The node title.
+ * - content: All rendered node fields (use content.field_name to print individually).
+ * - url: The node URL.
+ * - date: The node creation date.
+ * - attributes: HTML attributes for the wrapper element.
+ */
+#}
+{{ attach_library('issue_analysis/daily-digest') }}
+<article{{ attributes }}>
+  <header class="daily-digest__header">
+    {{ title_prefix }}
+    {% if not page %}
+      <h2{{ title_attributes }}>{{ label }}</h2>
+    {% endif %}
+    {{ title_suffix }}
+  </header>
+
+  <div class="daily-digest__body">
+
+    <div class="daily-digest__tabs" role="tablist" aria-label="Newsletter persona">
+      <button class="daily-digest__tab daily-digest__tab--active"
+              role="tab"
+              aria-selected="true"
+              aria-controls="digest-panel-developer"
+              id="digest-tab-developer">
+        Developer
+      </button>
+      <button class="daily-digest__tab"
+              role="tab"
+              aria-selected="false"
+              aria-controls="digest-panel-executive"
+              id="digest-tab-executive"
+              tabindex="-1">
+        Executive
+      </button>
+    </div>
+
+    {% if content.field_developer_summary %}
+      <section class="daily-digest__panel"
+               id="digest-panel-developer"
+               role="tabpanel"
+               aria-labelledby="digest-tab-developer">
+        {% if node.field_developer_summary.summary %}
+          <div class="daily-digest__tldr">
+            {{ node.field_developer_summary.summary|raw }}
+          </div>
+        {% endif %}
+        <nav class="daily-digest__toc" aria-label="Jump to project"></nav>
+        <div class="daily-digest__content">
+          {{ node.field_developer_summary.value|raw }}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if content.field_executive_summary %}
+      <section class="daily-digest__panel daily-digest__panel--hidden"
+               id="digest-panel-executive"
+               role="tabpanel"
+               aria-labelledby="digest-tab-executive"
+               hidden>
+        {% if node.field_executive_summary.summary %}
+          <div class="daily-digest__tldr">
+            {{ node.field_executive_summary.summary|raw }}
+          </div>
+        {% endif %}
+        <nav class="daily-digest__toc" aria-label="Jump to project"></nav>
+        <div class="daily-digest__content">
+          {{ node.field_executive_summary.value|raw }}
+        </div>
+      </section>
+    {% endif %}
+
+    {% set prompt_url = null %}
+    {% set prompt_name = null %}
+    {% for file_item in node.field_data_file %}
+      {% set uri = file_item.entity.uri.value %}
+      {% if '_prompts' in uri %}
+        {% set prompt_url = file_url(uri) %}
+        {% set prompt_name = file_item.entity.filename.value %}
+      {% endif %}
+    {% endfor %}
+
+    {% if prompt_url %}
+      <div class="daily-digest__prompts">
+        <h4>AI Prompts</h4>
+        <p>To view the full AI prompts used to generate this digest check this file:
+          <a href="{{ prompt_url }}">{{ prompt_name }}</a>
+        </p>
+      </div>
+    {% endif %}
+
+  </div>
+</article>

@@ -14,3 +14,20 @@ issue_analysis.daily_digest_admin:
     _title: 'Daily Newsletter Digest'
   requirements:
     _permission: 'generate issue analysis newsletter'
+
+issue_analysis.mailchimp_settings:
+  path: '/admin/config/services/issue-analysis/mailchimp-settings'
+  defaults:
+    _form: '\Drupal\issue_analysis\Form\MailchimpSettingsForm'
+    _title: 'Mailchimp Campaign Settings'
+  requirements:
+    _permission: 'generate issue analysis newsletter'
+
+issue_analysis.daily_digest_view:
+  path: '/ai-dashboard/daily-digest/{node}'
+  defaults:
+    _controller: '\Drupal\issue_analysis\Controller\DailyDigestViewController::view'
+    _title: 'Daily Digest'
+  requirements:
+    _permission: 'access content'
+    node: \d+

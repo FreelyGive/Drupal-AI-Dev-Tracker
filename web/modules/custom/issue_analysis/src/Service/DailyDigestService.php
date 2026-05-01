@@ -2,7 +2,9 @@
 
 namespace Drupal\issue_analysis\Service;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
+use Drupal\file\Entity\File;
 
 /**
  * Orchestrates the daily digest: fetch, summarise, write files.
@@ -14,10 +16,14 @@ class DailyDigestService {
 
   const STATE_LAST_RUN = 'issue_analysis.daily_digest_last_run';
 
+  /** @var array<int, array{label: string, prompt: string}> Prompts collected during a run. */
+  private array $promptLog = [];
+
   public function __construct(
     protected NewsletterDataFetcherService $fetcher,
     protected AiSummariserService $summariser,
     protected StateInterface $state,
+    protected EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -40,7 +46,7 @@ class DailyDigestService {
 
     $results = $this->fetcher->fetchAllModulesData($module, $since, $until);
     $dateStr = $since->format('Y-m-d');
-    $generatedLine = '_Generated: ' . $generatedAt->format('Y-m-d H:i') . ' GMT_';
+    $generatedLine = 'Generated: ' . $generatedAt->format('Y-m-d H:i') . ' GMT';
 
     // JSON.
     $json = json_encode([
@@ -55,18 +61,9 @@ class DailyDigestService {
     file_put_contents($jsonFile, $json . "\n");
     $log("Data written to $jsonFile");
 
-    // Data markdown.
-    $dataMarkdown = $this->buildDataMarkdown($results, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), $generatedLine);
-    $dataFile = $this->resolveOutputPath($period, $dateStr, 'md', '-data');
-    file_put_contents($dataFile, $dataMarkdown . "\n");
-
-    $newsletterDir = DRUPAL_ROOT . '/issue_analysis';
-    file_put_contents("$newsletterDir/1d-data.md", $dataMarkdown . "\n");
-    $log("Data overview written to $dataFile");
-
     // Developer + Executive newsletters.
+    $newsletters = [];
     foreach (['developer', 'executive'] as $persona) {
-      $suffix = $persona === 'executive' ? '-executive' : '-dev';
       $log("Summarising modules ($persona persona)...");
 
       $sections = [];
@@ -78,32 +75,31 @@ class DailyDigestService {
         }
         $log(sprintf('  Summarising %s (%d issues, %d MRs, %d commits)...', $machineName, count($mod['issues']), count($mod['merge_requests']), count($mod['commits'])));
         try {
-          $sections[$machineName] = $this->summariseModule($mod, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'markdown', $persona);
+          $sections[$machineName] = $this->summariseModule($mod, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $persona);
         }
         catch (\RuntimeException $e) {
-          $sections[$machineName] = "_Summarisation failed: " . $e->getMessage() . "_";
+          $sections[$machineName] = '<p><em>Summarisation failed: ' . htmlspecialchars($e->getMessage()) . '</em></p>';
         }
       }
 
       $log('  Generating TL;DR...');
       $tldr = NULL;
       try {
-        $tldr = $this->generateTldr($sections, $period, 'markdown', $persona);
+        $tldr = $this->generateTldr($sections, $period, 'html', $persona);
       }
       catch (\RuntimeException) {}
 
-      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'markdown', $generatedLine);
-      $outFile = $this->resolveOutputPath($period, $dateStr, 'md', $suffix);
-      file_put_contents($outFile, $newsletter . "\n");
-
-      $stableName = $persona === 'executive' ? '1d-summary-executive.md' : '1d-summary-dev.md';
-      file_put_contents("$newsletterDir/$stableName", $newsletter . "\n");
-      $log("Newsletter ($persona) written to $outFile");
+      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine);
+      $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
+      $log("Newsletter ($persona) assembled.");
     }
 
-    // Sidebar.
-    $sidebar = "* [Home](/README.md)\n * [Executive audience](1d-summary-executive.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n";
-    file_put_contents("$newsletterDir/_sidebar.md", $sidebar);
+    // Write prompt log and clean up files older than 7 days.
+    $promptLogFile = $this->writePromptLog($period, $dateStr);
+    $this->cleanupOldFiles();
+
+    // Save digest as a Drupal node.
+    $this->createDigestNode($dateStr, $jsonFile, $newsletters, $promptLogFile);
 
     // Record last run timestamp.
     $this->state->set(self::STATE_LAST_RUN, $generatedAt->format(\DateTime::ATOM));
@@ -196,16 +192,16 @@ class DailyDigestService {
         continue;
       }
       try {
-        $sections[$mod['machine_name']] = $service->summariseModule($mod, '24h', $since, $until, 'markdown', $persona);
+        $sections[$mod['machine_name']] = $service->summariseModule($mod, '24h', $since, $until, 'html', $persona);
       }
       catch (\RuntimeException $e) {
-        $sections[$mod['machine_name']] = '_Summarisation failed: ' . $e->getMessage() . '_';
+        $sections[$mod['machine_name']] = '<p><em>Summarisation failed: ' . htmlspecialchars($e->getMessage()) . '</em></p>';
       }
     }
 
     $tldr = NULL;
     try {
-      $tldr = $service->generateTldr($sections, '24h', 'markdown', $persona);
+      $tldr = $service->generateTldr($sections, '24h', 'html', $persona);
     }
     catch (\RuntimeException) {}
 
@@ -213,6 +209,12 @@ class DailyDigestService {
       'sections' => $sections,
       'tldr' => $tldr,
     ];
+
+    // Accumulate prompt log entries across both persona passes.
+    $context['results']['prompt_log'] = array_merge(
+      $context['results']['prompt_log'] ?? [],
+      $service->getPromptLog()
+    );
   }
 
   /**
@@ -230,8 +232,7 @@ class DailyDigestService {
     $service = \Drupal::service('issue_analysis.daily_digest');
     $period = '24h';
     $dateStr = substr($since, 0, 10);
-    $generatedLine = '_Generated: ' . substr($generatedAt, 0, 16) . ' GMT_';
-    $newsletterDir = DRUPAL_ROOT . '/issue_analysis';
+    $generatedLine = 'Generated: ' . substr($generatedAt, 0, 16) . ' GMT';
 
     // JSON.
     $json = json_encode([
@@ -243,25 +244,26 @@ class DailyDigestService {
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     file_put_contents($service->resolveOutputPath($period, $dateStr, 'json'), $json . "\n");
 
-    // Data markdown.
-    $dataMarkdown = $service->buildDataMarkdown($results, $period, $since, $until, $generatedLine);
-    file_put_contents($service->resolveOutputPath($period, $dateStr, 'md', '-data'), $dataMarkdown . "\n");
-    file_put_contents("$newsletterDir/1d-data.md", $dataMarkdown . "\n");
-
-    // Newsletters.
+    // Assemble newsletters as HTML for each persona and save as a node.
+    $newsletters = [];
     foreach (['developer', 'executive'] as $persona) {
-      $suffix = $persona === 'executive' ? '-executive' : '-dev';
-      $stableName = $persona === 'executive' ? '1d-summary-executive.md' : '1d-summary-dev.md';
       $sections = $allSections[$persona]['sections'] ?? [];
       $tldr = $allSections[$persona]['tldr'] ?? NULL;
+      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'html', $generatedLine);
+      $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
+    }
+    $jsonFilePath = $service->resolveOutputPath($period, $dateStr, 'json');
 
-      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'markdown', $generatedLine);
-      file_put_contents($service->resolveOutputPath($period, $dateStr, 'md', $suffix), $newsletter . "\n");
-      file_put_contents("$newsletterDir/$stableName", $newsletter . "\n");
+    // Write prompt log from entries accumulated across all persona passes.
+    $promptLogPath = NULL;
+    $accumulatedPrompts = $context['results']['prompt_log'] ?? [];
+    if ($accumulatedPrompts) {
+      $service->setPromptLog($accumulatedPrompts);
+      $promptLogPath = $service->writePromptLog($period, $dateStr);
     }
 
-    // Sidebar.
-    file_put_contents("$newsletterDir/_sidebar.md", "* [Home](/README.md)\n * [Executive audience](1d-summary-executive.md)\n* [Developer audience](1d-summary-dev.md)\n* [Data](1d-data.md)\n* [AI prompts](prompts.md)\n");
+    $service->cleanupOldFiles();
+    $service->createDigestNode($dateStr, $jsonFilePath, $newsletters, $promptLogPath);
 
     // Record last run.
     \Drupal::service('state')->set(self::STATE_LAST_RUN, $generatedAt);
@@ -289,6 +291,69 @@ class DailyDigestService {
     }
     $dt = new \DateTimeImmutable($ts, new \DateTimeZone('UTC'));
     return $dt->format('Y-m-d H:i') . ' GMT';
+  }
+
+  /**
+   * Creates or updates a daily_digest node for the given date.
+   *
+   * @param string $dateStr
+   *   Date string in Y-m-d format.
+   * @param string $jsonFilePath
+   *   Absolute path to the JSON data file.
+   * @param array $newsletters
+   *   Keyed by persona ('developer', 'executive'), each with 'newsletter' and 'tldr'.
+   */
+  public function createDigestNode(string $dateStr, string $jsonFilePath, array $newsletters, ?string $promptLogPath = NULL): void {
+    $dateFormatted = (new \DateTimeImmutable($dateStr))->format('j F Y');
+    $title = 'Daily Digest – ' . $dateFormatted;
+    $nodeStorage = $this->entityTypeManager->getStorage('node');
+
+    // Find existing node for this date to avoid duplicates on re-runs.
+    $existing = $nodeStorage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'daily_digest')
+      ->condition('title', $title)
+      ->range(0, 1)
+      ->execute();
+
+    $node = $existing ? $nodeStorage->load(reset($existing)) : $nodeStorage->create(['type' => 'daily_digest']);
+
+    $fileStorage = $this->entityTypeManager->getStorage('file');
+    $files = [];
+
+    foreach (array_filter([$jsonFilePath, $promptLogPath]) as $path) {
+      $uri = 'public://issues-digest/' . basename($path);
+      $existing = $fileStorage->loadByProperties(['uri' => $uri]);
+      if ($existing) {
+        $files[] = ['target_id' => reset($existing)->id()];
+      }
+      else {
+        $file = File::create(['uri' => $uri, 'status' => 1]);
+        $file->save();
+        $files[] = ['target_id' => $file->id()];
+      }
+    }
+
+    $node->set('title', $title);
+    $node->set('status', 1);
+    $node->set('field_data_file', $files);
+
+    if (isset($newsletters['executive'])) {
+      $node->set('field_executive_summary', [
+        'value' => $newsletters['executive']['newsletter'] ?? '',
+        'summary' => $newsletters['executive']['tldr'] ?? '',
+        'format' => 'content_format',
+      ]);
+    }
+    if (isset($newsletters['developer'])) {
+      $node->set('field_developer_summary', [
+        'value' => $newsletters['developer']['newsletter'] ?? '',
+        'summary' => $newsletters['developer']['tldr'] ?? '',
+        'format' => 'content_format',
+      ]);
+    }
+
+    $node->save();
   }
 
   // ---------------------------------------------------------------------------
@@ -355,18 +420,22 @@ class DailyDigestService {
     $mrSection = $mrLines ? implode("\n", $mrLines) : '(none)';
     $commitSection = $commitLines ? implode("\n", $commitLines) : '(none)';
 
-    $formatInstruction = $format === 'markdown'
-      ? "Format your response as Markdown. Start with the exact heading \"### $title\" then use subsections as needed."
-      : 'Format your response as plain text with no Markdown.';
+    $formatInstruction = match ($format) {
+      'html' => "Format your response as an HTML fragment. Start with <h3>$title</h3> then use <h4>, <p>, <ul>/<li>, and <strong> as needed. Output only the HTML fragment with no surrounding <html>, <body>, or <article> tags.",
+      'markdown' => "Format your response as Markdown. Start with the exact heading \"### $title\" then use subsections as needed.",
+      default => 'Format your response as plain text with no Markdown.',
+    };
+
+    $howToHelpHeading = $format === 'html' ? '<h4>How can I help on this project?</h4>' : '#### How can I help on this project?';
 
     [$personaInstruction, $howToHelpProjectInstruction] = match ($persona) {
       'executive' => [
         "You are writing for a non-technical executive audience (CEO/leadership level).\nFocus on: business impact, strategic progress, risks, and what is being delivered.\nAvoid technical jargon. Do not mention branch names, function names, or API details.\nExplain what each piece of work means for users or the project's goals.",
-        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
       ],
       default => [
         "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
-        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
       ],
     };
 
@@ -383,7 +452,7 @@ Period: $period ($since to $until)
 $personaInstruction
 
 Do not list every issue/MR individually — synthesise into prose. Keep it under 200 words.
-Do not use emoticons or mdashes.
+Do not use emoticons or mdashes. Do not wrap usernames or contributor names in <strong> tags — mention them as plain text.
 $confidentialNote
 $formatInstruction
 
@@ -399,7 +468,149 @@ $mrSection
 $commitSection
 PROMPT;
 
-    return $this->summariser->complete($prompt, ['newsletter_summarise']);
+    $this->promptLog[] = ['label' => "summariseModule:{$machineName}:{$persona}", 'prompt' => $prompt];
+    $output = $this->summariser->complete($prompt, ['newsletter_summarise']);
+    return $this->linkifyHtml($output, $module);
+  }
+
+  /**
+   * Post-processes LLM HTML output to hyperlink issue IDs, MR IDs, commits, and usernames.
+   *
+   * Patterns replaced:
+   *   !NNN         → GitLab MR link (web_url from data)
+   *   #NNN         → GitLab issue link (iid) or drupal.org node (7-digit drupal issue number)
+   *   aeae410a     → GitLab commit link (8-char hex short_id from data)
+   *   @username / bare known username → drupal.org/u/username
+   *
+   * Replacement only happens for IDs present in the structured data — no guessing.
+   */
+  private function linkifyHtml(string $html, array $module): string {
+    $machineName = $module['machine_name'] ?? '';
+    $projectUrl = 'https://git.drupalcode.org/project/' . $machineName;
+
+    // Build MR map: iid → web_url.
+    $mrMap = [];
+    foreach ($module['merge_requests'] ?? [] as $mr) {
+      if (!empty($mr['iid']) && !empty($mr['web_url'])) {
+        $mrMap[(int) $mr['iid']] = $mr['web_url'];
+      }
+    }
+
+    // Build issue map: GitLab iid → web_url, plus drupal issue number → drupal_url.
+    $issueMap = [];
+    foreach ($module['issues'] ?? [] as $issue) {
+      if (!empty($issue['iid']) && !empty($issue['web_url'])) {
+        $issueMap[(string) $issue['iid']] = $issue['web_url'];
+      }
+      if (!empty($issue['drupal_issue_number']) && !empty($issue['drupal_url'])) {
+        $issueMap[(string) $issue['drupal_issue_number']] = $issue['drupal_url'];
+      }
+    }
+
+    // Build commit map: short_id (8-char hex) → web_url.
+    $commitMap = [];
+    foreach ($module['commits'] ?? [] as $commit) {
+      if (!empty($commit['short_id']) && !empty($commit['web_url'])) {
+        $commitMap[strtolower($commit['short_id'])] = $commit['web_url'];
+      }
+    }
+
+    // Collect all known usernames (authors + assignees).
+    $usernames = [];
+    foreach (array_merge($module['issues'] ?? [], $module['merge_requests'] ?? []) as $item) {
+      if (!empty($item['author'])) {
+        $usernames[$item['author']] = TRUE;
+      }
+      foreach ($item['assignees'] ?? [] as $u) {
+        if ($u) {
+          $usernames[$u] = TRUE;
+        }
+      }
+    }
+    // Commits use author_name (display name), not a username — nothing to link.
+
+    // Replace !NNN (MR references).
+    if ($mrMap) {
+      $html = preg_replace_callback(
+        '/(?<!["\'=\/])!(\d+)(?!["\'])/',
+        function (array $m) use ($mrMap, $projectUrl): string {
+          $iid = (int) $m[1];
+          $url = $mrMap[$iid] ?? ($projectUrl . '/-/merge_requests/' . $iid);
+          return '<a href="' . htmlspecialchars($url) . '">!' . $iid . '</a>';
+        },
+        $html
+      );
+    }
+
+    // Replace #NNN:
+    //   - Known GitLab iid → GitLab issue web_url
+    //   - Known drupal issue number → drupal.org node URL
+    //   - 7+ digit number (always a drupal.org issue) → drupal.org/node/NNN fallback
+    //   - Short unknown number → GitLab issue URL fallback
+    $html = preg_replace_callback(
+      '/(?<!["\'=\/])#(\d+)(?!["\'])/',
+      function (array $m) use ($issueMap, $projectUrl): string {
+        $num = $m[1];
+        if (isset($issueMap[$num])) {
+          $url = $issueMap[$num];
+        }
+        elseif (strlen($num) >= 7) {
+          // Long numbers are always drupal.org issue nodes.
+          $url = 'https://www.drupal.org/node/' . $num;
+        }
+        else {
+          $url = $projectUrl . '/-/issues/' . $num;
+        }
+        return '<a href="' . htmlspecialchars($url) . '">#' . $num . '</a>';
+      },
+      $html
+    );
+
+    // Replace 8-character hex commit short IDs (e.g. aeae410a).
+    if ($commitMap) {
+      $html = preg_replace_callback(
+        '/(?<!["\'=>\/a-f0-9])([0-9a-f]{8})(?![0-9a-f"\'])/',
+        function (array $m) use ($commitMap): string {
+          $short = strtolower($m[1]);
+          if (isset($commitMap[$short])) {
+            return '<a href="' . htmlspecialchars($commitMap[$short]) . '">' . $short . '</a>';
+          }
+          return $m[0];
+        },
+        $html
+      );
+    }
+
+    // Replace @username and known bare usernames with drupal.org profile links.
+    if ($usernames) {
+      // @username pattern.
+      $html = preg_replace_callback(
+        '/@([A-Za-z0-9_\-.]+)/',
+        function (array $m) use ($usernames): string {
+          $u = $m[1];
+          if (isset($usernames[$u])) {
+            $url = 'https://www.drupal.org/u/' . rawurlencode($u);
+            return '<a href="' . $url . '">@' . htmlspecialchars($u) . '</a>';
+          }
+          return $m[0];
+        },
+        $html
+      );
+
+      // Bare username — only replace known usernames preceded by a space or
+      // punctuation so we don't mangle words that happen to match.
+      foreach (array_keys($usernames) as $u) {
+        if (strlen($u) < 3) {
+          continue;
+        }
+        $pattern = '/(?<=[\s,(>])(' . preg_quote($u, '/') . ')(?=[\s,.<()\]])(?![^<]*<\/a>)/';
+        $url = 'https://www.drupal.org/u/' . rawurlencode($u);
+        $link = '<a href="' . $url . '">' . htmlspecialchars($u) . '</a>';
+        $html = preg_replace($pattern, $link, $html);
+      }
+    }
+
+    return $html;
   }
 
   /**
@@ -425,9 +636,11 @@ PROMPT;
       default => 'You are writing for a technical developer audience. Be specific — name modules, merged features, and critical bugs.',
     };
 
-    $formatInstruction = $format === 'markdown'
-      ? "Format as two Markdown sections:\n\n### Shipped\nA numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:\n1. **Title here** — Explanation sentence.\n\n### Ongoing\nA numbered list of the most significant in-progress items. Same format — bold title, one sentence.\n\nUse up to 5 items per section. Do not include any other text or headings."
-      : "Format as two plain text sections:\n\nSHIPPED\nA numbered list of completed or merged items. Each item starts with an ALL-CAPS title, then a dash, then one sentence.\n\nONGOING\nA numbered list of in-progress items. Same format.\n\nUp to 5 items per section. No Markdown.";
+    $formatInstruction = match ($format) {
+      'html' => "Format as two HTML sections. Use exactly this structure:\n<h4>Shipped</h4>\n<ol><li><strong>Title here</strong> — One sentence explanation.</li></ol>\n<h4>Ongoing</h4>\n<ol><li><strong>Title here</strong> — One sentence explanation.</li></ol>\nUp to 5 items per section.  Output only the HTML fragment, no surrounding tags.",
+      'markdown' => "Format as two Markdown sections:\n\n### Shipped\nA numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:\n1. **Title here** — Explanation sentence.\n\n### Ongoing\nA numbered list of the most significant in-progress items. Same format — bold title, one sentence.\n\nUse up to 5 items per section. Do not include any other text or headings.",
+      default => "Format as two plain text sections:\n\nSHIPPED\nA numbered list of completed or merged items. Each item starts with an ALL-CAPS title, then a dash, then one sentence.\n\nONGOING\nA numbered list of in-progress items. Same format.\n\nUp to 5 items per section. No Markdown.",
+    };
 
     $prompt = <<<PROMPT
 You are an editor distilling a Drupal AI project newsletter into its most important highlights.
@@ -447,6 +660,7 @@ $formatInstruction
 $combined
 PROMPT;
 
+    $this->promptLog[] = ['label' => "generateTldr:{$persona}", 'prompt' => $prompt];
     return $this->summariser->complete($prompt, ['newsletter_tldr']);
   }
 
@@ -476,13 +690,40 @@ PROMPT;
    */
   public function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format, string $generatedLine = ''): string {
     if (!$sections) {
-      return $format === 'markdown'
-        ? "# Drupal AI Newsletter\n\n_No module activity found for the period._"
-        : "Drupal AI Newsletter\n\nNo module activity found for the period.";
+      return match ($format) {
+        'html' => '<p><em>No module activity found for the period.</em></p>',
+        'markdown' => "# Drupal AI Newsletter\n\n_No module activity found for the period._",
+        default => "Drupal AI Newsletter\n\nNo module activity found for the period.",
+      };
     }
 
     $sinceDate = substr($since, 0, 10);
     $untilDate = substr($until, 0, 10);
+
+    if ($format === 'html') {
+      $parts = [];
+      $first = TRUE;
+      foreach ($sections as $machineName => $text) {
+        if (!$first) {
+          $parts[] = '<hr style="margin: 2em 0;">';
+        }
+        $first = FALSE;
+        $projectUrl = 'https://git.drupalcode.org/project/' . htmlspecialchars($machineName);
+        $projectLink = '<p class="digest-project-link"><a href="' . $projectUrl . '">View project on GitLab: ' . htmlspecialchars($machineName) . '</a></p>';
+        $anchorId = 'digest-module-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($machineName));
+        $parts[] = '<section class="digest-module" id="' . $anchorId . '" style="margin-bottom: 1.5em;">' . $text . $projectLink . '</section>';
+      }
+
+      // Footer: period + generated on one line.
+      $metaParts = ["Period: {$sinceDate} to {$untilDate}"];
+      if ($generatedLine) {
+        $metaParts[] = htmlspecialchars($generatedLine);
+      }
+      $parts[] = '<hr style="margin: 2em 0;">';
+      $parts[] = '<p class="digest-meta" style="font-size:0.85em;color:#666;">' . implode(' &nbsp;|&nbsp; ', $metaParts) . '</p>';
+
+      return implode("\n", $parts);
+    }
 
     if ($format === 'markdown') {
       $lines = ["# Drupal AI Activity Newsletter", "", "_Period: {$sinceDate} to {$untilDate}_"];
@@ -499,39 +740,7 @@ PROMPT;
         $lines[] = "";
       }
 
-      // Navigation index — one link per module section.
-      $lines[] = "## Modules";
-      $lines[] = "";
-      foreach ($sections as $machineName => $text) {
-        // Extract the ### heading the LLM wrote (first line starting with ###).
-        $title = $machineName;
-        if (preg_match('/^###\s+(.+)$/m', $text, $m)) {
-          $title = trim($m[1]);
-        }
-        $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
-        $lines[] = "- [$title](#$anchor)";
-      }
-      $lines[] = "";
-      $lines[] = "---";
-      $lines[] = "";
-
-      // Per-module sections with injected data link under the heading.
-      $dataBase = '1d-data';
-      foreach ($sections as $machineName => $text) {
-        // Derive the anchor from the LLM-generated title so it matches the
-        // ## heading in the data document (docsify uses the heading text).
-        $sectionTitle = $machineName;
-        if (preg_match('/^###\s+(.+)$/m', $text, $tm)) {
-          $sectionTitle = trim($tm[1]);
-        }
-        $dataAnchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle)), '-');
-        $dataLink = "_[View issues data]({$dataBase}?id={$dataAnchor})_";
-        $text = preg_replace(
-          '/^(###\s+.+)$/m',
-          "$1\n\n{$dataLink}",
-          $text,
-          1,
-        );
+      foreach ($sections as $text) {
         $lines[] = $text;
         $lines[] = '';
       }
@@ -559,24 +768,7 @@ PROMPT;
   }
 
   /**
-   * Builds the Markdown data document listing all issues, MRs, and commits.
-   *
-   * Includes a navigation index at the top and inline-quoted GitLab comments.
-   * Only modules with at least one piece of activity are included.
-   *
-   * @param array $results
-   *   Module results from NewsletterDataFetcherService::fetchAllModulesData().
-   * @param string $period
-   *   Human-readable period label (e.g. "24h").
-   * @param string $since
-   *   ISO 8601 start datetime string.
-   * @param string $until
-   *   ISO 8601 end datetime string.
-   * @param string $generatedLine
-   *   Optional italic "Generated: ..." line added after the period header.
-   *
-   * @return string
-   *   Rendered Markdown string.
+   * @deprecated No longer used — docsify removed.
    */
   public function buildDataMarkdown(array $results, string $period, string $since, string $until, string $generatedLine = ''): string {
     $sinceDate = substr($since, 0, 10);
@@ -685,6 +877,68 @@ PROMPT;
    * @return string
    *   Absolute filesystem path to the output file.
    */
+  /**
+   * Returns all prompts collected during this service instance's lifetime.
+   */
+  public function getPromptLog(): array {
+    return $this->promptLog;
+  }
+
+  /**
+   * Replaces the internal prompt log with the given entries (used by batch).
+   */
+  public function setPromptLog(array $entries): void {
+    $this->promptLog = $entries;
+  }
+
+  /**
+   * Writes the collected prompt log to a dated file and returns its path.
+   *
+   * Each entry is separated by a clear header so the file is human-readable.
+   * Returns NULL if there are no prompts to write.
+   */
+  public function writePromptLog(string $period, string $dateStr): ?string {
+    if (empty($this->promptLog)) {
+      return NULL;
+    }
+
+    $lines = ["# Prompt log — {$period} {$dateStr}", ""];
+    foreach ($this->promptLog as $i => $entry) {
+      $n = $i + 1;
+      $lines[] = str_repeat('=', 72);
+      $lines[] = "## [{$n}] {$entry['label']}";
+      $lines[] = str_repeat('=', 72);
+      $lines[] = $entry['prompt'];
+      $lines[] = "";
+    }
+
+    $path = $this->resolveOutputPath($period, $dateStr, 'txt', '_prompts');
+    file_put_contents($path, implode("\n", $lines));
+    return $path;
+  }
+
+  /**
+   * Deletes prompt log and JSON files older than 7 days from the output dir.
+   */
+  public function cleanupOldFiles(): void {
+    $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
+    if (!is_dir($dir)) {
+      return;
+    }
+    $cutoff = time() - (7 * 24 * 60 * 60);
+    foreach (glob("$dir/*.{json,txt}", GLOB_BRACE) as $file) {
+      if (filemtime($file) < $cutoff) {
+        @unlink($file);
+        // Also remove the Drupal managed file entity if one exists.
+        $uri = 'public://issues-digest/' . basename($file);
+        $fileStorage = $this->entityTypeManager->getStorage('file');
+        foreach ($fileStorage->loadByProperties(['uri' => $uri]) as $managed) {
+          $managed->delete();
+        }
+      }
+    }
+  }
+
   public function resolveOutputPath(string $period, string $since, string $ext, string $suffix = ''): string {
     $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
     if (!is_dir($dir)) {
