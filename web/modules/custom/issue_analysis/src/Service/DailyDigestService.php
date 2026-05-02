@@ -393,14 +393,25 @@ class DailyDigestService {
         $confidentialCount++;
         continue;
       }
-      $assignees = $i['assignees'] ? implode(', ', $i['assignees']) : 'unassigned';
+      $assignees = $i['assignees']
+        ? implode(', ', array_map(
+            fn($name, $user) => $name && $name !== $user ? "$name ($user)" : $user,
+            $i['assignee_names'] ?? $i['assignees'],
+            $i['assignees'],
+          ))
+        : 'unassigned';
       $labels = $i['labels'] ? implode(', ', array_slice($i['labels'], 0, 4)) : '';
-      $drupalRef = $i['drupal_issue_number'] ? " [#{$i['drupal_issue_number']}]({$i['drupal_url']})" : '';
-      $issueLines[] = "- [{$i['title']}]({$i['web_url']}){$drupalRef} | {$i['state']} | {$assignees} | comments: {$i['comment_count']} | {$labels}";
+      $authorDisplay = ($i['author_name'] ?? '') && $i['author_name'] !== $i['author']
+        ? "{$i['author_name']} ({$i['author']})"
+        : $i['author'];
+      $issueLines[] = "- [{$i['title']}]({$i['web_url']}) | {$i['state']} | author: {$authorDisplay} | assigned: {$assignees} | comments: {$i['comment_count']} | {$labels}";
       foreach ($i['comments'] ?? [] as $comment) {
         $date = substr($comment['created_at'], 0, 10);
         $snippet = mb_substr(trim($comment['body']), 0, 300);
-        $issueLines[] = "  [{$comment['author']} {$date}]: {$snippet}";
+        $commentAuthor = ($comment['author_name'] ?? '') && $comment['author_name'] !== $comment['author']
+          ? "{$comment['author_name']} ({$comment['author']})"
+          : $comment['author'];
+        $issueLines[] = "  [{$commentAuthor} {$date}]: {$snippet}";
       }
     }
 
@@ -408,7 +419,10 @@ class DailyDigestService {
     foreach ($mrs as $mr) {
       $merged = $mr['merged_at'] ? 'merged ' . substr($mr['merged_at'], 0, 10) : $mr['state'];
       $diffNote = isset($mr['diff_lines']) && $mr['diff_lines'] > 0 ? " | {$mr['diff_lines']} diff lines" : '';
-      $mrLines[] = "- [{$mr['title']}]({$mr['web_url']}) by {$mr['author']} | {$merged} | branch: {$mr['source_branch']}{$diffNote}";
+      $mrAuthor = ($mr['author_name'] ?? '') && $mr['author_name'] !== $mr['author']
+        ? "{$mr['author_name']} ({$mr['author']})"
+        : $mr['author'];
+      $mrLines[] = "- [{$mr['title']}]({$mr['web_url']}) by {$mrAuthor} | {$merged} | branch: {$mr['source_branch']}{$diffNote}";
     }
 
     $commitLines = [];
@@ -453,6 +467,8 @@ $personaInstruction
 
 Do not list every issue/MR individually — synthesise into prose. Keep it under 200 words.
 Do not use emoticons or mdashes. Do not wrap usernames or contributor names in <strong> tags — mention them as plain text.
+When mentioning a specific issue or MR, always hyperlink it using the URL provided in the data (e.g. <a href="URL">Issue Title</a> or the Markdown equivalent). Do not reference issues or MRs by number alone — always use their title as the link text.
+When mentioning contributors, use the format "Real Name (username)" when a real name is available in the data, otherwise use just the username.
 $confidentialNote
 $formatInstruction
 
@@ -515,15 +531,31 @@ PROMPT;
       }
     }
 
-    // Collect all known usernames (authors + assignees).
+    // Collect all known usernames (authors + assignees) and map username → real name.
     $usernames = [];
+    $userRealNames = [];
     foreach (array_merge($module['issues'] ?? [], $module['merge_requests'] ?? []) as $item) {
       if (!empty($item['author'])) {
         $usernames[$item['author']] = TRUE;
+        if (!empty($item['author_name']) && $item['author_name'] !== $item['author']) {
+          $userRealNames[$item['author']] = $item['author_name'];
+        }
       }
-      foreach ($item['assignees'] ?? [] as $u) {
+      foreach ($item['assignees'] ?? [] as $idx => $u) {
         if ($u) {
           $usernames[$u] = TRUE;
+          $name = $item['assignee_names'][$idx] ?? '';
+          if ($name && $name !== $u) {
+            $userRealNames[$u] = $name;
+          }
+        }
+      }
+      foreach ($item['comments'] ?? [] as $comment) {
+        if (!empty($comment['author'])) {
+          $usernames[$comment['author']] = TRUE;
+          if (!empty($comment['author_name']) && $comment['author_name'] !== $comment['author']) {
+            $userRealNames[$comment['author']] = $comment['author_name'];
+          }
         }
       }
     }
@@ -586,11 +618,14 @@ PROMPT;
       // @username pattern.
       $html = preg_replace_callback(
         '/@([A-Za-z0-9_\-.]+)/',
-        function (array $m) use ($usernames): string {
+        function (array $m) use ($usernames, $userRealNames): string {
           $u = $m[1];
           if (isset($usernames[$u])) {
             $url = 'https://www.drupal.org/u/' . rawurlencode($u);
-            return '<a href="' . $url . '">@' . htmlspecialchars($u) . '</a>';
+            $label = isset($userRealNames[$u])
+              ? htmlspecialchars($userRealNames[$u]) . ' (' . htmlspecialchars($u) . ')'
+              : '@' . htmlspecialchars($u);
+            return '<a href="' . $url . '">' . $label . '</a>';
           }
           return $m[0];
         },
@@ -599,6 +634,9 @@ PROMPT;
 
       // Bare username — only replace known usernames preceded by a space or
       // punctuation so we don't mangle words that happen to match.
+      // Always link with just the username as label: the LLM already writes
+      // "Real Name (username)" in prose, so prepending the name again here
+      // would produce "Real Name (Real Name (username))".
       foreach (array_keys($usernames) as $u) {
         if (strlen($u) < 3) {
           continue;
@@ -637,7 +675,7 @@ PROMPT;
     };
 
     $formatInstruction = match ($format) {
-      'html' => "Format as two HTML sections. Use exactly this structure:\n<h4>Shipped</h4>\n<ol><li><strong>Title here</strong> — One sentence explanation.</li></ol>\n<h4>Ongoing</h4>\n<ol><li><strong>Title here</strong> — One sentence explanation.</li></ol>\nUp to 5 items per section.  Output only the HTML fragment, no surrounding tags.",
+      'html' => "Format as two HTML sections. Use exactly this structure (all <li> elements must be inside the <ol>, never outside it):\n<h4>Shipped</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation.</li>\n<li><strong>Another title</strong> &mdash; One sentence explanation.</li>\n</ol>\n<h4>Ongoing</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation.</li>\n</ol>\nUp to 5 items per section. Do not output any text, tags, or characters outside these two sections. Output only the HTML fragment, no surrounding tags.",
       'markdown' => "Format as two Markdown sections:\n\n### Shipped\nA numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:\n1. **Title here** — Explanation sentence.\n\n### Ongoing\nA numbered list of the most significant in-progress items. Same format — bold title, one sentence.\n\nUse up to 5 items per section. Do not include any other text or headings.",
       default => "Format as two plain text sections:\n\nSHIPPED\nA numbered list of completed or merged items. Each item starts with an ALL-CAPS title, then a dash, then one sentence.\n\nONGOING\nA numbered list of in-progress items. Same format.\n\nUp to 5 items per section. No Markdown.",
     };
@@ -653,6 +691,7 @@ Read all the module summaries below. Separate the highlights into two categories
 
 Be specific — name the module, what happened, and why it matters.
 Do not use emoticons or mdashes. Do not include any text outside the two sections.
+Do not mention issue numbers (e.g. #12345) or MR IDs (e.g. !42) — they are not linked and are meaningless to readers out of context. Instead, describe what was done in plain language.
 
 $formatInstruction
 
@@ -661,7 +700,54 @@ $combined
 PROMPT;
 
     $this->promptLog[] = ['label' => "generateTldr:{$persona}", 'prompt' => $prompt];
-    return $this->summariser->complete($prompt, ['newsletter_tldr']);
+    $output = $this->summariser->complete($prompt, ['newsletter_tldr']);
+
+    if ($format === 'html') {
+      $output = $this->sanitiseTldrHtml($output);
+    }
+
+    return $output;
+  }
+
+  /**
+   * Fixes common LLM structural mistakes in TL;DR HTML output.
+   *
+   * Repairs <li> items that end up outside their <ol>, and removes stray
+   * bare > characters that appear between block elements.
+   */
+  private function sanitiseTldrHtml(string $html): string {
+    // Remove stray bare > or &gt; that appear between closing and opening tags.
+    $html = preg_replace('/(<\/(?:ol|li|h4)>)\s*(?:>|&gt;)\s*(<(?:ol|li|h4))/i', '$1$2', $html);
+    $html = preg_replace('/(<\/(?:ol|li|h4)>)\s*(?:>|&gt;)\s*$/i', '$1', $html);
+
+    // Collect all <li>...</li> blocks that sit outside any <ol>.
+    // Strategy: split on <ol>...</ol> blocks, collect orphan <li>s from the
+    // gaps, then re-attach them to the preceding <ol>.
+    $html = preg_replace_callback(
+      '/(<ol[^>]*>)(.*?)(<\/ol>)(.*?)(?=<h4|<ol|$)/si',
+      function (array $m): string {
+        $open = $m[1];
+        $inner = $m[2];
+        $close = $m[3];
+        $after = $m[4];
+
+        // Pull any orphan <li> items from the text after this </ol>.
+        $orphans = '';
+        $after = preg_replace_callback(
+          '/(<li\b[^>]*>.*?<\/li>)/si',
+          function (array $li) use (&$orphans): string {
+            $orphans .= $li[1];
+            return '';
+          },
+          $after,
+        );
+
+        return $open . $inner . $orphans . $close . $after;
+      },
+      $html,
+    );
+
+    return $html;
   }
 
   /**

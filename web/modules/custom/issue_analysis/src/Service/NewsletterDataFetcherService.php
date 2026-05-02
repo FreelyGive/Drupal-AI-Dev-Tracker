@@ -275,6 +275,10 @@ class NewsletterDataFetcherService {
           fn($a) => $a['username'] ?? '',
           $issue['assignees'] ?? ($issue['assignee'] ? [$issue['assignee']] : []),
         );
+        $assigneeNames = array_map(
+          fn($a) => $a['name'] ?? $a['username'] ?? '',
+          $issue['assignees'] ?? ($issue['assignee'] ? [$issue['assignee']] : []),
+        );
 
         $drupalIssueNumber = $this->extractDrupalIssueNumber($issue['description'] ?? '');
         $projectId = (int) ($issue['project_id'] ?? 0);
@@ -286,7 +290,9 @@ class NewsletterDataFetcherService {
           'title' => $issue['title'] ?? '',
           'state' => $issue['state'] ?? '',
           'author' => $issue['author']['username'] ?? '',
+          'author_name' => $issue['author']['name'] ?? $issue['author']['username'] ?? '',
           'assignees' => array_values(array_filter($assignees)),
+          'assignee_names' => array_values(array_filter($assigneeNames)),
           'created_at' => $issue['created_at'] ?? '',
           'updated_at' => $issue['updated_at'] ?? '',
           'closed_at' => $issue['closed_at'] ?? NULL,
@@ -373,6 +379,10 @@ class NewsletterDataFetcherService {
           fn($a) => $a['username'] ?? '',
           $mr['assignees'] ?? ($mr['assignee'] ? [$mr['assignee']] : []),
         );
+        $assigneeNames = array_map(
+          fn($a) => $a['name'] ?? $a['username'] ?? '',
+          $mr['assignees'] ?? ($mr['assignee'] ? [$mr['assignee']] : []),
+        );
 
         $diffLines = $this->fetchGitLabMrDiffLineCount($project, (int) $mr['iid']);
         $mrs[] = [
@@ -380,7 +390,9 @@ class NewsletterDataFetcherService {
           'title' => $mr['title'] ?? '',
           'state' => $mr['state'] ?? '',
           'author' => $mr['author']['username'] ?? '',
+          'author_name' => $mr['author']['name'] ?? $mr['author']['username'] ?? '',
           'assignees' => array_values(array_filter($assignees)),
+          'assignee_names' => array_values(array_filter($assigneeNames)),
           'created_at' => $mr['created_at'] ?? '',
           'updated_at' => $mr['updated_at'] ?? '',
           'merged_at' => $mr['merged_at'] ?? NULL,
@@ -545,6 +557,7 @@ class NewsletterDataFetcherService {
         $body = $note['body'] ?? '';
         $notes[] = [
           'author' => $note['author']['username'] ?? '',
+          'author_name' => $note['author']['name'] ?? $note['author']['username'] ?? '',
           'created_at' => $note['created_at'] ?? '',
           'body' => $body,
         ];

@@ -80,8 +80,16 @@ class MailchimpSettingsForm extends ConfigFormBase {
     $form['testing']['mailchimp_list_id_test'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Test audience ID'),
-      '#description' => $this->t('When set, both campaigns target this audience with no segmentation. Clear when done testing.'),
+      '#description' => $this->t('Mailchimp audience (list) ID to use instead of the live one — must be the same alphanumeric format as the main audience ID (e.g. <code>6c08b866c9</code>). Leave blank to use the live audience.'),
       '#default_value' => $config->get('mailchimp_list_id_test') ?? '',
+      '#maxlength' => 32,
+    ];
+
+    $form['testing']['disable_sending'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Disable sending'),
+      '#description' => $this->t('When checked, campaign drafts are created in Mailchimp but not sent. Useful for reviewing output before going live.'),
+      '#default_value' => $config->get('disable_sending') ?? FALSE,
     ];
 
     $form['signup_form'] = [
@@ -100,6 +108,20 @@ class MailchimpSettingsForm extends ConfigFormBase {
     return parent::buildForm($form, $form_state);
   }
 
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    parent::validateForm($form, $form_state);
+
+    // Mailchimp audience IDs are alphanumeric (typically 10 hex chars).
+    // Reject anything that looks like a plain integer — those are segment IDs,
+    // not list IDs, and will cause a 400 from the Mailchimp API.
+    foreach (['mailchimp_list_id', 'mailchimp_list_id_test'] as $field) {
+      $value = trim($form_state->getValue($field) ?? '');
+      if ($value !== '' && ctype_digit($value)) {
+        $form_state->setErrorByName($field, $this->t('This looks like a numeric segment ID, not a Mailchimp audience ID. Audience IDs are alphanumeric (e.g. <code>6c08b866c9</code>). Leave blank if unsure.'));
+      }
+    }
+  }
+
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $this->config('issue_analysis.settings')
       ->set('mailchimp_list_id', trim($form_state->getValue('mailchimp_list_id')))
@@ -109,6 +131,7 @@ class MailchimpSettingsForm extends ConfigFormBase {
       ->set('mailchimp_interest_executive', trim($form_state->getValue('mailchimp_interest_executive')))
       ->set('mailchimp_interest_developer', trim($form_state->getValue('mailchimp_interest_developer')))
       ->set('mailchimp_list_id_test', trim($form_state->getValue('mailchimp_list_id_test')))
+      ->set('disable_sending', (bool) $form_state->getValue('disable_sending'))
       ->set('mailchimp_embed_code', $form_state->getValue('mailchimp_embed_code'))
       ->save();
 

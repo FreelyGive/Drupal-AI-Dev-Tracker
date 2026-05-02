@@ -112,23 +112,30 @@ class MailchimpDigestService {
       );
     }
 
-    // Send each successfully created campaign immediately.
-    foreach ($results as $campaignId) {
-      if (!$campaignId) {
-        continue;
-      }
-      $entities = \Drupal::entityTypeManager()
-        ->getStorage('mailchimp_campaign')
-        ->loadByProperties(['mc_campaign_id' => $campaignId]);
-      $entity = reset($entities);
-      if ($entity) {
-        mailchimp_campaign_send_campaign($entity);
-      }
-      else {
-        $this->loggerFactory->get('issue_analysis')->error(
-          'Could not load mailchimp_campaign entity for @id — campaign not sent.',
-          ['@id' => $campaignId]
-        );
+    // Send each successfully created campaign immediately, unless sending is disabled.
+    if ($config->get('disable_sending')) {
+      $this->loggerFactory->get('issue_analysis')->notice(
+        'Mailchimp sending is disabled — campaigns created as drafts only.'
+      );
+    }
+    else {
+      foreach ($results as $campaignId) {
+        if (!$campaignId) {
+          continue;
+        }
+        $entities = \Drupal::entityTypeManager()
+          ->getStorage('mailchimp_campaign')
+          ->loadByProperties(['mc_campaign_id' => $campaignId]);
+        $entity = reset($entities);
+        if ($entity) {
+          mailchimp_campaign_send_campaign($entity);
+        }
+        else {
+          $this->loggerFactory->get('issue_analysis')->error(
+            'Could not load mailchimp_campaign entity for @id — campaign not sent.',
+            ['@id' => $campaignId]
+          );
+        }
       }
     }
 
