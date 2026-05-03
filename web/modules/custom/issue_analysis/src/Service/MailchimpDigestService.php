@@ -16,6 +16,8 @@ use Mailchimp\MailchimpCampaigns;
  *   - Executive: field_executive_summary → subscribers who chose "Executive"
  *   - Developer: field_developer_summary → subscribers who chose "Developer"
  *
+ * When a test tag ID is configured, both campaigns target the main audience
+ * filtered to only subscribers with that tag (no interest segmentation).
  * When a test audience ID is configured, both campaigns target that list
  * with no segmentation (useful for smoke-testing before going live).
  */
@@ -41,9 +43,10 @@ class MailchimpDigestService {
       return ['executive' => NULL, 'developer' => NULL];
     }
 
-    $config    = $this->configFactory->get('issue_analysis.settings');
-    $test_list = $config->get('mailchimp_list_id_test') ?: NULL;
-    $list_id   = $test_list ?: ($config->get('mailchimp_list_id') ?: NULL);
+    $config      = $this->configFactory->get('issue_analysis.settings');
+    $test_list   = $config->get('mailchimp_list_id_test') ?: NULL;
+    $tag_id_test = $config->get('mailchimp_tag_id_test') ?: NULL;
+    $list_id     = $test_list ?: ($config->get('mailchimp_list_id') ?: NULL);
 
     if (empty($list_id)) {
       $this->loggerFactory->get('issue_analysis')->notice(
@@ -85,9 +88,25 @@ class MailchimpDigestService {
         continue;
       }
 
-      // Build segment_opts only when not in test mode and IDs are configured.
+      // Build segment_opts based on mode:
+      // - Tag ID set: target only subscribers with that tag (no interest segmentation).
+      // - No test override and interest IDs configured: use interest-group segmentation.
+      // - Otherwise: no segmentation (send to full list).
       $segment_opts = NULL;
-      if (!$test_list && $category_id && $persona['interest_id']) {
+      if ($tag_id_test) {
+        $segment_opts = (object) [
+          'match' => 'all',
+          'conditions' => [
+            (object) [
+              'condition_type' => 'StaticSegment',
+              'field'          => 'static_segment',
+              'op'             => 'static_is',
+              'value'          => (int) $tag_id_test,
+            ],
+          ],
+        ];
+      }
+      elseif (!$test_list && $category_id && $persona['interest_id']) {
         $segment_opts = (object) [
           'match' => 'all',
           'conditions' => [
@@ -143,6 +162,27 @@ class MailchimpDigestService {
   }
 
   /**
+   * Returns the Mailchimp campaign ID of a draft matching the given subject, or NULL.
+   *
+   * Only searches campaigns with status 'save' (unsent drafts). Sent or
+   * sending campaigns are never returned, so they cannot be overwritten.
+   */
+  private function findDraftCampaignBySubject(\Mailchimp\MailchimpCampaigns $mc, string $subject): ?string {
+    try {
+      $result = $mc->getCampaigns(['count' => 10, 'status' => 'save', 'sort_field' => 'create_time', 'sort_dir' => 'DESC']);
+      foreach ($result->campaigns ?? [] as $campaign) {
+        if (($campaign->settings->subject_line ?? '') === $subject) {
+          return $campaign->id;
+        }
+      }
+    }
+    catch (\Exception) {
+      // If we can't fetch drafts, fall through to creating a new campaign.
+    }
+    return NULL;
+  }
+
+  /**
    * Creates a single campaign draft and registers the Drupal entity.
    */
   private function createSingleCampaign(
@@ -172,6 +212,29 @@ class MailchimpDigestService {
         'from_name'    => $from_name,
         'reply_to'     => $reply_to,
       ];
+
+      // Check for an existing unsent draft with the same subject so re-running
+      // the digest for the same day updates rather than duplicates.
+      $existingId = $this->findDraftCampaignBySubject($mc, $subject);
+      if ($existingId) {
+        $mc->updateCampaign($existingId, MailchimpCampaigns::CAMPAIGN_TYPE_REGULAR, $recipients, $settings);
+        $mc->setCampaignContent($existingId, ['html' => $html]);
+
+        $entities = \Drupal::entityTypeManager()
+          ->getStorage('mailchimp_campaign')
+          ->loadByProperties(['mc_campaign_id' => $existingId]);
+        if ($entity = reset($entities)) {
+          $entity->set('template', serialize(['html' => ['value' => $html, 'format' => 'content_format']]));
+          $entity->save();
+        }
+
+        $this->loggerFactory->get('issue_analysis')->notice(
+          'Updated existing Mailchimp campaign draft: @id (subject: @subject) for node @nid.',
+          ['@id' => $existingId, '@subject' => $subject, '@nid' => $nid]
+        );
+
+        return $existingId;
+      }
 
       $result = $mc->addCampaign(MailchimpCampaigns::CAMPAIGN_TYPE_REGULAR, $recipients, $settings);
 
@@ -261,7 +324,7 @@ class MailchimpDigestService {
       $parts[] = '<p style="font-size:0.85em;color:#666;">' . $metaLine . '</p>';
     }
 
-    return implode("\n", $parts);
+    return '<div style="line-height:24px;">' . "\n" . implode("\n", $parts) . "\n</div>";
   }
 
 }

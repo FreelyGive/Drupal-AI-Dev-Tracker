@@ -85,6 +85,14 @@ class MailchimpSettingsForm extends ConfigFormBase {
       '#maxlength' => 32,
     ];
 
+    $form['testing']['mailchimp_tag_id_test'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Test tag ID'),
+      '#description' => $this->t('Numeric Mailchimp tag ID (segment ID) to restrict sending to tagged subscribers only. When set, campaigns target the main audience filtered by this tag — no interest-group segmentation is applied. Obtain the ID via <code>GET /lists/{id}/segments</code> (type: static). Example: <code>1519891</code>.'),
+      '#default_value' => $config->get('mailchimp_tag_id_test') ?? '',
+      '#maxlength' => 16,
+    ];
+
     $form['testing']['disable_sending'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Disable sending'),
@@ -120,6 +128,12 @@ class MailchimpSettingsForm extends ConfigFormBase {
         $form_state->setErrorByName($field, $this->t('This looks like a numeric segment ID, not a Mailchimp audience ID. Audience IDs are alphanumeric (e.g. <code>6c08b866c9</code>). Leave blank if unsure.'));
       }
     }
+
+    // Tag IDs must be numeric.
+    $tag_id = trim($form_state->getValue('mailchimp_tag_id_test') ?? '');
+    if ($tag_id !== '' && !ctype_digit($tag_id)) {
+      $form_state->setErrorByName('mailchimp_tag_id_test', $this->t('Tag ID must be a numeric value (e.g. <code>1519891</code>).'));
+    }
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state): void {
@@ -131,6 +145,7 @@ class MailchimpSettingsForm extends ConfigFormBase {
       ->set('mailchimp_interest_executive', trim($form_state->getValue('mailchimp_interest_executive')))
       ->set('mailchimp_interest_developer', trim($form_state->getValue('mailchimp_interest_developer')))
       ->set('mailchimp_list_id_test', trim($form_state->getValue('mailchimp_list_id_test')))
+      ->set('mailchimp_tag_id_test', trim($form_state->getValue('mailchimp_tag_id_test')))
       ->set('disable_sending', (bool) $form_state->getValue('disable_sending'))
       ->set('mailchimp_embed_code', $form_state->getValue('mailchimp_embed_code'))
       ->save();
