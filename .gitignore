@@ -205,3 +205,7 @@ test-kanban-login.js
 .code/
 
 private
+.ddev/docker-compose.phpmyadmin_norouter.yaml
+.ddev/docker-compose.phpmyadmin.yaml
+.ddev/addon-metadata/phpmyadmin/manifest.yaml
+.ddev/commands/host/phpmyadmin
