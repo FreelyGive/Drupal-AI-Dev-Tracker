@@ -22,24 +22,29 @@ class Subscribe extends ResourceBase {
   protected $currentRequest;
   private $database;
 
-  private function createUserIfNonExistent($cid){
-
-    $subscriberData = $this->database
-    ->query("SELECT * FROM {telegram_subscribers} WHERE chat_id = :cid", [':cid' => $cid])
+  private function upsertUser($userInfo){
+    
+     $subscriberData = $this->database
+    ->query("SELECT * FROM {telegram_subscribers} WHERE chat_id = :cid", [':cid' => $userInfo["id"]])
     ->fetchField();
 
-    if(!$subscriberData){
-      $subsriberCreationResult = $this->database->insert('telegram_subscribers')
+    if($subscriberData){
+      $this->database->update('telegram_subscribers')
+      ->condition('chat_id', $userInfo["id"])
       ->fields([
-        'chat_id' => $cid, 
+        'type' => $userInfo["type"],
+      ])
+      ->execute();
+    }else{
+      $this->database->insert('telegram_subscribers')
+      ->fields([
+        'chat_id' => $userInfo["id"], 
         'status' => 1,
         'created' => $this->currentRequest->server->get('REQUEST_TIME'),
+        'type' => $userInfo["type"],
         ])
         ->execute();
-        return TRUE;
     }
-
-    return FALSE;
   }
 
   private function updateModulesList($cid, $moduleNames){
@@ -135,13 +140,10 @@ class Subscribe extends ResourceBase {
     
     $params = json_decode($content, TRUE);
 
+    $this->upsertUser($params['userInfo']);
+
     $cid = strval($params['userInfo']['id']);
     $moduleNames = $params['modules'];
-
-    if(count($moduleNames)) {
-      $this->createUserIfNonExistent($cid);
-    }
-
     $this->updateModulesList($cid, $moduleNames);
 
     return new ResourceResponse(NULL, 204);
