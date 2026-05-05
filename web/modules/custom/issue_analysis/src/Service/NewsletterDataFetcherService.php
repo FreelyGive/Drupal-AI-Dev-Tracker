@@ -307,7 +307,7 @@ class NewsletterDataFetcherService {
           'mr_count' => (int) ($issue['merge_requests_count'] ?? 0),
           'comments' => array_map(
             fn($c) => array_merge($c, ['body' => $this->absolutifyGitLabUrls($c['body'], $issue['web_url'] ?? '', $projectId)]),
-            $projectId ? $this->fetchGitLabIssueNotes($projectId, $iid) : [],
+            $projectId ? $this->fetchGitLabIssueNotes($projectId, $iid, $since) : [],
           ),
         ];
       }
@@ -517,7 +517,7 @@ class NewsletterDataFetcherService {
    *
    * @return array<int, array{author: string, created_at: string, body: string}>
    */
-  private function fetchGitLabIssueNotes(int $projectId, int $iid): array {
+  private function fetchGitLabIssueNotes(int $projectId, int $iid, \DateTimeImmutable $since): array {
     if (!Settings::get('gitlab_token', '')) {
       return [];
     }
@@ -554,12 +554,11 @@ class NewsletterDataFetcherService {
         if (($note['author']['username'] ?? '') === 'drupalbot') {
           continue;
         }
-        $body = $note['body'] ?? '';
         $notes[] = [
           'author' => $note['author']['username'] ?? '',
           'author_name' => $note['author']['name'] ?? $note['author']['username'] ?? '',
           'created_at' => $note['created_at'] ?? '',
-          'body' => $body,
+          'body' => $note['body'] ?? '',
         ];
       }
 
@@ -572,7 +571,16 @@ class NewsletterDataFetcherService {
       usleep(200000);
     }
 
-    return $notes;
+    // Return all comments from the last 24h, or the last 5, whichever is more.
+    // Notes are sorted ascending so last5 is always the most recent 5.
+    $sinceStr = $since->format(\DateTime::ATOM);
+    $recent = array_values(array_filter(
+      $notes,
+      fn($n) => isset($n['created_at']) && $n['created_at'] >= $sinceStr,
+    ));
+    $last5 = array_slice($notes, -5);
+
+    return count($recent) >= count($last5) ? $recent : $last5;
   }
 
   // ---------------------------------------------------------------------------

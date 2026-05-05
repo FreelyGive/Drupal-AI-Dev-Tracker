@@ -451,14 +451,35 @@ class DailyDigestService {
       $authorDisplay = ($i['author_name'] ?? '') && $i['author_name'] !== $i['author']
         ? "{$i['author_name']} ({$i['author']})"
         : $i['author'];
-      $issueLines[] = "- [{$i['title']}]({$i['web_url']}) | {$i['state']} | author: {$authorDisplay} | assigned: {$assignees} | comments: {$i['comment_count']} | {$labels}";
-      foreach ($i['comments'] ?? [] as $comment) {
-        $date = substr($comment['created_at'], 0, 10);
-        $snippet = mb_substr(trim($comment['body']), 0, 300);
-        $commentAuthor = ($comment['author_name'] ?? '') && $comment['author_name'] !== $comment['author']
-          ? "{$comment['author_name']} ({$comment['author']})"
-          : $comment['author'];
-        $issueLines[] = "  [{$commentAuthor} {$date}]: {$snippet}";
+      $updatedAt = substr($i['updated_at'] ?? '', 0, 10);
+      $issueLines[] = "### [{$i['title']}]({$i['web_url']})";
+      $issueLines[] = "State: {$i['state']} | Updated: {$updatedAt} | Author: {$authorDisplay} | Assigned: {$assignees} | Labels: {$labels}";
+      // Include a trimmed version of the issue description for context.
+      $description = trim(strip_tags($i['description'] ?? ''));
+      if ($description) {
+        $issueLines[] = "Description: " . mb_substr($description, 0, 600) . (mb_strlen($description) > 600 ? '…' : '');
+      }
+      $comments = $i['comments'] ?? [];
+      if ($comments) {
+        $issueLines[] = "Recent comments (" . count($comments) . "):";
+        foreach ($comments as $comment) {
+          $date = substr($comment['created_at'], 0, 16);
+          $snippet = mb_substr(trim($comment['body']), 0, 400);
+          $commentAuthor = ($comment['author_name'] ?? '') && $comment['author_name'] !== $comment['author']
+            ? "{$comment['author_name']} ({$comment['author']})"
+            : $comment['author'];
+          $issueLines[] = "  [{$commentAuthor} at {$date}]: {$snippet}";
+        }
+      }
+      $issueLines[] = '';
+    }
+
+    // Build a branch→MR description map so commits can reference their parent MR context.
+    $branchMrDescription = [];
+    foreach ($mrs as $mr) {
+      $branch = $mr['source_branch'] ?? '';
+      if ($branch && !empty($mr['description'])) {
+        $branchMrDescription[$branch] = trim(strip_tags($mr['description'] ?? ''));
       }
     }
 
@@ -469,12 +490,27 @@ class DailyDigestService {
       $mrAuthor = ($mr['author_name'] ?? '') && $mr['author_name'] !== $mr['author']
         ? "{$mr['author_name']} ({$mr['author']})"
         : $mr['author'];
-      $mrLines[] = "- [{$mr['title']}]({$mr['web_url']}) by {$mrAuthor} | {$merged} | branch: {$mr['source_branch']}{$diffNote}";
+      $mrLines[] = "### [{$mr['title']}]({$mr['web_url']})";
+      $mrLines[] = "State: {$merged} | Author: {$mrAuthor} | Branch: {$mr['source_branch']}{$diffNote}";
+      $mrDesc = trim(strip_tags($mr['description'] ?? ''));
+      if ($mrDesc) {
+        $mrLines[] = "Description: " . mb_substr($mrDesc, 0, 600) . (mb_strlen($mrDesc) > 600 ? '…' : '');
+      }
+      $mrLines[] = '';
     }
 
     $commitLines = [];
     foreach ($commits as $c) {
       $commitLines[] = "- [{$c['short_id']}]({$c['web_url']}) {$c['title']} — {$c['author_name']} ({$c['authored_date']})";
+      // Attach parent MR description if this commit belongs to a known MR branch.
+      $msg = trim($c['message'] ?? '');
+      // Extract branch hint from commit message (e.g. "3.x-1234-fix-thing").
+      foreach ($branchMrDescription as $branch => $desc) {
+        if (str_contains($msg, $branch) || str_contains($c['title'] ?? '', $branch)) {
+          $commitLines[] = "  Parent MR context: " . mb_substr($desc, 0, 400) . (mb_strlen($desc) > 400 ? '…' : '');
+          break;
+        }
+      }
     }
 
     $issueSection = $issueLines ? implode("\n", $issueLines) : '(none)';
@@ -508,10 +544,11 @@ class DailyDigestService {
 You are a technical writer producing a newsletter section about recent Drupal module activity.
 
 Module: $title (machine name: $machineName)
-Period: $period ($since to $until)
+Reporting period: last $period ($since to $until)
 
 $personaInstruction
 
+Focus your report on activity that occurred within the reporting period (comments, MRs merged, commits pushed, status changes). Use the issue description to understand what each issue is about and provide context, but do not report on the description itself as news — it is background information only.
 Do not list every issue/MR individually — synthesise into prose. Keep it under 200 words.
 Do not use emoticons or mdashes. Do not wrap usernames or contributor names in <strong> tags — mention them as plain text.
 When mentioning a specific issue or MR, always hyperlink it using the URL provided in the data (e.g. <a href="URL">Issue Title</a> or the Markdown equivalent). Do not reference issues or MRs by number alone — always use their title as the link text.
@@ -521,7 +558,9 @@ $formatInstruction
 
 $howToHelpProjectInstruction
 
---- ISSUES UPDATED ($period) ---
+--- ISSUES UPDATED IN LAST $period ---
+Each issue includes its description (for context) and the most recent comments from the last $period (or last 5 if fewer than 5 occurred in that window).
+
 $issueSection
 
 --- MERGE REQUESTS ($period) ---
@@ -688,7 +727,7 @@ PROMPT;
         if (strlen($u) < 3) {
           continue;
         }
-        $pattern = '/(?<=[\s,(>])(' . preg_quote($u, '/') . ')(?=[\s,.<()\]])(?![^<]*<\/a>)/';
+        $pattern = '/(?<=[\s,(>])(' . preg_quote($u, '/') . ')(?=[\s,.<()\]\'"])(?![^<]*<\/a>)/';
         $url = 'https://www.drupal.org/u/' . rawurlencode($u);
         $link = '<a href="' . $url . '">' . htmlspecialchars($u) . '</a>';
         $html = preg_replace($pattern, $link, $html);

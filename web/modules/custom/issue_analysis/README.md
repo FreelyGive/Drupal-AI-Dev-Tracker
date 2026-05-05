@@ -147,6 +147,11 @@ ddev drush cron
 
 The worker is configured with a 300-second time budget (`cron = {"time" = 300}`).
 
+Example of cron setup
+```bash
+0 6 * * * cd /var/www/html && /usr/bin/drush drush ia-daily >> /var/log/drush.log 2>&1
+```
+
 ---
 
 ## Confidential issues
