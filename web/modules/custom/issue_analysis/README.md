@@ -8,8 +8,7 @@ Fetches activity from git.drupalcode.org and summarises it using an LLM for news
 - Module enabled: `ddev drush en issue_analysis -y`
 - Add the following secrets to the active `settings.php` file:
   ```php
-  $settings['gitlab_token'] = 'your-token-here';         // GitLab read_api token
-  $settings['issue_analysis_cron_token'] = 'your-secret'; // cron endpoint token
+  $settings['gitlab_token'] = 'your-token-here'; // GitLab read_api token
   ```
 
 ---
@@ -96,60 +95,12 @@ Visit `/admin/config/services/issue-analysis/daily-digest` (requires the `genera
 
 ---
 
-### HTTP endpoint (cron / CI / external scheduler)
+### Server cron (Drush)
 
-```
-GET https://your-site.com/issue-analysis/cron?token=<cron-token>
-```
-
-Configure `issue_analysis_cron_token` in `settings.local.php` (see Prerequisites above).
-
-Returns JSON:
-
-```
-{ "status": "ok", "log": [] }
-{ "error": "Forbidden." }                    403 — wrong token
-{ "error": "Cron token not configured." }    503 — missing settings key
-{ "error": "..." }                           500 — generation failed
-```
-
-**Example: Linux cron job running nightly at 06:00 UTC**
-
-```cron
-0 6 * * * curl -sf "https://your-site.com/issue-analysis/cron?token=your-secret" >> /var/log/ai-digest.log
-```
-
-**Example: GitHub Actions workflow**
-
-```yaml
-name: Daily AI digest
-on:
-  schedule:
-    - cron: '0 6 * * *'
-jobs:
-  trigger:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger digest
-        run: |
-          curl -sf "${{ secrets.SITE_URL }}/issue-analysis/cron?token=${{ secrets.DIGEST_TOKEN }}"
-```
-
----
-
-### Drupal cron
-
-The `DailyDigestWorker` queue worker runs automatically when Drupal cron fires. To trigger via Drush:
+Trigger the daily digest directly via Drush from the server's cron scheduler:
 
 ```bash
-ddev drush cron
-```
-
-The worker is configured with a 300-second time budget (`cron = {"time" = 300}`).
-
-Example of cron setup
-```bash
-0 6 * * * cd /var/www/html && /usr/bin/drush drush ia-daily >> /var/log/drush.log 2>&1
+0 6 * * * cd /var/www/html && /usr/bin/drush ia-daily >> /var/log/drush.log 2>&1
 ```
 
 ---

@@ -135,20 +135,6 @@ Admin form accessible to users with the `generate issue analysis newsletter` per
 
 ---
 
-### `DailyDigestCronController` — `GET /issue-analysis/cron?token=...`
-
-HTTP endpoint for triggering generation from an external scheduler (cron job, CI pipeline, etc.). Secured by a shared-secret token compared with `hash_equals()` against `$settings['issue_analysis_cron_token']` from `settings.local.php`. On valid request, enqueues and immediately processes one `issue_analysis_daily_digest` queue item.
-
----
-
-### `DailyDigestWorker` — Queue Worker plugin
-
-`@QueueWorker(id = "issue_analysis_daily_digest", cron = {"time" = 300})`
-
-Processes queued digest jobs by calling `DailyDigestService::run()`. Used by both the cron endpoint and regular Drupal cron.
-
----
-
 ## Data Flow Diagram
 
 ```
@@ -156,8 +142,6 @@ Processes queued digest jobs by calling `DailyDigestService::run()`. Used by bot
                          │         Trigger sources          │
                          │  CLI: ia-daily                   │
                          │  Admin form: DailyDigestForm     │
-                         │  HTTP: DailyDigestCronController │
-                         │  Drupal cron: DailyDigestWorker  │
                          └────────────────┬────────────────┘
                                           │
                                           ▼
@@ -199,9 +183,6 @@ Secrets go in `web/sites/default/settings.local.php` (not committed):
 ```php
 // GitLab personal access token — requires read_api scope.
 $settings['gitlab_token'] = 'your-token-here';
-
-// Shared secret for the cron HTTP endpoint.
-$settings['issue_analysis_cron_token'] = 'change-me-to-a-strong-secret';
 ```
 
-The module reads both via `Drupal\Core\Site\Settings::get()`.
+The module reads this via `Drupal\Core\Site\Settings::get()`.
