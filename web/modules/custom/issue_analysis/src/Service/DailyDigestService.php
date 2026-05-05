@@ -62,6 +62,9 @@ class DailyDigestService {
     $log("Data written to $jsonFile");
 
     // Developer + Executive newsletters.
+    // Each module summary is cached in State so that if the process is killed
+    // mid-run (e.g. queue worker OOM), the next invocation resumes from where
+    // it left off instead of repeating all AI API calls.
     $newsletters = [];
     foreach (['developer', 'executive'] as $persona) {
       $log("Summarising modules ($persona persona)...");
@@ -75,7 +78,7 @@ class DailyDigestService {
         }
         $log(sprintf('  Summarising %s (%d issues, %d MRs, %d commits)...', $machineName, count($mod['issues']), count($mod['merge_requests']), count($mod['commits'])));
         try {
-          $sections[$machineName] = $this->summariseModule($mod, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $persona);
+          $sections[$machineName] = $this->loadOrSummarise($dateStr, $machineName, $persona, $mod, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM));
         }
         catch (\RuntimeException $e) {
           $sections[$machineName] = '<p><em>Summarisation failed: ' . htmlspecialchars($e->getMessage()) . '</em></p>';
@@ -83,11 +86,7 @@ class DailyDigestService {
       }
 
       $log('  Generating TL;DR...');
-      $tldr = NULL;
-      try {
-        $tldr = $this->generateTldr($sections, $period, 'html', $persona);
-      }
-      catch (\RuntimeException) {}
+      $tldr = $this->loadOrGenerateTldr($dateStr, $persona, $sections, $period);
 
       $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine);
       $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
@@ -100,6 +99,9 @@ class DailyDigestService {
 
     // Save digest as a Drupal node.
     $this->createDigestNode($dateStr, $jsonFile, $newsletters, $promptLogFile);
+
+    // Clear per-module step cache now that the node is saved successfully.
+    $this->clearStepCache($dateStr, $results);
 
     // Record last run timestamp.
     $this->state->set(self::STATE_LAST_RUN, $generatedAt->format(\DateTime::ATOM));
@@ -279,6 +281,51 @@ class DailyDigestService {
     else {
       \Drupal::messenger()->addError(t('Daily digest generation failed. Check the error log.'));
     }
+  }
+
+  /**
+   * Returns a cached module summary or generates and caches a new one.
+   */
+  private function loadOrSummarise(string $dateStr, string $machineName, string $persona, array $mod, string $period, string $since, string $until): string {
+    $key = "issue_analysis.digest_step.{$dateStr}.{$machineName}.{$persona}";
+    $cached = $this->state->get($key);
+    if ($cached !== NULL) {
+      return $cached;
+    }
+    $result = $this->summariseModule($mod, $period, $since, $until, 'html', $persona);
+    $this->state->set($key, $result);
+    return $result;
+  }
+
+  /**
+   * Returns a cached TL;DR or generates and caches a new one.
+   */
+  private function loadOrGenerateTldr(string $dateStr, string $persona, array $sections, string $period): ?string {
+    $key = "issue_analysis.digest_step.{$dateStr}.tldr.{$persona}";
+    $cached = $this->state->get($key);
+    if ($cached !== NULL) {
+      return $cached ?: NULL;
+    }
+    $tldr = NULL;
+    try {
+      $tldr = $this->generateTldr($sections, $period, 'html', $persona);
+    }
+    catch (\RuntimeException) {}
+    $this->state->set($key, $tldr ?? '');
+    return $tldr;
+  }
+
+  /**
+   * Deletes per-module step cache keys after a successful run.
+   */
+  private function clearStepCache(string $dateStr, array $results): void {
+    foreach ($results as $mod) {
+      foreach (['developer', 'executive'] as $persona) {
+        $this->state->delete("issue_analysis.digest_step.{$dateStr}.{$mod['machine_name']}.{$persona}");
+      }
+    }
+    $this->state->delete("issue_analysis.digest_step.{$dateStr}.tldr.developer");
+    $this->state->delete("issue_analysis.digest_step.{$dateStr}.tldr.executive");
   }
 
   /**
@@ -719,6 +766,10 @@ PROMPT;
     // Remove stray bare > or &gt; that appear between closing and opening tags.
     $html = preg_replace('/(<\/(?:ol|li|h4)>)\s*(?:>|&gt;)\s*(<(?:ol|li|h4))/i', '$1$2', $html);
     $html = preg_replace('/(<\/(?:ol|li|h4)>)\s*(?:>|&gt;)\s*$/i', '$1', $html);
+
+    // Remove empty/unclosed <li> elements — bare <li> tags with no content
+    // before the next <li>, </ol>, or end-of-string (LLM sometimes emits these).
+    $html = preg_replace('/<li\b[^>]*>\s*(?=<li\b|<\/ol>)/si', '', $html);
 
     // Collect all <li>...</li> blocks that sit outside any <ol>.
     // Strategy: split on <ol>...</ol> blocks, collect orphan <li>s from the

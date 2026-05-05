@@ -4,7 +4,6 @@ namespace Drupal\issue_analysis\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Queue\QueueFactory;
-use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\Site\Settings;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,18 +16,20 @@ use Symfony\Component\HttpFoundation\Request;
  *   $settings['issue_analysis_cron_token'] = 'your-secret-here';
  *
  * Call via: GET /issue-analysis/cron?token=your-secret-here
+ *
+ * This endpoint only enqueues the digest job and returns immediately. The
+ * actual generation runs via `drush queue:run issue_analysis_daily_digest`
+ * (CLI, no HTTP timeout) or via Drupal cron.
  */
 class DailyDigestCronController extends ControllerBase {
 
   public function __construct(
     protected QueueFactory $queueFactory,
-    protected QueueWorkerManagerInterface $queueWorkerManager,
   ) {}
 
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('queue'),
-      $container->get('plugin.manager.queue_worker'),
     );
   }
 
@@ -44,24 +45,13 @@ class DailyDigestCronController extends ControllerBase {
     }
 
     $queue = $this->queueFactory->get('issue_analysis_daily_digest');
-    $queue->createItem(['module' => NULL]);
 
-    $worker = $this->queueWorkerManager->createInstance('issue_analysis_daily_digest');
-    $leaseTime = 3600;
-    $log = [];
-
-    while ($item = $queue->claimItem($leaseTime)) {
-      try {
-        $worker->processItem($item->data);
-        $queue->deleteItem($item);
-      }
-      catch (\Exception $e) {
-        $queue->releaseItem($item);
-        return new JsonResponse(['error' => $e->getMessage()], 500);
-      }
+    if ($queue->numberOfItems() > 0) {
+      return new JsonResponse(['status' => 'already_queued']);
     }
 
-    return new JsonResponse(['status' => 'ok', 'log' => $log]);
+    $queue->createItem(['module' => NULL]);
+    return new JsonResponse(['status' => 'queued']);
   }
 
 }
