@@ -57,9 +57,8 @@ export async function checkSubscription(chatId){
 
     let data;
     try {
-        data = JSON.parse(text);
+        data = await res.json();
     } catch (e) {
-        console.error('Failed to parse JSON. Response text was:', text);
         throw new Error('Invalid JSON response from server');
     }
 

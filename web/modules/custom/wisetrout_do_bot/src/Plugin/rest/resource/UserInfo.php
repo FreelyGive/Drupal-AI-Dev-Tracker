@@ -38,7 +38,7 @@ class UserInfo extends ResourceBase {
         return $node->field_module_machine_name[0]->value;
       }, $nodes);
 
-      return $modules;
+      return array_values($modules);
     }
 
     public function get($cid){
