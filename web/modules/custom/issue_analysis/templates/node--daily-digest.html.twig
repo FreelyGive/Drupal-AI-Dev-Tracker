@@ -57,7 +57,9 @@
             {{ node.field_developer_summary.summary|raw }}
           </div>
         {% endif %}
-        <nav class="daily-digest__toc" aria-label="Jump to project"></nav>
+        <nav class="daily-digest__toc" aria-label="Jump to project">
+          <h4 class="daily-digest__toc-heading">Projects updated</h4>
+        </nav>
         <div class="daily-digest__content">
           {{ node.field_developer_summary.value|raw }}
         </div>
@@ -75,7 +77,9 @@
             {{ node.field_executive_summary.summary|raw }}
           </div>
         {% endif %}
-        <nav class="daily-digest__toc" aria-label="Jump to project"></nav>
+        <nav class="daily-digest__toc" aria-label="Jump to project">
+          <h4 class="daily-digest__toc-heading">Projects updated</h4>
+        </nav>
         <div class="daily-digest__content">
           {{ node.field_executive_summary.value|raw }}
         </div>

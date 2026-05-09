@@ -88,7 +88,13 @@ class DailyDigestService {
       $log('  Generating TL;DR...');
       $tldr = $this->loadOrGenerateTldr($dateStr, $persona, $sections, $period);
 
-      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine);
+      $capabilities = NULL;
+      if ($persona === 'executive') {
+        $log('  Generating 2026 capabilities section...');
+        $capabilities = $this->loadOrGenerate2026Capabilities($dateStr, $sections);
+      }
+
+      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine, $capabilities);
       $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
       $log("Newsletter ($persona) assembled.");
     }
@@ -207,9 +213,18 @@ class DailyDigestService {
     }
     catch (\RuntimeException) {}
 
+    $capabilities = NULL;
+    if ($persona === 'executive') {
+      try {
+        $capabilities = $service->generate2026Capabilities($sections);
+      }
+      catch (\RuntimeException) {}
+    }
+
     $context['results']['sections'][$persona] = [
       'sections' => $sections,
       'tldr' => $tldr,
+      'capabilities' => $capabilities,
     ];
 
     // Accumulate prompt log entries across both persona passes.
@@ -251,7 +266,8 @@ class DailyDigestService {
     foreach (['developer', 'executive'] as $persona) {
       $sections = $allSections[$persona]['sections'] ?? [];
       $tldr = $allSections[$persona]['tldr'] ?? NULL;
-      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'html', $generatedLine);
+      $capabilities = $persona === 'executive' ? ($allSections[$persona]['capabilities'] ?? NULL) : NULL;
+      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'html', $generatedLine, $capabilities);
       $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
     }
     $jsonFilePath = $service->resolveOutputPath($period, $dateStr, 'json');
@@ -298,6 +314,24 @@ class DailyDigestService {
   }
 
   /**
+   * Returns a cached 2026 capabilities section or generates and caches a new one.
+   */
+  private function loadOrGenerate2026Capabilities(string $dateStr, array $sections): ?string {
+    $key = "issue_analysis.digest_step.{$dateStr}.capabilities_2026";
+    $cached = $this->state->get($key);
+    if ($cached !== NULL) {
+      return $cached ?: NULL;
+    }
+    $result = NULL;
+    try {
+      $result = $this->generate2026Capabilities($sections);
+    }
+    catch (\RuntimeException) {}
+    $this->state->set($key, $result ?? '');
+    return $result;
+  }
+
+  /**
    * Returns a cached TL;DR or generates and caches a new one.
    */
   private function loadOrGenerateTldr(string $dateStr, string $persona, array $sections, string $period): ?string {
@@ -326,6 +360,7 @@ class DailyDigestService {
     }
     $this->state->delete("issue_analysis.digest_step.{$dateStr}.tldr.developer");
     $this->state->delete("issue_analysis.digest_step.{$dateStr}.tldr.executive");
+    $this->state->delete("issue_analysis.digest_step.{$dateStr}.capabilities_2026");
   }
 
   /**
@@ -796,6 +831,58 @@ PROMPT;
   }
 
   /**
+   * Generates the "2026 Capabilities" section for the executive digest.
+   *
+   * Analyses today's module summaries against the 8 planned 2026 capabilities
+   * and explains how recent activity contributes to each goal.
+   *
+   * @param array $sections
+   *   Keyed array of machine_name => HTML summary text.
+   *
+   * @return string
+   *   HTML fragment for the 2026 capabilities section.
+   */
+  public function generate2026Capabilities(array $sections): string {
+    $combined = implode("\n\n---\n\n", $sections);
+
+    $capabilities = <<<CAPS
+1. Page generation — Describe what you need and get a usable page, built from your actual design system components
+2. Context management — A central place to define brand voice, style guides, audience profiles, and governance rules that AI can use
+3. Background agents — AI that works without being prompted, responding to triggers and schedules while respecting editorial workflows
+4. Design system integration — AI that builds with your components and can propose new ones when needed
+5. Content creation and discovery — Smarter search, AI-powered optimization, and content drafting assistance
+6. Advanced governance — Batch approvals, branch-based versioning, and comprehensive audit trails for AI changes
+7. Intelligent website improvements — AI that learns from performance data, proposes concrete changes, and gets smarter over time through editorial review
+8. Multi-channel campaigns — Create content for websites, social, email, and automation platforms from a single campaign goal
+CAPS;
+
+    $prompt = <<<PROMPT
+You are an editor writing a strategic section for a non-technical executive audience.
+
+The Drupal AI initiative has 8 planned capabilities for 2026. Your task is to read the module activity summaries below and explain how today's progress moves each capability forward — or note where there was no relevant progress today.
+
+Be concise and direct. Focus on what matters to a business leader: is progress happening, what is the next milestone, and are there any risks?
+
+Output an HTML fragment using exactly this structure:
+<h4>2026 Capabilities Progress</h4>
+<ol class="capabilities-2026">
+<li><strong>Capability name</strong> &mdash; One or two sentences on how today's activity relates to this goal, or "No direct progress today" if nothing relevant occurred.</li>
+</ol>
+
+Use only the 8 capabilities listed below, in the same order. Do not add, remove, or rename them. Do not output any text outside the <h4> and <ol> tags.
+
+--- 2026 CAPABILITIES ---
+$capabilities
+
+--- TODAY'S MODULE SUMMARIES ---
+$combined
+PROMPT;
+
+    $this->promptLog[] = ['label' => 'generate2026Capabilities', 'prompt' => $prompt];
+    return $this->summariser->complete($prompt, ['newsletter_capabilities']);
+  }
+
+  /**
    * Fixes common LLM structural mistakes in TL;DR HTML output.
    *
    * Repairs <li> items that end up outside their <ol>, and removes stray
@@ -864,7 +951,7 @@ PROMPT;
    * @return string
    *   Assembled newsletter document.
    */
-  public function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format, string $generatedLine = ''): string {
+  public function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format, string $generatedLine = '', ?string $capabilities = NULL): string {
     if (!$sections) {
       return match ($format) {
         'html' => '<p><em>No module activity found for the period.</em></p>',
@@ -878,6 +965,12 @@ PROMPT;
 
     if ($format === 'html') {
       $parts = [];
+
+      if ($capabilities) {
+        $parts[] = '<section class="digest-capabilities-2026">' . $capabilities . '</section>';
+        $parts[] = '<hr style="margin: 2em 0;">';
+      }
+
       $first = TRUE;
       foreach ($sections as $machineName => $text) {
         if (!$first) {

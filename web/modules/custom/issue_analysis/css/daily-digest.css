@@ -71,6 +71,14 @@
   padding: 0.75em 1.25em;
   margin-bottom: 1.75em;
 }
+.daily-digest__toc-heading {
+  margin: 0 0 0.5em;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  font-weight: 600;
+}
 .daily-digest__toc ul {
   margin: 0;
   padding-left: 1.25em;
@@ -87,6 +95,27 @@
 }
 .daily-digest__toc a:hover {
   text-decoration: underline;
+}
+.digest-capabilities-2026 {
+  background: #f5f0ff;
+  border-left: 4px solid #6b3fa0;
+  border-radius: 4px;
+  padding: 1em 1.25em;
+  margin-bottom: 1.5em;
+}
+.digest-capabilities-2026 h4 {
+  margin-top: 0;
+  color: #6b3fa0;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.capabilities-2026 {
+  margin: 0.5em 0 0;
+  padding-left: 1.5em;
+}
+.capabilities-2026 li {
+  margin-bottom: 0.5em;
 }
 .view-daily-digest-latest code {
   font-size: 0.88em;
