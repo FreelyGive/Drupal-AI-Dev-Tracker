@@ -398,6 +398,26 @@ body[class*="path-ai-dashboard/priority-kanban"] .sidebar {
   max-width: 120px;
 }
 
+.ai-priority-kanban .issue-tags-wrapper {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 10px;
+}
+
+.ai-priority-kanban .issue-tags {
+  font-size: 0.625rem;
+  background: #fefefe;
+  color: #111;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  display: inline-block;
+}
+
 .ai-priority-kanban .issue-link {
   color: #0073bb;
   text-decoration: none;

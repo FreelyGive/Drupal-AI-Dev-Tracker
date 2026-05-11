@@ -186,7 +186,7 @@
           {% if column.issues|length > 0 %}
             {% for issue in column.issues %}
               <!-- Use identical card structure as calendar -->
-              <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}{{ issue.is_recently_changed ? ' recently-changed' : '' }}" data-issue-id="{{ issue.id }}" data-has-priority="{{ issue.has_priority ? '1' : '0' }}" data-is-meta="{{ issue.is_meta_issue ? '1' : '0' }}">
+              <div class="issue-card {{ issue.status|replace({'_': '-'}) }} priority-{{ issue.priority }} assignment-{{ issue.assignment_status|default('current') }}{{ issue.is_recently_changed ? ' recently-changed' : '' }}" data-issue-id="{{ issue.id }}" data-has-priority="{{ issue.has_priority ? '1' : '0' }}" data-is-meta="{{ issue.is_meta_issue ? '1' : '0' }}" data-tags="{{ issue.tags ? issue.tags|join(',') : '' }}">
                 <div class="issue-header">
                   <div class="issue-header-left">
                     {% if issue.track %}
@@ -290,6 +290,15 @@
                     </div>
                   {% endif %}
                 </div>
+
+                {%  if issue.tags %}
+                  <div class="issue-tags-wrapper">
+                    {%  for _tag in issue.tags %}
+                      <span class="issue-tags">{{ _tag }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
               </div>
             {% endfor %}
           {% else %}
