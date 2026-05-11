@@ -216,18 +216,9 @@
 
               // Tags filter (match ANY selected tag)
               if (shouldShow && selectedTags.length > 0) {
-                // Extract tags from the card - look for tag elements or data attributes
-                const cardTags = [];
-                // Check if card has tags stored in dataset or find tag elements
-                const tagElements = card.querySelectorAll('.issue-tag, .tag');
-                tagElements.forEach(tagEl => {
-                  cardTags.push(tagEl.textContent.trim());
-                });
-                // Also check data attributes if present
-                if (card.dataset.tags) {
-                  cardTags.push(...card.dataset.tags.split(',').map(t => t.trim()));
-                }
-
+                const cardTags = card.dataset.tags
+                  ? card.dataset.tags.split(',').map(t => t.trim()).filter(Boolean)
+                  : [];
                 if (!selectedTags.some(tag => cardTags.includes(tag))) {
                   shouldShow = false;
                 }
