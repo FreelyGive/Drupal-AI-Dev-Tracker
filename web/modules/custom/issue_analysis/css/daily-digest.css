@@ -117,6 +117,28 @@
 .capabilities-2026 li {
   margin-bottom: 0.5em;
 }
+.digest-module--collapsed {
+  display: none;
+}
+.daily-digest__content .digest-module {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.daily-digest__content .digest-module + .digest-module {
+  border-top: none;
+}
+.daily-digest__content hr {
+  display: none;
+}
+#digest-panel-executive .daily-digest__toc a[aria-expanded]::after {
+  content: ' +';
+  font-size: 0.85em;
+  color: #888;
+}
+#digest-panel-executive .daily-digest__toc a[aria-expanded="true"]::after {
+  content: ' −';
+}
 .view-daily-digest-latest code {
   font-size: 0.88em;
 }

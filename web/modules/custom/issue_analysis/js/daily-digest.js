@@ -38,8 +38,16 @@
         const panel = toc.closest('.daily-digest__panel');
         if (!panel) { toc.remove(); return; }
 
+        const isExecutive = panel.id === 'digest-panel-executive';
         const modules = panel.querySelectorAll('.digest-module');
         if (!modules.length) { toc.remove(); return; }
+
+        // Hide all project sections in the executive panel by default.
+        if (isExecutive) {
+          modules.forEach(function (section) {
+            section.classList.add('digest-module--collapsed');
+          });
+        }
 
         const ul = document.createElement('ul');
 
@@ -57,8 +65,33 @@
 
           const li = document.createElement('li');
           const a = document.createElement('a');
-          a.href = '#' + section.id;
           a.textContent = heading.textContent.trim();
+
+          if (isExecutive) {
+            // Toggle section visibility on click instead of jumping to anchor.
+            a.href = '#' + section.id;
+            a.setAttribute('aria-expanded', 'false');
+            a.addEventListener('click', function (e) {
+              e.preventDefault();
+              const isCollapsed = section.classList.contains('digest-module--collapsed');
+              // Close all modules first.
+              panel.querySelectorAll('.digest-module').forEach(function (s) {
+                s.classList.add('digest-module--collapsed');
+              });
+              ul.querySelectorAll('a[aria-expanded]').forEach(function (link) {
+                link.setAttribute('aria-expanded', 'false');
+              });
+              // Open this one if it was previously closed.
+              if (isCollapsed) {
+                section.classList.remove('digest-module--collapsed');
+                a.setAttribute('aria-expanded', 'true');
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            });
+          } else {
+            a.href = '#' + section.id;
+          }
+
           li.appendChild(a);
           ul.appendChild(li);
         });
@@ -67,6 +100,18 @@
           toc.appendChild(ul);
         } else {
           toc.remove();
+          return;
+        }
+
+        // Move the TOC so it sits between capabilities and the first module.
+        // Template puts toc after .daily-digest__content; reposition it here.
+        const firstModule = modules[0];
+        const capabilities = panel.querySelector('.digest-capabilities-2026');
+        const insertAfter = capabilities || panel.querySelector('.daily-digest__tldr');
+        if (insertAfter && insertAfter.nextSibling) {
+          insertAfter.parentNode.insertBefore(toc, insertAfter.nextSibling);
+        } else if (firstModule && firstModule.parentNode) {
+          firstModule.parentNode.insertBefore(toc, firstModule);
         }
       });
     }

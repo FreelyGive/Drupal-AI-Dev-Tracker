@@ -33,56 +33,57 @@
       <button class="daily-digest__tab daily-digest__tab--active"
               role="tab"
               aria-selected="true"
-              aria-controls="digest-panel-developer"
-              id="digest-tab-developer">
-        Developer
+              aria-controls="digest-panel-executive"
+              id="digest-tab-executive"
+              >
+        Executive
       </button>
       <button class="daily-digest__tab"
               role="tab"
               aria-selected="false"
-              aria-controls="digest-panel-executive"
-              id="digest-tab-executive"
+              aria-controls="digest-panel-developer"
+              id="digest-tab-developer"
               tabindex="-1">
-        Executive
+        Developer
       </button>
     </div>
 
-    {% if content.field_developer_summary %}
-      <section class="daily-digest__panel"
-               id="digest-panel-developer"
-               role="tabpanel"
-               aria-labelledby="digest-tab-developer">
-        {% if node.field_developer_summary.summary %}
-          <div class="daily-digest__tldr">
-            {{ node.field_developer_summary.summary|raw }}
-          </div>
-        {% endif %}
-        <nav class="daily-digest__toc" aria-label="Jump to project">
-          <h4 class="daily-digest__toc-heading">Projects updated</h4>
-        </nav>
-        <div class="daily-digest__content">
-          {{ node.field_developer_summary.value|raw }}
-        </div>
-      </section>
-    {% endif %}
-
     {% if content.field_executive_summary %}
-      <section class="daily-digest__panel daily-digest__panel--hidden"
+      <section class="daily-digest__panel"
                id="digest-panel-executive"
                role="tabpanel"
-               aria-labelledby="digest-tab-executive"
-               hidden>
+               aria-labelledby="digest-tab-executive">
         {% if node.field_executive_summary.summary %}
           <div class="daily-digest__tldr">
             {{ node.field_executive_summary.summary|raw }}
           </div>
         {% endif %}
-        <nav class="daily-digest__toc" aria-label="Jump to project">
-          <h4 class="daily-digest__toc-heading">Projects updated</h4>
-        </nav>
         <div class="daily-digest__content">
           {{ node.field_executive_summary.value|raw }}
         </div>
+        <nav class="daily-digest__toc" aria-label="Jump to project">
+          <h4 class="daily-digest__toc-heading">Projects updated</h4>
+        </nav>
+      </section>
+    {% endif %}
+
+    {% if content.field_developer_summary %}
+      <section class="daily-digest__panel daily-digest__panel--hidden"
+               id="digest-panel-developer"
+               role="tabpanel"
+               aria-labelledby="digest-tab-developer"
+               hidden>
+        {% if node.field_developer_summary.summary %}
+          <div class="daily-digest__tldr">
+            {{ node.field_developer_summary.summary|raw }}
+          </div>
+        {% endif %}
+        <div class="daily-digest__content">
+          {{ node.field_developer_summary.value|raw }}
+        </div>
+        <nav class="daily-digest__toc" aria-label="Jump to project">
+          <h4 class="daily-digest__toc-heading">Projects updated</h4>
+        </nav>
       </section>
     {% endif %}
 
