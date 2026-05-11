@@ -302,6 +302,42 @@ class MailchimpDigestService {
     );
     $body = trim($body);
 
+    // Build the prod node URL for anchor links.
+    $titleSuffix = preg_replace('/^Daily Digest\s*[–-]\s*/u', '', $node->getTitle());
+    $slug = 'daily-digest-' . strtolower(str_replace(' ', '-', $titleSuffix));
+    $digestUrl = 'https://www.drupalstarforge.ai/' . $slug;
+
+    // For the executive newsletter, strip digest-module sections and replace
+    // with a list of anchor links pointing to the prod node page.
+    if ($field_name === 'field_executive_summary') {
+      $projectLinks = [];
+      preg_match_all(
+        '/<section class="digest-module"[^>]*id="([^"]+)"[^>]*>.*?<h[23][^>]*>(.*?)<\/h[23]>/s',
+        $body,
+        $matches,
+        PREG_SET_ORDER
+      );
+      foreach ($matches as $match) {
+        $anchorId = htmlspecialchars($match[1]);
+        $heading  = strip_tags($match[2]);
+        $projectLinks[] = '<li><a href="' . $digestUrl . '#' . $anchorId . '" style="color:#0056b3;">'
+          . htmlspecialchars($heading) . '</a></li>';
+      }
+
+      // Keep only the digest-capabilities-2026 section; strip everything else.
+      $capabilitiesHtml = '';
+      if (preg_match('/<section class="digest-capabilities-2026">.*?<\/section>/s', $body, $cap)) {
+        $capabilitiesHtml = $cap[0];
+      }
+
+      $body = $capabilitiesHtml;
+      if ($projectLinks) {
+        $body .= '<hr style="margin: 2em 0;">'
+          . '<p style="font-weight:600;margin-bottom:0.5em;">Projects updated:</p>'
+          . '<ul style="margin:0;padding-left:1.5em;">' . implode('', $projectLinks) . '</ul>';
+      }
+    }
+
     $parts = [];
 
     if (!empty($tldr)) {
@@ -312,11 +348,6 @@ class MailchimpDigestService {
     }
 
     $parts[] = $body;
-
-    // Build a link to the live newsletter page, e.g. daily-digest-3-may-2026.
-    $titleSuffix = preg_replace('/^Daily Digest\s*[–-]\s*/u', '', $node->getTitle());
-    $slug = 'daily-digest-' . strtolower(str_replace(' ', '-', $titleSuffix));
-    $digestUrl = 'https://www.drupalstarforge.ai/' . $slug;
 
     $parts[] = '<hr>';
     $parts[] = '<p style="text-align:center;font-size:0.9em;">'
