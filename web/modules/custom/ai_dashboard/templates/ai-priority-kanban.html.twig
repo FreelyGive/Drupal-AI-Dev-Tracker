@@ -231,7 +231,10 @@
                 <div class="issue-footer">
                   <div class="issue-meta">
                     <span class="issue-status">{{ issue.status|replace({'_': ' ', 'needs ': ''})|title }}</span>
-                    <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">{{ issue.priority|title }}</span>
+                     <span class="issue-priority priority-{{ issue.priority }}" title="{{ issue.priority|title }} priority">
+                      {% if issue.priority == 'critical' %}⚠️ !!!{% elseif issue.priority == 'major' %}🔶 !!{% elseif issue.priority == 'normal' %}🔹{% else %}▫️{% endif %}
+                      {{ issue.priority|title }}
+                    </span>
                     {% if issue.workstream %}
                       <span class="issue-workstream" data-workstream="{{ issue.workstream }}" title="Workstream: {{ issue.workstream_label|default(issue.workstream) }}">{{ issue.workstream_label|default(issue.workstream) }}</span>
                     {% endif %}
