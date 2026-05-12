@@ -50,6 +50,7 @@
         }
 
         const ul = document.createElement('ul');
+        const firstModule = modules[0];
 
         modules.forEach(function (section) {
           // Project title is the first h3 (or h2 on older nodes) in the section.
@@ -103,14 +104,9 @@
           return;
         }
 
-        // Move the TOC so it sits between capabilities and the first module.
-        // Template puts toc after .daily-digest__content; reposition it here.
-        const firstModule = modules[0];
-        const capabilities = panel.querySelector('.digest-capabilities-2026');
-        const insertAfter = capabilities || panel.querySelector('.daily-digest__tldr');
-        if (insertAfter && insertAfter.nextSibling) {
-          insertAfter.parentNode.insertBefore(toc, insertAfter.nextSibling);
-        } else if (firstModule && firstModule.parentNode) {
+        // Move the TOC to sit before the first module section inside .daily-digest__content.
+        // The template appends the <nav> after .daily-digest__content; move it inline.
+        if (firstModule && firstModule.parentNode) {
           firstModule.parentNode.insertBefore(toc, firstModule);
         }
       });

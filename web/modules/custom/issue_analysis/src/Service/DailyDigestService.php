@@ -86,15 +86,15 @@ class DailyDigestService {
       }
 
       $log('  Generating TL;DR...');
-      $tldr = $this->loadOrGenerateTldr($dateStr, $persona, $sections, $period);
+      $tldr = $this->loadOrGenerateTldr($dateStr, $persona, $sections, $period, $results);
 
       $capabilities = NULL;
       if ($persona === 'executive') {
         $log('  Generating 2026 capabilities section...');
-        $capabilities = $this->loadOrGenerate2026Capabilities($dateStr, $sections);
+        $capabilities = $this->loadOrGenerate2026Capabilities($dateStr, $sections, $results);
       }
 
-      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine, $capabilities);
+      $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine, $capabilities, $results);
       $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
       $log("Newsletter ($persona) assembled.");
     }
@@ -209,14 +209,14 @@ class DailyDigestService {
 
     $tldr = NULL;
     try {
-      $tldr = $service->generateTldr($sections, '24h', 'html', $persona);
+      $tldr = $service->generateTldr($sections, '24h', 'html', $persona, $results);
     }
     catch (\RuntimeException) {}
 
     $capabilities = NULL;
     if ($persona === 'executive') {
       try {
-        $capabilities = $service->generate2026Capabilities($sections);
+        $capabilities = $service->generate2026Capabilities($sections, $results);
       }
       catch (\RuntimeException) {}
     }
@@ -267,7 +267,7 @@ class DailyDigestService {
       $sections = $allSections[$persona]['sections'] ?? [];
       $tldr = $allSections[$persona]['tldr'] ?? NULL;
       $capabilities = $persona === 'executive' ? ($allSections[$persona]['capabilities'] ?? NULL) : NULL;
-      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'html', $generatedLine, $capabilities);
+      $newsletter = $service->assembleNewsletter($sections, $tldr, $period, $since, $until, 'html', $generatedLine, $capabilities, $results);
       $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
     }
     $jsonFilePath = $service->resolveOutputPath($period, $dateStr, 'json');
@@ -316,7 +316,7 @@ class DailyDigestService {
   /**
    * Returns a cached 2026 capabilities section or generates and caches a new one.
    */
-  private function loadOrGenerate2026Capabilities(string $dateStr, array $sections): ?string {
+  private function loadOrGenerate2026Capabilities(string $dateStr, array $sections, array $results = []): ?string {
     $key = "issue_analysis.digest_step.{$dateStr}.capabilities_2026";
     $cached = $this->state->get($key);
     if ($cached !== NULL) {
@@ -324,7 +324,7 @@ class DailyDigestService {
     }
     $result = NULL;
     try {
-      $result = $this->generate2026Capabilities($sections);
+      $result = $this->generate2026Capabilities($sections, $results);
     }
     catch (\RuntimeException) {}
     $this->state->set($key, $result ?? '');
@@ -334,7 +334,7 @@ class DailyDigestService {
   /**
    * Returns a cached TL;DR or generates and caches a new one.
    */
-  private function loadOrGenerateTldr(string $dateStr, string $persona, array $sections, string $period): ?string {
+  private function loadOrGenerateTldr(string $dateStr, string $persona, array $sections, string $period, array $results = []): ?string {
     $key = "issue_analysis.digest_step.{$dateStr}.tldr.{$persona}";
     $cached = $this->state->get($key);
     if ($cached !== NULL) {
@@ -342,7 +342,7 @@ class DailyDigestService {
     }
     $tldr = NULL;
     try {
-      $tldr = $this->generateTldr($sections, $period, 'html', $persona);
+      $tldr = $this->generateTldr($sections, $period, 'html', $persona, $results);
     }
     catch (\RuntimeException) {}
     $this->state->set($key, $tldr ?? '');
@@ -423,7 +423,7 @@ class DailyDigestService {
     if (isset($newsletters['executive'])) {
       $node->set('field_executive_summary', [
         'value' => $newsletters['executive']['newsletter'] ?? '',
-        'summary' => $newsletters['executive']['tldr'] ?? '',
+        'summary' => '',
         'format' => 'content_format',
       ]);
     }
@@ -783,23 +783,34 @@ PROMPT;
    *   Output format: "markdown" or "plain".
    * @param string $persona
    *   Target audience: "developer" or "executive".
+   * @param array $results
+   *   Raw module data from NewsletterDataFetcherService (used to build references).
    *
    * @return string
-   *   LLM-generated TL;DR with Shipped and Ongoing sections.
+   *   LLM-generated TL;DR with Shipped and Ongoing sections, plus a references list.
    */
-  public function generateTldr(array $sections, string $period, string $format, string $persona): string {
+  public function generateTldr(array $sections, string $period, string $format, string $persona, array $results = []): string {
     $combined = implode("\n\n---\n\n", $sections);
+
+    $refMap = $this->buildReferenceMap($results);
+    $refIndex = $refMap ? $this->buildReferenceIndex($refMap) : '';
 
     $personaInstruction = match ($persona) {
       'executive' => 'You are writing for a non-technical executive audience. Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
       default => 'You are writing for a technical developer audience. Be specific — name modules, merged features, and critical bugs.',
     };
 
+    $citationInstruction = $refIndex
+      ? "When you mention a specific issue or merge request, add an inline citation using [N] where N is the reference number from the list below. You may cite multiple references per item, e.g. [1][3]. Place citations immediately after the relevant phrase, before any punctuation."
+      : "Do not mention issue numbers (e.g. #12345) or MR IDs (e.g. !42) — they are not linked and are meaningless to readers out of context. Instead, describe what was done in plain language.";
+
     $formatInstruction = match ($format) {
-      'html' => "Format as two HTML sections. Use exactly this structure (all <li> elements must be inside the <ol>, never outside it):\n<h4>Shipped</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation.</li>\n<li><strong>Another title</strong> &mdash; One sentence explanation.</li>\n</ol>\n<h4>Ongoing</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation.</li>\n</ol>\nUp to 5 items per section. Do not output any text, tags, or characters outside these two sections. Output only the HTML fragment, no surrounding tags.",
-      'markdown' => "Format as two Markdown sections:\n\n### Shipped\nA numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:\n1. **Title here** — Explanation sentence.\n\n### Ongoing\nA numbered list of the most significant in-progress items. Same format — bold title, one sentence.\n\nUse up to 5 items per section. Do not include any other text or headings.",
+      'html' => "Format as two HTML sections. Use exactly this structure (all <li> elements must be inside the <ol>, never outside it):\n<h4>Shipped</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation [1].</li>\n<li><strong>Another title</strong> &mdash; One sentence explanation.</li>\n</ol>\n<h4>Ongoing</h4>\n<ol>\n<li><strong>Title here</strong> &mdash; One sentence explanation [2].</li>\n</ol>\nUp to 5 items per section. Do not output any text, tags, or characters outside these two sections. Output only the HTML fragment, no surrounding tags.",
+      'markdown' => "Format as two Markdown sections:\n\n### Shipped\nA numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:\n1. **Title here** — Explanation sentence [1].\n\n### Ongoing\nA numbered list of the most significant in-progress items. Same format — bold title, one sentence.\n\nUse up to 5 items per section. Do not include any other text or headings.",
       default => "Format as two plain text sections:\n\nSHIPPED\nA numbered list of completed or merged items. Each item starts with an ALL-CAPS title, then a dash, then one sentence.\n\nONGOING\nA numbered list of in-progress items. Same format.\n\nUp to 5 items per section. No Markdown.",
     };
+
+    $refBlock = $refIndex ? "\n--- REFERENCE LIST ---\n$refIndex" : '';
 
     $prompt = <<<PROMPT
 You are an editor distilling a Drupal AI project newsletter into its most important highlights.
@@ -812,9 +823,10 @@ Read all the module summaries below. Separate the highlights into two categories
 
 Be specific — name the module, what happened, and why it matters.
 Do not use emoticons or mdashes. Do not include any text outside the two sections.
-Do not mention issue numbers (e.g. #12345) or MR IDs (e.g. !42) — they are not linked and are meaningless to readers out of context. Instead, describe what was done in plain language.
+$citationInstruction
 
 $formatInstruction
+$refBlock
 
 --- MODULE SUMMARIES ---
 $combined
@@ -825,6 +837,9 @@ PROMPT;
 
     if ($format === 'html') {
       $output = $this->sanitiseTldrHtml($output);
+      if ($refMap) {
+        $output = $this->linkCitations($output, $refMap);
+      }
     }
 
     return $output;
@@ -838,12 +853,17 @@ PROMPT;
    *
    * @param array $sections
    *   Keyed array of machine_name => HTML summary text.
+   * @param array $results
+   *   Raw module data from NewsletterDataFetcherService (used to build references).
    *
    * @return string
    *   HTML fragment for the 2026 capabilities section.
    */
-  public function generate2026Capabilities(array $sections): string {
+  public function generate2026Capabilities(array $sections, array $results = []): string {
     $combined = implode("\n\n---\n\n", $sections);
+
+    $refMap = $this->buildReferenceMap($results);
+    $refIndex = $refMap ? $this->buildReferenceIndex($refMap) : '';
 
     $capabilities = <<<CAPS
 1. Page generation — Describe what you need and get a usable page, built from your actual design system components
@@ -856,12 +876,19 @@ PROMPT;
 8. Multi-channel campaigns — Create content for websites, social, email, and automation platforms from a single campaign goal
 CAPS;
 
+    $citationInstruction = $refIndex
+      ? "When you describe progress on a capability, add inline citations using [N] where N is the reference number from the list below. You may cite multiple references per item, e.g. [1][3]. Place citations at the end of the relevant sentence, before the closing punctuation."
+      : '';
+
+    $refBlock = $refIndex ? "\n--- REFERENCE LIST ---\n$refIndex" : '';
+
     $prompt = <<<PROMPT
 You are an editor writing a strategic section for a non-technical executive audience.
 
 The Drupal AI initiative has 8 planned capabilities for 2026. Your task is to read the module activity summaries below and explain how today's progress moves each capability forward — or note where there was no relevant progress today.
 
 Be concise and direct. Focus on what matters to a business leader: is progress happening, what is the next milestone, and are there any risks?
+$citationInstruction
 
 Output an HTML fragment using exactly this structure:
 <h4>2026 Capabilities Progress</h4>
@@ -873,13 +900,161 @@ Use only the 8 capabilities listed below, in the same order. Do not add, remove,
 
 --- 2026 CAPABILITIES ---
 $capabilities
+$refBlock
 
 --- TODAY'S MODULE SUMMARIES ---
 $combined
 PROMPT;
 
     $this->promptLog[] = ['label' => 'generate2026Capabilities', 'prompt' => $prompt];
-    return $this->summariser->complete($prompt, ['newsletter_capabilities']);
+    $output = $this->summariser->complete($prompt, ['newsletter_capabilities']);
+
+    if ($refMap) {
+      $output = $this->linkCitations($output, $refMap);
+    }
+
+    return $output;
+  }
+
+  /**
+   * Builds a numbered reference map from raw module results.
+   *
+   * Collects all non-confidential issues and merge requests across modules,
+   * assigning each a sequential [N] number. Used to inject a reference index
+   * into LLM prompts and render a footnote list in the output.
+   *
+   * @param array $results
+   *   Raw module data as returned by NewsletterDataFetcherService.
+   *
+   * @return array<int, array{n: int, url: string, title: string, type: string, module: string}>
+   *   Ordered list of reference entries, keyed by 1-based index.
+   */
+  private function buildReferenceMap(array $results): array {
+    $map = [];
+    $n = 1;
+    foreach ($results as $mod) {
+      $machineName = $mod['machine_name'] ?? '';
+      foreach ($mod['issues'] ?? [] as $issue) {
+        if (!empty($issue['confidential'])) {
+          continue;
+        }
+        $url = $issue['web_url'] ?? '';
+        if (!$url) {
+          continue;
+        }
+        $map[$n++] = [
+          'n' => $n - 1,
+          'url' => $url,
+          'title' => $issue['title'] ?? '',
+          'type' => 'issue',
+          'module' => $machineName,
+        ];
+      }
+      foreach ($mod['merge_requests'] ?? [] as $mr) {
+        $url = $mr['web_url'] ?? '';
+        if (!$url) {
+          continue;
+        }
+        $map[$n++] = [
+          'n' => $n - 1,
+          'url' => $url,
+          'title' => $mr['title'] ?? '',
+          'type' => 'mr',
+          'module' => $machineName,
+        ];
+      }
+    }
+    return $map;
+  }
+
+  /**
+   * Builds the plain-text reference index injected into LLM prompts.
+   *
+   * Format: "[N] Title (module) — URL"
+   *
+   * @param array $refMap
+   *   As returned by buildReferenceMap().
+   *
+   * @return string
+   *   Multi-line index string.
+   */
+  private function buildReferenceIndex(array $refMap): string {
+    $lines = [];
+    foreach ($refMap as $entry) {
+      $type = $entry['type'] === 'mr' ? 'MR' : 'Issue';
+      $lines[] = "[{$entry['n']}] {$entry['title']} ({$entry['module']}, {$type}) — {$entry['url']}";
+    }
+    return implode("\n", $lines);
+  }
+
+  /**
+   * Converts plain [N] citation tokens in HTML to anchor links pointing to #ref-N.
+   *
+   * Skips tokens that are already inside an <a> tag to avoid double-wrapping.
+   *
+   * @param string $html
+   *   LLM-generated HTML output.
+   * @param array $refMap
+   *   As returned by buildReferenceMap(), used to validate N is a known reference.
+   *
+   * @return string
+   *   HTML with [N] replaced by <a href="#ref-N" class="digest-citation">[N]</a>.
+   */
+  private function linkCitations(string $html, array $refMap): string {
+    return preg_replace_callback(
+      '/\[(\d+)\]/',
+      function (array $m) use ($refMap): string {
+        $n = (int) $m[1];
+        if (!isset($refMap[$n])) {
+          return $m[0];
+        }
+        return '<a href="#ref-' . $n . '" class="digest-citation">[' . $n . ']</a>';
+      },
+      $html,
+    );
+  }
+
+  /**
+   * Renders a <section> with an ordered reference list, filtered to cited [N].
+   *
+   * Only references that actually appear as [N] in the LLM output are included.
+   *
+   * @param array $refMap
+   *   As returned by buildReferenceMap().
+   * @param string $llmOutput
+   *   The generated HTML that may contain [1], [2], etc. (already link-converted).
+   *
+   * @return string
+   *   HTML fragment for the references section, or empty string if none cited.
+   */
+  private function renderReferenceList(array $refMap, string $llmOutput): string {
+    // Match both plain [N] and the linked form <a href="#ref-N"...>[N]</a>.
+    preg_match_all('/(?:href="#ref-|(?<![">])\[)(\d+)(?:\]|(?="))/i', $llmOutput, $matches);
+    $cited = array_unique(array_map('intval', $matches[1] ?? []));
+    if (!$cited) {
+      return '';
+    }
+
+    $items = [];
+    foreach ($cited as $n) {
+      if (!isset($refMap[$n])) {
+        continue;
+      }
+      $entry = $refMap[$n];
+      $label = htmlspecialchars($entry['title'] ?: $entry['url']);
+      $url = htmlspecialchars($entry['url']);
+      $type = $entry['type'] === 'mr' ? 'MR' : 'Issue';
+      $module = htmlspecialchars($entry['module']);
+      $items[$n] = "<p id=\"ref-{$n}\" class=\"digest-reference\"><strong>[{$n}]</strong> <a href=\"{$url}\">{$label}</a> <span class=\"ref-meta\">({$module}, {$type})</span></p>";
+    }
+
+    if (!$items) {
+      return '';
+    }
+
+    ksort($items);
+    $listHtml = implode("\n", $items);
+    return "\n<section class=\"digest-references\">\n<h5>References</h5>\n{$listHtml}\n</section>";
   }
 
   /**
@@ -951,7 +1126,7 @@ PROMPT;
    * @return string
    *   Assembled newsletter document.
    */
-  public function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format, string $generatedLine = '', ?string $capabilities = NULL): string {
+  public function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format, string $generatedLine = '', ?string $capabilities = NULL, array $results = []): string {
     if (!$sections) {
       return match ($format) {
         'html' => '<p><em>No module activity found for the period.</em></p>',
@@ -969,6 +1144,10 @@ PROMPT;
       if ($capabilities) {
         $parts[] = '<section class="digest-capabilities-2026">' . $capabilities . '</section>';
         $parts[] = '<hr style="margin: 2em 0;">';
+        if ($tldr) {
+          $parts[] = '<div class="daily-digest__tldr">' . $tldr . '</div>';
+          $parts[] = '<hr style="margin: 2em 0;">';
+        }
       }
 
       $first = TRUE;
@@ -981,6 +1160,19 @@ PROMPT;
         $projectLink = '<p class="digest-project-link"><a href="' . $projectUrl . '">View project on GitLab: ' . htmlspecialchars($machineName) . '</a></p>';
         $anchorId = 'digest-module-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($machineName));
         $parts[] = '<section class="digest-module" id="' . $anchorId . '" style="margin-bottom: 1.5em;">' . $text . $projectLink . '</section>';
+      }
+
+      // Unified references footer: scan all HTML produced so far for [N] citations.
+      if ($results) {
+        $refMap = $this->buildReferenceMap($results);
+        if ($refMap) {
+          $combinedHtml = ($tldr ?? '') . ($capabilities ?? '') . implode('', array_column($parts, null));
+          $referenceBlock = $this->renderReferenceList($refMap, $combinedHtml);
+          if ($referenceBlock) {
+            $parts[] = '<hr style="margin: 2em 0;">';
+            $parts[] = $referenceBlock;
+          }
+        }
       }
 
       // Footer: period + generated on one line.
