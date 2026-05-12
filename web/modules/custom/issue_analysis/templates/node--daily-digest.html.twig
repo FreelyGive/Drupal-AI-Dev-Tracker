@@ -53,11 +53,6 @@
                id="digest-panel-executive"
                role="tabpanel"
                aria-labelledby="digest-tab-executive">
-        {% if node.field_executive_summary.summary %}
-          <div class="daily-digest__tldr">
-            {{ node.field_executive_summary.summary|raw }}
-          </div>
-        {% endif %}
         <div class="daily-digest__content">
           {{ node.field_executive_summary.value|raw }}
         </div>

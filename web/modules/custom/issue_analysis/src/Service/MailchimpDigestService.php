@@ -307,6 +307,24 @@ class MailchimpDigestService {
     $slug = 'daily-digest-' . strtolower(str_replace(' ', '-', $titleSuffix));
     $digestUrl = 'https://www.drupalstarforge.ai/' . $slug;
 
+    // Extract the references section before any restructuring so it can be
+    // re-appended at the bottom of the email with absolute anchor URLs.
+    $referencesHtml = '';
+    $body = preg_replace_callback(
+      '/<hr[^>]*>\s*\n(<section class="digest-references">.*?<\/section>)/s',
+      function (array $m) use (&$referencesHtml): string {
+        $referencesHtml = $m[1];
+        return '';
+      },
+      $body
+    );
+
+    // Rewrite #ref-N citation hrefs to absolute URLs so they resolve in email.
+    if ($referencesHtml) {
+      $body = str_replace('href="#ref-', 'href="' . $digestUrl . '#ref-', $body);
+      $referencesHtml = str_replace(' id="ref-', ' id="ref-', $referencesHtml);
+    }
+
     // For the executive newsletter, strip digest-module sections and replace
     // with a list of anchor links pointing to the prod node page.
     if ($field_name === 'field_executive_summary') {
@@ -324,13 +342,20 @@ class MailchimpDigestService {
           . htmlspecialchars($heading) . '</a></li>';
       }
 
-      // Keep only the digest-capabilities-2026 section; strip everything else.
+      // Keep capabilities and TL;DR blocks; strip module sections.
       $capabilitiesHtml = '';
       if (preg_match('/<section class="digest-capabilities-2026">.*?<\/section>/s', $body, $cap)) {
         $capabilitiesHtml = $cap[0];
       }
+      $tldrBlockHtml = '';
+      if (preg_match('/<div class="daily-digest__tldr">.*?<\/div>/s', $body, $tld)) {
+        $tldrBlockHtml = $tld[0];
+      }
 
       $body = $capabilitiesHtml;
+      if ($tldrBlockHtml) {
+        $body .= '<hr style="margin: 2em 0;">' . $tldrBlockHtml;
+      }
       if ($projectLinks) {
         $body .= '<hr style="margin: 2em 0;">'
           . '<p style="font-weight:600;margin-bottom:0.5em;">Projects updated:</p>'
@@ -340,7 +365,9 @@ class MailchimpDigestService {
 
     $parts = [];
 
-    if (!empty($tldr)) {
+    // For the developer newsletter, prepend the TL;DR from the summary subfield
+    // in a styled box. The executive TL;DR is already embedded in the body.
+    if ($field_name === 'field_developer_summary' && !empty($tldr)) {
       $parts[] = '<div style="background:#f0f6ff;border-left:4px solid #0056b3;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">';
       $parts[] = '<h2 style="margin-top:0;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">In this edition</h2>';
       $parts[] = $tldr;
@@ -348,6 +375,11 @@ class MailchimpDigestService {
     }
 
     $parts[] = $body;
+
+    if ($referencesHtml) {
+      $parts[] = '<hr style="margin: 2em 0;">';
+      $parts[] = $referencesHtml;
+    }
 
     $parts[] = '<hr>';
     $parts[] = '<p style="text-align:center;font-size:0.9em;">'
