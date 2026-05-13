@@ -345,11 +345,11 @@ class MailchimpDigestService {
       // Keep capabilities and TL;DR blocks; strip module sections.
       $capabilitiesHtml = '';
       if (preg_match('/<section class="digest-capabilities-2026">.*?<\/section>/s', $body, $cap)) {
-        $capabilitiesHtml = $cap[0];
+        $capabilitiesHtml = $this->inlineEmailStyles($cap[0]);
       }
       $tldrBlockHtml = '';
       if (preg_match('/<div class="daily-digest__tldr">.*?<\/div>/s', $body, $tld)) {
-        $tldrBlockHtml = $tld[0];
+        $tldrBlockHtml = $this->inlineEmailStyles($tld[0]);
       }
 
       $body = $capabilitiesHtml;
@@ -370,7 +370,7 @@ class MailchimpDigestService {
     if ($field_name === 'field_developer_summary' && !empty($tldr)) {
       $parts[] = '<div style="background:#f0f6ff;border-left:4px solid #0056b3;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">';
       $parts[] = '<h2 style="margin-top:0;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">In this edition</h2>';
-      $parts[] = $tldr;
+      $parts[] = $this->inlineEmailStyles($tldr);
       $parts[] = '</div>';
     }
 
@@ -378,7 +378,7 @@ class MailchimpDigestService {
 
     if ($referencesHtml) {
       $parts[] = '<hr style="margin: 2em 0;">';
-      $parts[] = $referencesHtml;
+      $parts[] = $this->inlineEmailStyles($referencesHtml);
     }
 
     $parts[] = '<hr>';
@@ -396,6 +396,51 @@ class MailchimpDigestService {
     }
 
     return '<div style="line-height:24px;">' . "\n" . implode("\n", $parts) . "\n</div>";
+  }
+
+  /**
+   * Replaces CSS class-based styles with equivalent inline styles for email.
+   *
+   * Email clients ignore external stylesheets, so all visual styling must be
+   * applied inline. This maps the classes used in digest HTML to their
+   * corresponding inline style declarations.
+   */
+  private function inlineEmailStyles(string $html): string {
+    $replacements = [
+      // Capabilities block wrapper — purple left border.
+      '<section class="digest-capabilities-2026">'
+        => '<section style="background:#f5f0ff;border-left:4px solid #6b3fa0;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">',
+      // Capabilities heading.
+      '<h4>2026 Capabilities Progress</h4>'
+        => '<h4 style="margin-top:0;color:#6b3fa0;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">2026 Capabilities Progress</h4>',
+      // Capabilities ordered list.
+      '<ol class="capabilities-2026">'
+        => '<ol style="margin:0.5em 0 0;padding-left:1.5em;">',
+      // TL;DR / Shipped+Ongoing block wrapper — blue left border.
+      '<div class="daily-digest__tldr">'
+        => '<div style="background:#f0f6ff;border-left:4px solid #0056b3;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">',
+      // TL;DR inner headings (Shipped / Ongoing).
+      '<h4>Shipped</h4>'
+        => '<h4 style="margin-top:0;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">Shipped</h4>',
+      '<h4>Ongoing</h4>'
+        => '<h4 style="margin-top:1em;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">Ongoing</h4>',
+      // References section.
+      '<section class="digest-references">'
+        => '<section style="margin-top:1.5em;">',
+      '<h5>References</h5>'
+        => '<h5 style="font-size:0.85em;text-transform:uppercase;letter-spacing:0.06em;color:#888;margin-bottom:0.5em;">References</h5>',
+      // Individual reference paragraphs.
+      'class="digest-reference"'
+        => 'style="font-size:0.85em;margin:0.3em 0;"',
+      // Citation links.
+      'class="digest-citation"'
+        => 'style="color:#0056b3;text-decoration:none;font-size:0.85em;vertical-align:super;"',
+      // ref-meta spans.
+      'class="ref-meta"'
+        => 'style="color:#888;font-size:0.85em;"',
+    ];
+
+    return str_replace(array_keys($replacements), array_values($replacements), $html);
   }
 
 }
