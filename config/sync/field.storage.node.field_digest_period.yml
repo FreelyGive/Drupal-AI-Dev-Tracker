@@ -1,0 +1,29 @@
+uuid: a3f2e8c1-7d45-4b89-9c12-5e6f3a0b2d74
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_digest_period
+field_name: field_digest_period
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: 1d
+      label: 'Daily (1d)'
+    -
+      value: 2w
+      label: 'Sprint (2w)'
+    -
+      value: 1m
+      label: 'Monthly (1m)'
+  allowed_values_function: ''
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

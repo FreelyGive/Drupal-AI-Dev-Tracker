@@ -5,6 +5,7 @@ dependencies:
   config:
     - field.field.node.daily_digest.field_data_file
     - field.field.node.daily_digest.field_developer_summary
+    - field.field.node.daily_digest.field_digest_period
     - field.field.node.daily_digest.field_executive_summary
     - node.type.daily_digest
   module:
@@ -20,6 +21,12 @@ content:
   created:
     type: datetime_timestamp
     weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  field_digest_period:
+    type: options_select
+    weight: 119
     region: content
     settings: {  }
     third_party_settings: {  }

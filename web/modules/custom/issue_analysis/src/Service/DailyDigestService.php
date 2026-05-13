@@ -385,9 +385,9 @@ class DailyDigestService {
    * @param array $newsletters
    *   Keyed by persona ('developer', 'executive'), each with 'newsletter' and 'tldr'.
    */
-  public function createDigestNode(string $dateStr, string $jsonFilePath, array $newsletters, ?string $promptLogPath = NULL): void {
+  public function createDigestNode(string $dateStr, string $jsonFilePath, array $newsletters, ?string $promptLogPath = NULL, string $digestPeriod = '1d', ?string $titleOverride = NULL): void {
     $dateFormatted = (new \DateTimeImmutable($dateStr))->format('j F Y');
-    $title = 'Daily Digest – ' . $dateFormatted;
+    $title = $titleOverride ?? 'Daily Digest – ' . $dateFormatted;
     $nodeStorage = $this->entityTypeManager->getStorage('node');
 
     // Find existing node for this date to avoid duplicates on re-runs.
@@ -418,6 +418,7 @@ class DailyDigestService {
 
     $node->set('title', $title);
     $node->set('status', 1);
+    $node->set('field_digest_period', $digestPeriod);
     $node->set('field_data_file', $files);
 
     if (isset($newsletters['executive'])) {
@@ -1228,9 +1229,6 @@ PROMPT;
     return implode("\n", $lines);
   }
 
-  /**
-   * @deprecated No longer used — docsify removed.
-   */
   public function buildDataMarkdown(array $results, string $period, string $since, string $until, string $generatedLine = ''): string {
     $sinceDate = substr($since, 0, 10);
     $untilDate = substr($until, 0, 10);
@@ -1379,11 +1377,212 @@ PROMPT;
   }
 
   /**
-   * Deletes attached files from digest nodes older than 7 days, and removes
+   * Generates a sprint (bi-weekly) digest by aggregating the last 14 daily JSON files.
+   *
+   * Reads all 24h_*.json files from public://issues-digest/ created in the
+   * last 14 days, merges per-module data (deduplicating by web_url), then runs
+   * the full summarisation pipeline and saves a digest node with period='2w'.
+   *
+   * @param string|null $module
+   *   Optional machine name to limit to a single module.
+   * @param callable|null $logger
+   *   Optional callable(string $message) for progress feedback.
+   */
+  public function runBiweekly(?string $module = NULL, ?callable $logger = NULL): void {
+    $log = $logger ?? fn($msg) => NULL;
+    set_time_limit(0);
+
+    $until = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+    $since = $until->modify('-14 days');
+    $generatedAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+    $log(sprintf('Aggregating sprint data from %s to %s...', $since->format('Y-m-d'), $until->format('Y-m-d')));
+
+    $results = $this->aggregateDailyJsonFiles($since, $module, $log);
+
+    if (empty($results)) {
+      $log('No daily JSON data files found for the last 14 days. Run ia-daily first to build up data files.');
+      return;
+    }
+
+    $log(sprintf('Aggregated data for %d module(s).', count($results)));
+
+    $dateStr = $since->format('Y-m-d');
+    $generatedLine = 'Generated: ' . $generatedAt->format('j F Y H:i') . ' GMT';
+
+    // Write aggregated JSON for reference.
+    $jsonContent = json_encode([
+      'period' => '2w',
+      'since' => $since->format(\DateTime::ATOM),
+      'until' => $until->format(\DateTime::ATOM),
+      'generated_at' => $generatedAt->format(\DateTime::ATOM),
+      'modules' => $results,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $jsonFile = $this->resolveOutputPath('2w', $dateStr, 'json');
+    file_put_contents($jsonFile, $jsonContent . "\n");
+    $log("Aggregated data written to $jsonFile");
+
+    // Summarise both personas.
+    $newsletters = [];
+    foreach (['developer', 'executive'] as $persona) {
+      $log("Summarising modules ($persona persona)...");
+
+      $sections = [];
+      foreach ($results as $mod) {
+        $machineName = $mod['machine_name'];
+        if (empty($mod['issues']) && empty($mod['merge_requests']) && empty($mod['commits'])) {
+          continue;
+        }
+        $log(sprintf('  Summarising %s (%d issues, %d MRs, %d commits)...', $machineName, count($mod['issues']), count($mod['merge_requests']), count($mod['commits'])));
+        try {
+          $sections[$machineName] = $this->loadOrSummarise($dateStr, $machineName, $persona, $mod, '2w', $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM));
+        }
+        catch (\RuntimeException $e) {
+          $sections[$machineName] = '<p><em>Summarisation failed: ' . htmlspecialchars($e->getMessage()) . '</em></p>';
+        }
+      }
+
+      $log('  Generating TL;DR...');
+      $tldr = $this->loadOrGenerateTldr($dateStr, $persona, $sections, '2w', $results);
+
+      $capabilities = NULL;
+      if ($persona === 'executive') {
+        $log('  Generating 2026 capabilities section...');
+        $capabilities = $this->loadOrGenerate2026Capabilities($dateStr, $sections, $results);
+      }
+
+      $newsletter = $this->assembleNewsletter($sections, $tldr, '2w', $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM), 'html', $generatedLine, $capabilities, $results);
+      $newsletters[$persona] = ['newsletter' => $newsletter, 'tldr' => $tldr];
+      $log("Newsletter ($persona) assembled.");
+    }
+
+    $promptLogFile = $this->writePromptLog('2w', $dateStr);
+    $this->cleanupOldFiles();
+
+    // Build a human-readable date range for the title.
+    $sinceLabel = $since->format('j');
+    $untilDay = $until->format('j');
+    $sinceMonth = $since->format('F Y');
+    $untilMonth = $until->format('F Y');
+    $dateRange = $sinceMonth === $untilMonth
+      ? "{$sinceLabel}–{$untilDay} {$sinceMonth}"
+      : "{$sinceLabel} {$sinceMonth} – {$untilDay} {$untilMonth}";
+    $title = 'Sprint Digest – ' . $dateRange;
+
+    $this->createDigestNode($dateStr, $jsonFile, $newsletters, $promptLogFile, '2w', $title);
+    $this->clearStepCache($dateStr, $results);
+
+    $this->state->set(self::STATE_LAST_RUN, $generatedAt->format(\DateTime::ATOM));
+    $log('Done.');
+  }
+
+  /**
+   * Reads all 24h_*.json files from the last 14 days and merges module data.
+   *
+   * Deduplicates issues, MRs, and commits by web_url so repeated appearances
+   * across daily files are counted only once.
+   *
+   * @param \DateTimeImmutable $since
+   *   Only include files with dates on or after this date.
+   * @param string|null $moduleFilter
+   *   If set, only return data for this module machine name.
+   * @param callable $log
+   *   Progress logger callable.
+   *
+   * @return array
+   *   Aggregated module data arrays, each with the same shape as the per-module
+   *   data produced by NewsletterDataFetcherService.
+   */
+  private function aggregateDailyJsonFiles(\DateTimeImmutable $since, ?string $moduleFilter, callable $log): array {
+    $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
+    if (!is_dir($dir)) {
+      return [];
+    }
+
+    $aggregated = [];
+    $filesLoaded = 0;
+
+    foreach (glob("$dir/24h_*.json") as $file) {
+      // Parse date from filename: 24h_YYYY-MM-DD.json
+      $basename = basename($file, '.json');
+      if (!preg_match('/^24h_(\d{4}-\d{2}-\d{2})$/', $basename, $m)) {
+        continue;
+      }
+      try {
+        $fileDate = new \DateTimeImmutable($m[1], new \DateTimeZone('UTC'));
+      }
+      catch (\Exception) {
+        continue;
+      }
+      if ($fileDate < $since) {
+        continue;
+      }
+
+      $raw = file_get_contents($file);
+      if (!$raw) {
+        continue;
+      }
+      $data = json_decode($raw, TRUE);
+      if (!isset($data['modules']) || !is_array($data['modules'])) {
+        continue;
+      }
+
+      $filesLoaded++;
+      foreach ($data['modules'] as $mod) {
+        $key = $mod['machine_name'] ?? '';
+        if (!$key) {
+          continue;
+        }
+        if ($moduleFilter && $key !== $moduleFilter) {
+          continue;
+        }
+
+        if (!isset($aggregated[$key])) {
+          $aggregated[$key] = $mod;
+          $aggregated[$key]['issues'] = [];
+          $aggregated[$key]['merge_requests'] = [];
+          $aggregated[$key]['commits'] = [];
+        }
+
+        foreach ($mod['issues'] ?? [] as $item) {
+          $id = $item['web_url'] ?? ($item['id'] ?? NULL);
+          if ($id) {
+            $aggregated[$key]['issues'][$id] = $item;
+          }
+        }
+        foreach ($mod['merge_requests'] ?? [] as $item) {
+          $id = $item['web_url'] ?? ($item['id'] ?? NULL);
+          if ($id) {
+            $aggregated[$key]['merge_requests'][$id] = $item;
+          }
+        }
+        foreach ($mod['commits'] ?? [] as $item) {
+          $id = $item['web_url'] ?? ($item['short_id'] ?? NULL);
+          if ($id) {
+            $aggregated[$key]['commits'][$id] = $item;
+          }
+        }
+      }
+    }
+
+    $log(sprintf('Loaded %d daily JSON file(s).', $filesLoaded));
+
+    // Re-index arrays so they're numerically indexed.
+    foreach ($aggregated as &$mod) {
+      $mod['issues'] = array_values($mod['issues']);
+      $mod['merge_requests'] = array_values($mod['merge_requests']);
+      $mod['commits'] = array_values($mod['commits']);
+    }
+
+    return array_values($aggregated);
+  }
+
+  /**
+   * Deletes attached files from digest nodes older than 21 days and removes
    * orphaned JSON/TXT files from the output directory.
    */
   public function cleanupOldFiles(): void {
-    $cutoff = \Drupal::time()->getRequestTime() - (7 * 24 * 60 * 60);
+    $cutoff = \Drupal::time()->getRequestTime() - (21 * 24 * 60 * 60);
     $nodeStorage = $this->entityTypeManager->getStorage('node');
     $fileStorage = $this->entityTypeManager->getStorage('file');
 

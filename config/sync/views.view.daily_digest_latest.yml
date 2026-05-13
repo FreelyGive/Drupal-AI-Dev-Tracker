@@ -181,6 +181,40 @@ display:
           value:
             daily_digest: daily_digest
           group: 1
+        field_digest_period_value:
+          id: field_digest_period_value
+          table: node__field_digest_period
+          field: field_digest_period_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_digest_period
+          plugin_id: string
+          operator: '='
+          value: 1d
+          group: 1
+          exposed: false
+          expose:
+            operator_id: ''
+            label: ''
+            operator: ''
+            identifier: ''
+            required: false
+            remember: false
+            multiple: false
+          is_grouped: false
+          group_info:
+            label: ''
+            description: ''
+            identifier: ''
+            optional: true
+            widget: select
+            multiple: false
+            remember: false
+            default_group: All
+            default_group_multiple: {  }
+            group_items: {  }
       filter_groups:
         operator: AND
         groups:

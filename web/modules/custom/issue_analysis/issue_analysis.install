@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the issue_analysis module.
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Add field_digest_period to daily_digest nodes; backfill existing nodes to 1d.
+ */
+function issue_analysis_update_10001(): void {
+  // Create field storage if it doesn't already exist.
+  if (!FieldStorageConfig::loadByName('node', 'field_digest_period')) {
+    FieldStorageConfig::create([
+      'field_name' => 'field_digest_period',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [
+          ['value' => '1d', 'label' => 'Daily (1d)'],
+          ['value' => '2w', 'label' => 'Sprint (2w)'],
+          ['value' => '1m', 'label' => 'Monthly (1m)'],
+        ],
+        'allowed_values_function' => '',
+      ],
+    ])->save();
+  }
+
+  // Create field instance on daily_digest if it doesn't already exist.
+  if (!FieldConfig::loadByName('node', 'daily_digest', 'field_digest_period')) {
+    FieldConfig::create([
+      'field_name' => 'field_digest_period',
+      'entity_type' => 'node',
+      'bundle' => 'daily_digest',
+      'label' => 'Digest Period',
+      'required' => FALSE,
+      'default_value' => [['value' => '1d']],
+    ])->save();
+  }
+
+  // Backfill all existing daily_digest nodes to '1d'.
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+  $nids = $storage->getQuery()
+    ->accessCheck(FALSE)
+    ->condition('type', 'daily_digest')
+    ->execute();
+
+  foreach ($storage->loadMultiple($nids) as $node) {
+    if (empty($node->get('field_digest_period')->value)) {
+      $node->set('field_digest_period', '1d');
+      $node->save();
+    }
+  }
+}
