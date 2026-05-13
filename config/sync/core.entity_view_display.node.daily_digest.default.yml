@@ -5,6 +5,7 @@ dependencies:
   config:
     - field.field.node.daily_digest.field_data_file
     - field.field.node.daily_digest.field_developer_summary
+    - field.field.node.daily_digest.field_digest_period
     - field.field.node.daily_digest.field_executive_summary
     - node.type.daily_digest
   module:
@@ -16,6 +17,13 @@ targetEntityType: node
 bundle: daily_digest
 mode: default
 content:
+  field_digest_period:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
   field_data_file:
     type: file_default
     label: above

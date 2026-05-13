@@ -1,0 +1,21 @@
+uuid: b9c4d2e7-8f56-4a31-bc78-2d9e5f1a3c08
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_digest_period
+    - node.type.daily_digest
+id: node.daily_digest.field_digest_period
+field_name: field_digest_period
+entity_type: node
+bundle: daily_digest
+label: 'Digest Period'
+description: 'The time period this digest covers: 1d (daily), 2w (sprint), 1m (monthly).'
+required: false
+translatable: true
+default_value:
+  -
+    value: 1d
+default_value_callback: ''
+settings: {  }
+field_type: list_string

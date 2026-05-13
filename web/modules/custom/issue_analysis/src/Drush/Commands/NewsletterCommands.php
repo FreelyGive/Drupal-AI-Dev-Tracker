@@ -94,12 +94,12 @@ class NewsletterCommands extends DrushCommands {
       'modules' => $results,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    $outputFile = $options['output'] ?? $this->resolveOutputPath($period, $since->format('Y-m-d'), 'json');
+    $outputFile = $options['output'] ?? $this->digestService->resolveOutputPath($period, $since->format('Y-m-d'), 'json');
     file_put_contents($outputFile, $json . "\n");
     $this->io()->success("Output written to $outputFile");
 
-    $dataFile = $this->resolveOutputPath($period, $since->format('Y-m-d'), 'md', '-data');
-    file_put_contents($dataFile, $this->buildDataMarkdown($results, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM)) . "\n");
+    $dataFile = $this->digestService->resolveOutputPath($period, $since->format('Y-m-d'), 'md', '-data');
+    file_put_contents($dataFile, $this->digestService->buildDataMarkdown($results, $period, $since->format(\DateTime::ATOM), $until->format(\DateTime::ATOM)) . "\n");
     $this->io()->success("Data overview written to $dataFile");
   }
 
@@ -121,6 +121,33 @@ class NewsletterCommands extends DrushCommands {
     $io = $this->io();
 
     $this->digestService->run($module, function (string $msg) use ($io): void {
+      $io->writeln("<info>$msg</info>");
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sprint digest command
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Aggregate the last 14 days of daily JSON data files into a sprint digest.
+   *
+   * Reads all 24h_*.json files from public://issues-digest/ that fall within
+   * the last 14 days, merges and deduplicates per-module activity, then
+   * generates developer and executive newsletters and saves a daily_digest
+   * node with field_digest_period = '2w'.
+   */
+  #[CLI\Command(name: 'issue-analysis:biweekly-digest', aliases: ['ia-biweekly'])]
+  #[CLI\Option(name: 'module', description: 'Machine name of a single module. Omit to process all.')]
+  #[CLI\Usage(name: 'drush ia-biweekly', description: 'Aggregate last 14 days of data files and generate sprint digest.')]
+  #[CLI\Usage(name: 'drush ia-biweekly --module=ai', description: 'Run sprint digest for the "ai" module only.')]
+  public function biweeklyDigest(
+    array $options = ['module' => NULL],
+  ): void {
+    $module = $options['module'] ?? NULL;
+    $io = $this->io();
+
+    $this->digestService->runBiweekly($module, function (string $msg) use ($io): void {
       $io->writeln("<info>$msg</info>");
     });
   }
@@ -202,7 +229,7 @@ class NewsletterCommands extends DrushCommands {
       $this->io()->writeln("  Summarising $machineName ($issueCount issues, $mrCount MRs, $commitCount commits)...");
 
       try {
-        $sections[$machineName] = $this->summariseModule($module, $period, $since, $until, $format, $persona);
+        $sections[$machineName] = $this->digestService->summariseModule($module, $period, $since, $until, $format, $persona);
       }
       catch (\RuntimeException $e) {
         $this->logger()->error("Failed to summarise $machineName: " . $e->getMessage());
@@ -212,18 +239,18 @@ class NewsletterCommands extends DrushCommands {
 
     $this->io()->writeln('  Generating TL;DR...');
     try {
-      $tldr = $this->generateTldr($sections, $period, $format, $persona);
+      $tldr = $this->digestService->generateTldr($sections, $period, $format, $persona);
     }
     catch (\RuntimeException $e) {
       $this->logger()->error("Failed to generate TL;DR: " . $e->getMessage());
       $tldr = NULL;
     }
 
-    $newsletter = $this->assembleNewsletter($sections, $tldr, $period, $since, $until, $format);
+    $newsletter = $this->digestService->assembleNewsletter($sections, $tldr, $period, $since, $until, $format);
 
     $ext = $format === 'plain' ? 'txt' : 'md';
     $suffix = $persona === 'executive' ? '-executive' : '-dev';
-    $outputFile = $options['output'] ?? $this->resolveOutputPath($period, $since, $ext, $suffix);
+    $outputFile = $options['output'] ?? $this->digestService->resolveOutputPath($period, $since, $ext, $suffix);
     file_put_contents($outputFile, $newsletter . "\n");
     $this->io()->success("Newsletter written to $outputFile");
   }
@@ -254,285 +281,6 @@ class NewsletterCommands extends DrushCommands {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
-
-  /**
-   * Calls the LLM to summarise a single module's activity data.
-   *
-   * @param array $module
-   *   Module data array as returned by NewsletterDataFetcherService.
-   * @param string $period
-   *   Human-readable period label (e.g. "7d").
-   * @param string $since
-   *   ISO 8601 start datetime string.
-   * @param string $until
-   *   ISO 8601 end datetime string.
-   * @param string $format
-   *   Output format: "markdown" or "plain".
-   * @param string $persona
-   *   Target audience: "developer" or "executive".
-   *
-   * @return string
-   *   LLM-generated summary text.
-   */
-  private function summariseModule(array $module, string $period, string $since, string $until, string $format, string $persona): string {
-    $machineName = $module['machine_name'];
-    $title = $module['title'] ?? $machineName;
-    $issues = $module['issues'] ?? [];
-    $mrs = $module['merge_requests'] ?? [];
-    $commits = $module['commits'] ?? [];
-
-    // Build a compact text representation to keep the prompt lean.
-    $confidentialCount = 0;
-    $issueLines = [];
-    foreach ($issues as $i) {
-      if (!empty($i['confidential'])) {
-        $confidentialCount++;
-        continue;
-      }
-      $assignees = $i['assignees'] ? implode(', ', $i['assignees']) : 'unassigned';
-      $labels = $i['labels'] ? implode(', ', array_slice($i['labels'], 0, 4)) : '';
-      $drupalRef = $i['drupal_issue_number'] ? " [#{$i['drupal_issue_number']}]({$i['drupal_url']})" : '';
-      $issueLines[] = "- [{$i['title']}]({$i['web_url']}){$drupalRef} | {$i['state']} | {$assignees} | comments: {$i['comment_count']} | {$labels}";
-      foreach ($i['comments'] ?? [] as $comment) {
-        $date = substr($comment['created_at'], 0, 10);
-        $snippet = mb_substr(trim($comment['body']), 0, 300);
-        $issueLines[] = "  [{$comment['author']} {$date}]: {$snippet}";
-      }
-    }
-
-    $mrLines = [];
-    foreach ($mrs as $mr) {
-      $merged = $mr['merged_at'] ? 'merged ' . substr($mr['merged_at'], 0, 10) : $mr['state'];
-      $diffNote = isset($mr['diff_lines']) && $mr['diff_lines'] > 0 ? " | {$mr['diff_lines']} diff lines" : '';
-      $mrLines[] = "- [{$mr['title']}]({$mr['web_url']}) by {$mr['author']} | {$merged} | branch: {$mr['source_branch']}{$diffNote}";
-    }
-
-    $commitLines = [];
-    foreach ($commits as $c) {
-      $commitLines[] = "- [{$c['short_id']}]({$c['web_url']}) {$c['title']} — {$c['author_name']} ({$c['authored_date']})";
-    }
-
-    $issueSection = $issueLines ? implode("\n", $issueLines) : '(none)';
-    $mrSection = $mrLines ? implode("\n", $mrLines) : '(none)';
-    $commitSection = $commitLines ? implode("\n", $commitLines) : '(none)';
-
-    $formatInstruction = $format === 'markdown'
-      ? "Format your response as Markdown. Start with the exact heading \"### $title\" then use subsections as needed."
-      : 'Format your response as plain text with no Markdown.';
-
-    [$personaInstruction, $howToHelpProjectInstruction] = match ($persona) {
-      'executive' => [
-        <<<'TXT'
-You are writing for a non-technical executive audience (CEO/leadership level).
-Focus on: business impact, strategic progress, risks, and what is being delivered.
-Avoid technical jargon. Do not mention branch names, function names, or API details.
-Explain what each piece of work means for users or the project's goals.
-TXT,
-        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
-      ],
-      default => [
-        <<<'TXT'
-You are writing for a technical developer audience.
-Focus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.
-Be specific — mention function names, module names, and MR references where relevant.
-TXT,
-        "After the project summary prose, add a single subsection titled \"#### How can I help on this project?\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
-      ],
-    };
-
-    $confidentialNote = $confidentialCount > 0
-      ? "Note: $confidentialCount confidential issue(s) existed in this period but have been excluded from the data below. Mention briefly at the end of your section that $confidentialCount confidential issue(s) were not included in this analysis."
-      : '';
-
-    $prompt = <<<PROMPT
-You are a technical writer producing a newsletter section about recent Drupal module activity.
-
-Module: $title (machine name: $machineName)
-Period: $period ($since to $until)
-
-$personaInstruction
-
-Do not list every issue/MR individually — synthesise into prose. Keep it under 200 words.
-Do not use emoticons or mdashes.
-$confidentialNote
-$formatInstruction
-
-$howToHelpProjectInstruction
-
---- ISSUES UPDATED ($period) ---
-$issueSection
-
---- MERGE REQUESTS ($period) ---
-$mrSection
-
---- COMMITS ($period) ---
-$commitSection
-PROMPT;
-
-    return $this->summariser->complete($prompt, ['newsletter_summarise']);
-  }
-
-  /**
-   * Calls the LLM with all per-module summaries to produce a top-5 TL;DR.
-   *
-   * @param array $sections
-   *   Keyed array of machine_name => summary text.
-   * @param string $period
-   *   Human-readable period label (e.g. "7d").
-   * @param string $format
-   *   Output format: "markdown" or "plain".
-   * @param string $persona
-   *   Target audience: "developer" or "executive".
-   *
-   * @return string
-   *   LLM-generated TL;DR text with Shipped and Ongoing sections.
-   */
-  private function generateTldr(array $sections, string $period, string $format, string $persona): string {
-    $combined = implode("\n\n---\n\n", $sections);
-
-    $personaInstruction = match ($persona) {
-      'executive' => 'You are writing for a non-technical executive audience. Focus on business impact, strategic progress, and delivery milestones. Avoid all technical jargon.',
-      default => 'You are writing for a technical developer audience. Be specific — name modules, merged features, and critical bugs.',
-    };
-
-    if ($format === 'markdown') {
-      $formatInstruction = <<<'TXT'
-Format as two Markdown sections:
-
-### Shipped
-A numbered list of items that were completed, merged, or released. Each item must start with a bold title on the same line as the number, followed by one sentence of explanation. Example:
-1. **Title here** — Explanation sentence.
-
-### Ongoing
-A numbered list of the most significant in-progress items. Same format — bold title, one sentence.
-
-Use up to 5 items per section. Do not include any other text or headings.
-TXT;
-    }
-    else {
-      $formatInstruction = <<<'TXT'
-Format as two plain text sections:
-
-SHIPPED
-A numbered list of completed or merged items. Each item starts with an ALL-CAPS title, then a dash, then one sentence.
-
-ONGOING
-A numbered list of in-progress items. Same format.
-
-Up to 5 items per section. No Markdown.
-TXT;
-    }
-
-    $prompt = <<<PROMPT
-You are an editor distilling a Drupal AI project newsletter into its most important highlights.
-
-$personaInstruction
-
-Read all the module summaries below. Separate the highlights into two categories:
-- SHIPPED: things that were merged, fixed, released, or completed during this period.
-- ONGOING: things that are actively in progress, under review, or blocked.
-
-Be specific — name the module, what happened, and why it matters.
-Do not use emoticons or mdashes. Do not include any text outside the two sections.
-
-$formatInstruction
-
---- MODULE SUMMARIES ---
-$combined
-PROMPT;
-
-    return $this->summariser->complete($prompt, ['newsletter_tldr']);
-  }
-
-  /**
-   * Assembles all per-module sections into a final newsletter document.
-   *
-   * Includes a navigation index after the TL;DR and injects a "View issues
-   * data" link beneath each module heading.
-   *
-   * @param array $sections
-   *   Keyed array of machine_name => summary text.
-   * @param string|null $tldr
-   *   Pre-generated TL;DR block, or NULL to omit.
-   * @param string $period
-   *   Human-readable period label (e.g. "7d").
-   * @param string $since
-   *   ISO 8601 start datetime string.
-   * @param string $until
-   *   ISO 8601 end datetime string.
-   * @param string $format
-   *   Output format: "markdown" or "plain".
-   *
-   * @return string
-   *   The assembled newsletter document.
-   */
-  private function assembleNewsletter(array $sections, ?string $tldr, string $period, string $since, string $until, string $format): string {
-    if (!$sections) {
-      return $format === 'markdown'
-        ? "# Drupal AI Newsletter\n\n_No module activity found for the period._"
-        : "Drupal AI Newsletter\n\nNo module activity found for the period.";
-    }
-
-    $sinceDate = substr($since, 0, 10);
-    $untilDate = substr($until, 0, 10);
-
-    if ($format === 'markdown') {
-      $lines = ["# Drupal AI Activity Newsletter", "", "_Period: {$sinceDate} to {$untilDate}_", ""];
-      if ($tldr) {
-        $lines[] = "## TL;DR";
-        $lines[] = "";
-        $lines[] = $tldr;
-        $lines[] = "";
-        $lines[] = "---";
-        $lines[] = "";
-      }
-
-      // Navigation index.
-      $lines[] = "## Modules";
-      $lines[] = "";
-      foreach ($sections as $machineName => $text) {
-        $title = $machineName;
-        if (preg_match('/^###\s+(.+)$/m', $text, $m)) {
-          $title = trim($m[1]);
-        }
-        $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
-        $lines[] = "- [$title](#$anchor)";
-      }
-      $lines[] = "";
-      $lines[] = "---";
-      $lines[] = "";
-
-      // Per-module sections with injected data link.
-      $dataBase = '1d-data';
-      foreach ($sections as $machineName => $text) {
-        $sectionTitle = $machineName;
-        if (preg_match('/^###\s+(.+)$/m', $text, $tm)) {
-          $sectionTitle = trim($tm[1]);
-        }
-        $dataAnchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $sectionTitle)), '-');
-        $dataLink = "_[View issues data]({$dataBase}?id={$dataAnchor})_";
-        $text = preg_replace('/^(###\s+.+)$/m', "$1\n\n{$dataLink}", $text, 1);
-        $lines[] = $text;
-        $lines[] = '';
-      }
-      return implode("\n", $lines);
-    }
-
-    $lines = ["Drupal AI Activity Newsletter", "Period: $sinceDate to $untilDate", ""];
-    if ($tldr) {
-      $lines[] = "TL;DR";
-      $lines[] = $tldr;
-      $lines[] = "";
-      $lines[] = str_repeat('-', 60);
-      $lines[] = "";
-    }
-    foreach ($sections as $name => $text) {
-      $lines[] = strtoupper($name);
-      $lines[] = $text;
-      $lines[] = '';
-    }
-    return implode("\n", $lines);
-  }
 
   /**
    * Resolves the [since, until] pair from period or --since/--until options.
@@ -577,112 +325,6 @@ PROMPT;
   }
 
   /**
-   * Builds a Markdown data overview of the fetched results with a nav index.
-   *
-   * Produces a navigable document listing every active module's issues, MRs,
-   * and commits in full detail, including GitLab comments quoted inline.
-   *
-   * @param array $results
-   *   Module results as returned by NewsletterDataFetcherService::fetchAllModulesData().
-   * @param string $period
-   *   Human-readable period label (e.g. "7d").
-   * @param string $since
-   *   ISO 8601 start datetime string.
-   * @param string $until
-   *   ISO 8601 end datetime string.
-   *
-   * @return string
-   *   Rendered Markdown string.
-   */
-  private function buildDataMarkdown(array $results, string $period, string $since, string $until): string {
-    $sinceDate = substr($since, 0, 10);
-    $untilDate = substr($until, 0, 10);
-
-    // Only include modules that have activity.
-    $active = array_filter($results, fn($m) =>
-      !empty($m['issues']) || !empty($m['merge_requests']) || !empty($m['commits'])
-    );
-
-    $lines = [
-      "# Drupal AI Activity Data — $period",
-      "",
-      "_Period: {$sinceDate} to {$untilDate}_",
-      "",
-      "## Modules",
-      "",
-    ];
-
-    // Navigation index.
-    foreach ($active as $m) {
-      $title = $m['title'] ?? $m['machine_name'];
-      $anchor = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', $title)), '-');
-      $issueCount = count($m['issues']);
-      $mrCount = count($m['merge_requests']);
-      $commitCount = count($m['commits']);
-      $lines[] = "- [$title](#$anchor) — $issueCount issues, $mrCount MRs, $commitCount commits";
-    }
-
-    $lines[] = "";
-    $lines[] = "---";
-    $lines[] = "";
-
-    // Per-module sections.
-    foreach ($active as $m) {
-      $title = $m['title'] ?? $m['machine_name'];
-      $lines[] = "## $title";
-      $lines[] = "";
-
-      if ($m['issues']) {
-        $lines[] = "### Issues";
-        $lines[] = "";
-        foreach ($m['issues'] as $i) {
-          $assignees = $i['assignees'] ? implode(', ', $i['assignees']) : 'unassigned';
-          $drupalRef = $i['drupal_issue_number'] ? " · [d.o #{$i['drupal_issue_number']}]({$i['drupal_url']})" : '';
-          $labels = $i['labels'] ? ' · ' . implode(', ', array_slice($i['labels'], 0, 4)) : '';
-          $lines[] = "- **[{$i['title']}]({$i['web_url']})**{$drupalRef} · {$i['state']} · {$assignees} · {$i['comment_count']} comments{$labels}";
-
-          if (!empty($i['comments'])) {
-            foreach ($i['comments'] as $comment) {
-              $date = substr($comment['created_at'], 0, 10);
-              $body = trim($comment['body']);
-              // Indent multi-line comment bodies.
-              $body = str_replace("\n", "\n  > ", $body);
-              $lines[] = "  > **{$comment['author']}** ({$date}): {$body}";
-            }
-          }
-        }
-        $lines[] = "";
-      }
-
-      if ($m['merge_requests']) {
-        $lines[] = "### Merge Requests";
-        $lines[] = "";
-        foreach ($m['merge_requests'] as $mr) {
-          $merged = $mr['merged_at'] ? 'merged ' . substr($mr['merged_at'], 0, 10) : $mr['state'];
-          $diffNote = isset($mr['diff_lines']) && $mr['diff_lines'] > 0 ? " · {$mr['diff_lines']} diff lines" : '';
-          $lines[] = "- **[{$mr['title']}]({$mr['web_url']})**  · {$mr['author']} · {$merged} · `{$mr['source_branch']}`{$diffNote}";
-        }
-        $lines[] = "";
-      }
-
-      if ($m['commits']) {
-        $lines[] = "### Commits";
-        $lines[] = "";
-        foreach ($m['commits'] as $c) {
-          $date = substr($c['authored_date'], 0, 10);
-          $lines[] = "- [`{$c['short_id']}`]({$c['web_url']}) {$c['title']} — {$c['author_name']} ({$date})";
-        }
-        $lines[] = "";
-      }
-
-      $lines[] = "---";
-      $lines[] = "";
-    }
-
-    return implode("\n", $lines);
-  }
-
-  /**
    * Prints a human-readable activity count summary to the console.
    *
    * @param array $results
@@ -711,28 +353,5 @@ PROMPT;
     $this->io()->writeln('');
   }
 
-  /**
-   * Resolves a default output file path under sites/default/files/issues-digest/.
-   *
-   * Filename format: {period}_{YYYY-MM-DD}{suffix}.{ext}
-   * e.g. 24h_2026-04-24.json, 7d_2026-04-17-executive.md
-   *
-   * @param string $period
-   *   The period string (e.g. "24h", "7d", "30d").
-   * @param string $since
-   *   ISO 8601 since date (used for the date part of the filename).
-   * @param string $ext
-   *   File extension without dot (e.g. "json", "md", "txt").
-   * @param string $suffix
-   *   Optional suffix before the extension (e.g. "-executive").
-   */
-  private function resolveOutputPath(string $period, string $since, string $ext, string $suffix = ''): string {
-    $dir = \Drupal::service('file_system')->realpath('public://') . '/issues-digest';
-    if (!is_dir($dir)) {
-      mkdir($dir, 0775, TRUE);
-    }
-    $date = substr($since, 0, 10);
-    return "$dir/{$period}_{$date}{$suffix}.{$ext}";
-  }
 
 }
