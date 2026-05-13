@@ -57,11 +57,25 @@ class MailchimpDigestService {
 
     $from_name   = $config->get('mailchimp_from_name') ?: 'Drupal AI Initiative';
     $reply_to    = $config->get('mailchimp_reply_to') ?: '';
-    $category_id = $config->get('mailchimp_interest_category_id') ?: NULL;
-    $exec_id     = $config->get('mailchimp_interest_executive') ?: NULL;
-    $dev_id      = $config->get('mailchimp_interest_developer') ?: NULL;
+    $category_id      = $config->get('mailchimp_interest_category_id') ?: NULL;
+    $exec_id          = $config->get('mailchimp_interest_executive') ?: NULL;
+    $dev_id           = $config->get('mailchimp_interest_developer') ?: NULL;
+    $freq_category_id = $config->get('mailchimp_freq_category_id') ?: NULL;
+    $freq_1d_id       = $config->get('mailchimp_freq_1d') ?: NULL;
+    $freq_2w_id       = $config->get('mailchimp_freq_2w') ?: NULL;
+    $freq_1m_id       = $config->get('mailchimp_freq_1m') ?: NULL;
 
     $subject = $node->getTitle();
+
+    $digest_period = $node->hasField('field_digest_period')
+      ? ($node->get('field_digest_period')->value ?: '1d')
+      : '1d';
+
+    $freq_interest_id = match ($digest_period) {
+      '2w'    => $freq_2w_id,
+      '1m'    => $freq_1m_id,
+      default => $freq_1d_id,
+    };
 
     $personas = [
       'executive' => [
@@ -107,16 +121,25 @@ class MailchimpDigestService {
         ];
       }
       elseif (!$test_list && $category_id && $persona['interest_id']) {
-        $segment_opts = (object) [
-          'match' => 'all',
-          'conditions' => [
-            (object) [
-              'condition_type' => 'Interests',
-              'field'          => 'interests-' . $category_id,
-              'op'             => 'interestcontains',
-              'value'          => [$persona['interest_id']],
-            ],
+        $conditions = [
+          (object) [
+            'condition_type' => 'Interests',
+            'field'          => 'interests-' . $category_id,
+            'op'             => 'interestcontains',
+            'value'          => [$persona['interest_id']],
           ],
+        ];
+        if ($freq_category_id && $freq_interest_id) {
+          $conditions[] = (object) [
+            'condition_type' => 'Interests',
+            'field'          => 'interests-' . $freq_category_id,
+            'op'             => 'interestcontains',
+            'value'          => [$freq_interest_id],
+          ];
+        }
+        $segment_opts = (object) [
+          'match'      => 'all',
+          'conditions' => $conditions,
         ];
       }
 
