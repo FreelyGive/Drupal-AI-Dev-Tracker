@@ -72,6 +72,40 @@ class MailchimpSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('mailchimp_interest_developer') ?? '',
     ];
 
+    $form['frequency'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Digest frequency segmentation'),
+      '#description' => $this->t('Target subscribers based on their preferred digest cadence ("Digest Frequency" interest group). Obtain IDs via <code>GET /lists/{id}/interest-categories/{cat_id}/interests</code>.'),
+    ];
+
+    $form['frequency']['mailchimp_freq_category_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Frequency category ID'),
+      '#description' => $this->t('The ID of the "Digest Frequency" interest category (e.g. <code>649aa9924a</code>).'),
+      '#default_value' => $config->get('mailchimp_freq_category_id') ?? '',
+    ];
+
+    $form['frequency']['mailchimp_freq_1d'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Daily (1d) interest ID'),
+      '#description' => $this->t('Interest ID for the "Daily" option (e.g. <code>3d050a8221</code>).'),
+      '#default_value' => $config->get('mailchimp_freq_1d') ?? '',
+    ];
+
+    $form['frequency']['mailchimp_freq_2w'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Sprint (2w) interest ID'),
+      '#description' => $this->t('Interest ID for the "Every 2 weeks" option (e.g. <code>a0e1e2dbe7</code>).'),
+      '#default_value' => $config->get('mailchimp_freq_2w') ?? '',
+    ];
+
+    $form['frequency']['mailchimp_freq_1m'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Monthly (1m) interest ID'),
+      '#description' => $this->t('Interest ID for the "Monthly" option (e.g. <code>b2b0bbd01f</code>).'),
+      '#default_value' => $config->get('mailchimp_freq_1m') ?? '',
+    ];
+
     $form['testing'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Testing'),
@@ -144,6 +178,10 @@ class MailchimpSettingsForm extends ConfigFormBase {
       ->set('mailchimp_interest_category_id', trim($form_state->getValue('mailchimp_interest_category_id')))
       ->set('mailchimp_interest_executive', trim($form_state->getValue('mailchimp_interest_executive')))
       ->set('mailchimp_interest_developer', trim($form_state->getValue('mailchimp_interest_developer')))
+      ->set('mailchimp_freq_category_id', trim($form_state->getValue('mailchimp_freq_category_id')))
+      ->set('mailchimp_freq_1d', trim($form_state->getValue('mailchimp_freq_1d')))
+      ->set('mailchimp_freq_2w', trim($form_state->getValue('mailchimp_freq_2w')))
+      ->set('mailchimp_freq_1m', trim($form_state->getValue('mailchimp_freq_1m')))
       ->set('mailchimp_list_id_test', trim($form_state->getValue('mailchimp_list_id_test')))
       ->set('mailchimp_tag_id_test', trim($form_state->getValue('mailchimp_tag_id_test')))
       ->set('disable_sending', (bool) $form_state->getValue('disable_sending'))
