@@ -384,9 +384,11 @@ class NewsletterDataFetcherService {
           $mr['assignees'] ?? ($mr['assignee'] ? [$mr['assignee']] : []),
         );
 
-        $diffLines = $this->fetchGitLabMrDiffLineCount($project, (int) $mr['iid']);
+        $iid = (int) $mr['iid'];
+        $diffLines = $this->fetchGitLabMrDiffLineCount($project, $iid);
+        $closesIssueIids = $this->fetchGitLabMrClosesIssues($project, $iid);
         $mrs[] = [
-          'iid' => (int) $mr['iid'],
+          'iid' => $iid,
           'title' => $mr['title'] ?? '',
           'state' => $mr['state'] ?? '',
           'author' => $mr['author']['username'] ?? '',
@@ -401,6 +403,7 @@ class NewsletterDataFetcherService {
           'labels' => $mr['labels'] ?? [],
           'description' => $mr['description'] ?? '',
           'diff_lines' => $diffLines,
+          'closes_issue_iids' => $closesIssueIids,
         ];
       }
 
@@ -505,6 +508,37 @@ class NewsletterDataFetcherService {
     }
     catch (RequestException) {
       return 0;
+    }
+  }
+
+  /**
+   * Returns the GitLab issue IIDs that the given MR closes.
+   *
+   * Uses GET /projects/:id/merge_requests/:iid/closes_issues — the same data
+   * GitLab surfaces as "Closes issue #N" in the MR UI.
+   *
+   * @return int[]
+   */
+  private function fetchGitLabMrClosesIssues(string $project, int $mrIid): array {
+    $url = sprintf(self::GITLAB_BASE . '/merge_requests/%d/closes_issues', $project, $mrIid);
+
+    try {
+      $response = $this->httpClient->get($url, [
+        'query' => ['per_page' => 50],
+        'timeout' => 15,
+        'headers' => $this->gitlabHeaders(),
+      ]);
+      $data = json_decode((string) $response->getBody(), TRUE);
+      if (!is_array($data)) {
+        return [];
+      }
+      return array_values(array_filter(array_map(
+        fn($issue) => isset($issue['iid']) ? (int) $issue['iid'] : NULL,
+        $data,
+      )));
+    }
+    catch (RequestException) {
+      return [];
     }
   }
 
