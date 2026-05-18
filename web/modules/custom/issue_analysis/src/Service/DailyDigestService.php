@@ -469,6 +469,19 @@ class DailyDigestService {
     $mrs = $module['merge_requests'] ?? [];
     $commits = $module['commits'] ?? [];
 
+    // Build issue_iid → [mr summary strings] map so each issue can show its related MRs inline.
+    $issueMrMap = [];
+    foreach ($mrs as $mr) {
+      foreach ($mr['closes_issue_iids'] ?? [] as $closedIid) {
+        $mrState = $mr['merged_at'] ? 'merged ' . substr($mr['merged_at'], 0, 10) : $mr['state'];
+        $mrAuthorDisplay = ($mr['author_name'] ?? '') && $mr['author_name'] !== $mr['author']
+          ? "{$mr['author_name']} ({$mr['author']})"
+          : $mr['author'];
+        $diffNote = isset($mr['diff_lines']) && $mr['diff_lines'] > 0 ? ", {$mr['diff_lines']} diff lines" : '';
+        $issueMrMap[$closedIid][] = "  - MR !{$mr['iid']} [{$mr['title']}]({$mr['web_url']}) | State: {$mrState} | Author: {$mrAuthorDisplay}{$diffNote}";
+      }
+    }
+
     $confidentialCount = 0;
     $issueLines = [];
     foreach ($issues as $i) {
@@ -490,6 +503,13 @@ class DailyDigestService {
       $updatedAt = substr($i['updated_at'] ?? '', 0, 10);
       $issueLines[] = "### [{$i['title']}]({$i['web_url']})";
       $issueLines[] = "State: {$i['state']} | Updated: {$updatedAt} | Author: {$authorDisplay} | Assigned: {$assignees} | Labels: {$labels}";
+      // Embed related MRs inline so the LLM knows the current contribution state for this issue.
+      if (!empty($issueMrMap[$i['iid']])) {
+        $issueLines[] = "Related MRs (already exist for this issue — check state before suggesting new contributions):";
+        foreach ($issueMrMap[$i['iid']] as $mrSummary) {
+          $issueLines[] = $mrSummary;
+        }
+      }
       // Include a trimmed version of the issue description for context.
       $description = trim(strip_tags($i['description'] ?? ''));
       if ($description) {
@@ -519,6 +539,8 @@ class DailyDigestService {
       }
     }
 
+    // MRs that don't close any fetched issue are listed separately (e.g. infra, refactor MRs).
+    $fetchedIssueIids = array_column($issues, 'iid');
     $mrLines = [];
     foreach ($mrs as $mr) {
       $merged = $mr['merged_at'] ? 'merged ' . substr($mr['merged_at'], 0, 10) : $mr['state'];
@@ -526,6 +548,10 @@ class DailyDigestService {
       $mrAuthor = ($mr['author_name'] ?? '') && $mr['author_name'] !== $mr['author']
         ? "{$mr['author_name']} ({$mr['author']})"
         : $mr['author'];
+      // Skip MRs already shown inline under their issue to avoid duplication.
+      if (!empty($mr['closes_issue_iids']) && array_intersect($mr['closes_issue_iids'], $fetchedIssueIids)) {
+        continue;
+      }
       $mrLines[] = "### [{$mr['title']}]({$mr['web_url']})";
       $mrLines[] = "State: {$merged} | Author: {$mrAuthor} | Branch: {$mr['source_branch']}{$diffNote}";
       $mrDesc = trim(strip_tags($mr['description'] ?? ''));
@@ -564,11 +590,11 @@ class DailyDigestService {
     [$personaInstruction, $howToHelpProjectInstruction] = match ($persona) {
       'executive' => [
         "You are writing for a non-technical executive audience (CEO/leadership level).\nFocus on: business impact, strategic progress, risks, and what is being delivered.\nAvoid technical jargon. Do not mention branch names, function names, or API details.\nExplain what each piece of work means for users or the project's goals.",
-        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.\nCRITICAL: Before writing each suggestion, verify it against the issue data. Do not suggest actions that are already in progress or covered by an existing MR — for example, do not suggest that work needs to be started if an issue already has a Related MR.",
       ],
       default => [
         "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
-        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now (e.g. reviewing a specific MR, picking up an unassigned issue, writing a test, or investigating a blocker). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.",
+        "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now. Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.\nCRITICAL: Before writing each suggestion, check the data for each issue:\n- If an issue shows a Related MR with state 'opened', do NOT suggest creating a patch or MR — one already exists. Suggest reviewing it instead.\n- If all Related MRs for an issue are merged, do NOT suggest reviewing them — they are already done.\n- If an issue is unassigned with no Related MRs, it is a good candidate to pick up.\n- Only suggest actions that are genuinely still needed given the current state in the data above.",
       ],
     };
 
