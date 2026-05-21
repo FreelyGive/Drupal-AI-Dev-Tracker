@@ -388,6 +388,13 @@ class MailchimpDigestService {
 
     $parts = [];
 
+    $persona_label = ($field_name === 'field_executive_summary') ? 'Executive Edition' : 'Developer Edition';
+    $parts[] = '<div style="background:#003f8a;color:#ffffff;padding:1.5em 1.25em 1.25em;border-radius:4px 4px 0 0;margin-bottom:0;">';
+    $parts[] = '<p style="margin:0 0 0.25em;font-size:0.8em;text-transform:uppercase;letter-spacing:0.08em;opacity:0.8;">' . htmlspecialchars($persona_label) . '</p>';
+    $parts[] = '<h1 style="margin:0;font-size:1.4em;line-height:1.3;color:#ffffff;">' . htmlspecialchars($node->getTitle()) . '</h1>';
+    $parts[] = '</div>';
+    $parts[] = '<div style="height:4px;background:linear-gradient(90deg,#0056b3,#6b3fa0);margin-bottom:1.5em;border-radius:0 0 2px 2px;"></div>';
+
     // For the developer newsletter, prepend the TL;DR from the summary subfield
     // in a styled box. The executive TL;DR is already embedded in the body.
     if ($field_name === 'field_developer_summary' && !empty($tldr)) {
