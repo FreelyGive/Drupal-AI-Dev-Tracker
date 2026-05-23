@@ -1,0 +1,3 @@
+api_key: amazeeio_ai
+postgres_port: 5432
+postgres_password: amazeeio_ai_database

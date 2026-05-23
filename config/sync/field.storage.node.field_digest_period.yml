@@ -20,7 +20,7 @@ settings:
       value: 1m
       label: 'Monthly (1m)'
   allowed_values_function: ''
-module: core
+module: options
 locked: false
 cardinality: 1
 translatable: true
