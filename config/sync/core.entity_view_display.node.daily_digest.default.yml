@@ -17,13 +17,6 @@ targetEntityType: node
 bundle: daily_digest
 mode: default
 content:
-  field_digest_period:
-    type: list_default
-    label: above
-    settings: {  }
-    third_party_settings: {  }
-    weight: 100
-    region: content
   field_data_file:
     type: file_default
     label: above
@@ -38,6 +31,13 @@ content:
     settings: {  }
     third_party_settings: {  }
     weight: 102
+    region: content
+  field_digest_period:
+    type: list_default
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
     region: content
   field_executive_summary:
     type: text_default
