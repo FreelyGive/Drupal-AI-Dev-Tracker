@@ -37,6 +37,14 @@ class DailyDigestService {
   public function run(?string $module = NULL, ?callable $logger = NULL): void {
     $log = $logger ?? fn($msg) => NULL;
     set_time_limit(0);
+
+    if (!$this->summariser->checkHealth()) {
+      $message = 'Daily digest aborted: LLM provider is unreachable or over budget.';
+      \Drupal::logger('issue_analysis')->error($message);
+      $log($message);
+      return;
+    }
+
     $period = '24h';
 
     [$since, $until] = NewsletterDataFetcherService::periodToDateRange($period);
@@ -162,6 +170,19 @@ class DailyDigestService {
    */
   public static function batchFetch(?string $module, array &$context): void {
     set_time_limit(0);
+    $context['message'] = t('Checking LLM availability...');
+
+    /** @var \Drupal\issue_analysis\Service\AiSummariserService $summariser */
+    $summariser = \Drupal::service('issue_analysis.summariser');
+    if (!$summariser->checkHealth()) {
+      $message = 'Daily digest aborted: LLM provider is unreachable or over budget.';
+      \Drupal::logger('issue_analysis')->error($message);
+      \Drupal::messenger()->addError(t('Daily digest aborted: LLM provider is unreachable or over budget.'));
+      $context['finished'] = TRUE;
+      $context['results']['aborted'] = TRUE;
+      return;
+    }
+
     $context['message'] = t('Fetching GitLab activity...');
 
     /** @var \Drupal\issue_analysis\Service\NewsletterDataFetcherService $fetcher */
@@ -291,6 +312,10 @@ class DailyDigestService {
    * Batch finished callback.
    */
   public static function batchFinished(bool $success, array $results, array $operations): void {
+    if (!empty($results['aborted'])) {
+      // Error messenger already set in batchFetch(); nothing more to do.
+      return;
+    }
     if ($success) {
       \Drupal::messenger()->addStatus(t('Daily digest generated successfully.'));
     }
@@ -1417,6 +1442,13 @@ PROMPT;
   public function runBiweekly(?string $module = NULL, ?callable $logger = NULL): void {
     $log = $logger ?? fn($msg) => NULL;
     set_time_limit(0);
+
+    if (!$this->summariser->checkHealth()) {
+      $message = 'Sprint digest aborted: LLM provider is unreachable or over budget.';
+      \Drupal::logger('issue_analysis')->error($message);
+      $log($message);
+      return;
+    }
 
     $until = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     $since = $until->modify('-14 days');
