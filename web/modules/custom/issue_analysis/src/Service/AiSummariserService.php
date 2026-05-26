@@ -53,6 +53,23 @@ class AiSummariserService {
   }
 
   /**
+   * Tests whether the configured LLM provider is reachable and within budget.
+   *
+   * Sends a minimal probe prompt. Returns TRUE if the provider responds with
+   * non-empty text, FALSE if any exception is thrown (e.g. 400 budget exceeded,
+   * network error, no provider configured).
+   */
+  public function checkHealth(): bool {
+    try {
+      $result = $this->complete('Reply with OK.', ['health_check']);
+      return $result !== '';
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
    * Like complete(), but additionally JSON-decodes and validates the response.
    *
    * @return array<string, mixed>

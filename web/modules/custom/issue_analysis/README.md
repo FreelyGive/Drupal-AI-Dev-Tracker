@@ -21,8 +21,14 @@ Fetches the last 24h, writes all output files to `web/issue_analysis/`.
 
 ```bash
 ddev drush ia-daily
-ddev drush ia-daily --module=ai   # single module for testing
+ddev drush ia-daily --module=ai            # single module for testing
+ddev drush ia-daily --date=2025-05-20      # regenerate digest for a past day, the date is the end day of the period
+ddev drush ia-daily --date=2025-05-20 --module=ai
 ```
+
+**`--date=YYYY-MM-DD`** — generates a digest for a specific past day. The provided date is the **end day** of the 24h period: the window runs from `00:00:00` to `23:59:59 UTC` on that date. Creates the digest node but does not send any newsletter. Useful for backfilling missing digests.
+
+**LLM health check:** Before fetching any data, `ia-daily` sends a probe request to the configured LLM provider. If the provider is unreachable or over budget, the command aborts immediately and logs an error — no empty digest node is created.
 
 **Output files:**
 - `web/issue_analysis/1d-summary-dev.md` — developer newsletter
