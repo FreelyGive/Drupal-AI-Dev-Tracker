@@ -33,8 +33,12 @@ class DailyDigestService {
    *   Optional machine name to limit to a single module.
    * @param callable|null $logger
    *   Optional callable(string $message) for progress feedback.
+   * @param string|null $date
+   *   Optional date string (YYYY-MM-DD). When provided, the digest covers the
+   *   24h period ending at midnight UTC on that date (i.e. that calendar day).
+   *   Defaults to the last 24h ending now.
    */
-  public function run(?string $module = NULL, ?callable $logger = NULL): void {
+  public function run(?string $module = NULL, ?callable $logger = NULL, ?string $date = NULL): void {
     $log = $logger ?? fn($msg) => NULL;
     set_time_limit(0);
 
@@ -47,7 +51,13 @@ class DailyDigestService {
 
     $period = '24h';
 
-    [$since, $until] = NewsletterDataFetcherService::periodToDateRange($period);
+    if ($date !== NULL) {
+      $until = (new \DateTimeImmutable($date, new \DateTimeZone('UTC')))->setTime(23, 59, 59);
+      $since = $until->modify('-24 hours');
+    }
+    else {
+      [$since, $until] = NewsletterDataFetcherService::periodToDateRange($period);
+    }
     $generatedAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
 
     $log(sprintf('Fetching %s activity from %s to %s...', $module ? "\"$module\"" : 'all modules', $since->format('Y-m-d H:i'), $until->format('Y-m-d H:i')));

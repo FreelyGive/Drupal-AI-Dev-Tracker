@@ -112,17 +112,25 @@ class NewsletterCommands extends DrushCommands {
    */
   #[CLI\Command(name: 'issue-analysis:daily-digest', aliases: ['ia-daily'])]
   #[CLI\Option(name: 'module', description: 'Machine name of a single module. Omit to process all.')]
-  #[CLI\Usage(name: 'drush ia-daily', description: 'Fetch 24h data and generate developer + executive newsletters.')]
+  #[CLI\Option(name: 'date', description: 'Generate digest for a specific past day (YYYY-MM-DD). Covers the 24h ending at 23:59:59 UTC on that date.')]
+  #[CLI\Usage(name: 'drush ia-daily', description: 'Fetch last 24h data and generate developer + executive newsletters.')]
+  #[CLI\Usage(name: 'drush ia-daily --date=2025-05-20', description: 'Generate digest for 20 May 2025 (24h ending at 23:59:59 UTC that day).')]
   #[CLI\Usage(name: 'drush ia-daily --module=ai', description: 'Run the daily digest for the "ai" module only.')]
   public function dailyDigest(
-    array $options = ['module' => NULL],
+    array $options = ['module' => NULL, 'date' => NULL],
   ): void {
     $module = $options['module'] ?? NULL;
+    $date = $options['date'] ?? NULL;
     $io = $this->io();
+
+    if ($date !== NULL && !\DateTimeImmutable::createFromFormat('Y-m-d', $date, new \DateTimeZone('UTC'))) {
+      $this->logger()->error("Invalid --date '$date'. Use YYYY-MM-DD format.");
+      return;
+    }
 
     $this->digestService->run($module, function (string $msg) use ($io): void {
       $io->writeln("<info>$msg</info>");
-    });
+    }, $date);
   }
 
   // ---------------------------------------------------------------------------
