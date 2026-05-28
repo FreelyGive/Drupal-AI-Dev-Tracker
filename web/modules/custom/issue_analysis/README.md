@@ -110,8 +110,8 @@ Trigger the daily digest directly via Drush from the server's cron scheduler:
 
 # cron from prod
 */30 * * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin /var/www/html/.devpanel/ai-dashboard-cron.sh
-0 5 * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-daily >> /var/log/drush.log 2>&1
-0 6 1,16 * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-biweekly >> /var/log/drush.log 2>&1
+0 5 * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-daily >> .logs/drush.log 2>&1
+0 6 1,16 * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-biweekly >> .logs/drush.log 2>&1
 ```
 
 ---
