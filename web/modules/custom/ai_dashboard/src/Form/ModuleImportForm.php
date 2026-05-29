@@ -178,13 +178,8 @@ class ModuleImportForm extends EntityForm {
     // If project name is provided but no explicit ID, validate it can be resolved.
     if (!empty($project_name) && empty($project_id)) {
       try {
-        $import_service = \Drupal::service('ai_dashboard.issue_import');
-        // Test the resolution by calling the protected method via reflection.
-        $reflection = new \ReflectionClass($import_service);
-        $method = $reflection->getMethod('resolveProjectIdFromMachineName');
-        $method->setAccessible(TRUE);
-
-        $resolved_id = $method->invoke($import_service, $project_name);
+        $issue_process_service = \Drupal::service('ai_dashboard.issue_import_process');
+        $resolved_id = $issue_process_service->resolveProjectIdFromMachineName($project_name, $form_state->getValue('source_type'));
 
         // Store resolved ID for save() to use.
         $form_state->set('resolved_project_id', $resolved_id);

@@ -3,7 +3,7 @@
 namespace Drupal\ai_dashboard\Plugin\QueueWorker;
 
 use Drupal\ai_dashboard\Entity\ModuleImport;
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\ai_dashboard\Service\IssueImportProcessService;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\Attribute\QueueWorker;
@@ -29,9 +29,9 @@ class ModuleImportFullSync extends QueueWorkerBase implements ContainerFactoryPl
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
-   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   * @var \Drupal\ai_dashboard\Service\IssueImportProcessService
    */
-  protected IssueImportService $importService;
+  protected IssueImportProcessService $issueProcessService;
 
   /**
    * The state service.
@@ -46,7 +46,7 @@ class ModuleImportFullSync extends QueueWorkerBase implements ContainerFactoryPl
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = new static($configuration, $plugin_id, $plugin_definition);
     $instance->entityTypeManager = $container->get('entity_type.manager');
-    $instance->importService = $container->get('ai_dashboard.issue_import');
+    $instance->issueProcessService = $container->get('ai_dashboard.issue_import_process');
     $instance->state = $container->get('state');
     return $instance;
   }
@@ -59,7 +59,7 @@ class ModuleImportFullSync extends QueueWorkerBase implements ContainerFactoryPl
       ->load($data[0]);
     assert($config instanceof ModuleImport);
     foreach ($data[1] as $issueData) {
-      $this->importService->processIssue($issueData, $config);
+      $this->issueProcessService->processIssue($issueData, $config);
     }
     // Last item in the queue should contain initial timestamp.
     if (!empty($data[2])) {

@@ -59,14 +59,24 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
     $source_type = $entity->getSourceType();
     $row['source_type'] = $source_types[$source_type] ?? $source_type;
 
-    // Show machine name as link to drupal.org project page.
+    // Show machine name as link to drupal.org/GitLab project page.
     $machine_name = $entity->getProjectMachineName();
-    if ($machine_name && $source_type === 'drupal_org') {
+
+    switch ($source_type) {
+      case 'drupal_org': 
+        $url_string = "https://www.drupal.org/project/{$machine_name}";
+        break;
+      case 'gitlab':
+        $url_string = "https://git.drupalcode.org/project/${machine_name}";
+        break;
+    }
+
+    if ($machine_name) {
       $row['machine_name'] = [
         'data' => [
           '#type' => 'link',
           '#title' => $machine_name,
-          '#url' => Url::fromUri("https://www.drupal.org/project/{$machine_name}"),
+          '#url' => Url::fromUri($url_string),
           '#attributes' => ['target' => '_blank', 'rel' => 'noopener'],
         ],
       ];

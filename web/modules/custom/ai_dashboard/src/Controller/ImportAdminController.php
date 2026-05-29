@@ -5,7 +5,8 @@ namespace Drupal\ai_dashboard\Controller;
 use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\ai_dashboard\Service\IssueImportProcessService;
+use Drupal\ai_dashboard\Service\IssueImportOrchestrationService;
 use Drupal\Core\Link;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -27,11 +28,18 @@ class ImportAdminController extends ControllerBase {
   protected $entityTypeManager;
 
   /**
-   * The issue import service.
+   * The issue import process service.
    *
-   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   * @var \Drupal\ai_dashboard\Service\IssueImportProcessService
    */
-  protected $importService;
+  protected $issueImportProcessService;
+
+  /**
+   * The issue import orchestration service.
+   *
+   * @var \Drupal\ai_dashboard\Service\IssueImportOrchestrationService
+   */
+  protected $issueImportOrchestrationService;
 
   /**
    * The messenger service.
@@ -45,14 +53,16 @@ class ImportAdminController extends ControllerBase {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
-   * @param \Drupal\ai_dashboard\Service\IssueImportService $import_service
-   *   The import service.
+   * @param \Drupal\ai_dashboard\Service\IssueImportProcessService $issue_process_service
+   *   The issue import process service.
+   * @param \Drupal\ai_dashboard\Service\IssueImportOrchestrationService $issue_orchestration_service
+   *   The issue import orchestration service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, IssueImportService $import_service, MessengerInterface $messenger) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, IssueImportProcessService $issue_process_service, IssueImportOrchestrationService $issue_orchestration_service, MessengerInterface $messenger) {
     $this->entityTypeManager = $entity_type_manager;
-    $this->importService = $import_service;
+    $this->issueProcessService = $issue_process_service;
     $this->messenger = $messenger;
   }
 
@@ -62,7 +72,8 @@ class ImportAdminController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity_type.manager'),
-      $container->get('ai_dashboard.issue_import'),
+      $container->get('ai_dashboard.issue_import_process'),
+      $container->get('ai_dashboard.issue_import_orchestration'),
       $container->get('messenger')
     );
   }
@@ -205,7 +216,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function runImport(NodeInterface $node) {
     try {
-      $results = $this->importService->importFromConfig($node, TRUE);
+      $results = $this->issueOrchestrationService->importFromConfig($node, TRUE);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -234,7 +245,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function runModuleImport(ModuleImport $module_import) {
     try {
-      $results = $this->importService->import($module_import);
+      $results = $this->issueOrchestrationService->import($module_import);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -269,7 +280,7 @@ class ImportAdminController extends ControllerBase {
     }
 
     // For multiple configurations, use the dedicated batch import service.
-    $batch_service = \Drupal::service('ai_dashboard.batch_import');
+    $batch_service = \Drupal::service('ai_dashboard.import_orchestration');
     $total_imported = 0;
     $total_errors = 0;
     $batch_started = FALSE;
@@ -310,7 +321,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function deleteAllIssues(Request $request) {
     try {
-      $deleted_count = $this->importService->deleteAllIssues();
+      $deleted_count = $this->issueProcessService->deleteAllIssues();
       $this->messenger->addStatus(sprintf('Deleted %d issues.', $deleted_count));
     }
     catch (\Exception $e) {
