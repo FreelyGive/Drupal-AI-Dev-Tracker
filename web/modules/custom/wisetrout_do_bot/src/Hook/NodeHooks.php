@@ -46,6 +46,7 @@ class NodeHooks {
   }
 
   protected function notifyAboutIssueCreation(NodeInterface $node): void {
+
     $chatIds = $this->getModuleChatIds($node);
 
     $moduleName = $node->get('field_issue_module')->entity->label();
@@ -92,7 +93,7 @@ class NodeHooks {
       ])
       ->fetchCol();
     $activeChatIds = $db
-    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) and status = 1 AND type = 'instant'", [
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) AND status = 1 AND type = 'instant'", [
         ':chat_ids[]' => $chatIds,
       ])
       ->fetchCol();
@@ -142,33 +143,36 @@ class NodeHooks {
 
   protected function sendBotNotifications($chatIds, $message) {
     $httpClient = \Drupal::httpClient();
+    $bot_token = \Drupal::service('settings')->get('tgbot_token');
 
     if (strlen($message) > self::MAX_MESSAGE_LENGTH) {
       $message = substr($message, 0, self::MAX_MESSAGE_LENGTH - 4) . '...';
     }
 
-    foreach ($chatIds as $chatId) {
-      $url = 'https://api.telegram.org/bot'
-        . getenv('BOT_TOKEN')
-        . '/sendMessage';
+    foreach($chatIds as $chatId){
+    
+      $url = 'https://api.telegram.org/bot' 
+      . $bot_token
+      . '/sendMessage';
       $payload = [
         'chat_id' => $chatId,
         'text' => $message,
         "parse_mode" => "HTML",
       ];
-
-      try {
-        $response = $httpClient->post($url, [
+      
+      try{
+        $response = $httpClient
+        ->post($url, [
           'body' => json_encode($payload),
           'headers' => [
             'Content-Type' => 'application/json',
-          ],
+          ]
         ]);
-      }
-      catch (RequestException $e) {
+      }catch (RequestException $e) {
         \Drupal::logger('wtbot')->warning($e->getMessage() . ': ' . $message);
       }
     }
+    
   }
 
 }

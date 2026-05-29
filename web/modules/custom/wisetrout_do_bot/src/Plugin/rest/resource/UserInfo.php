@@ -34,9 +34,11 @@ class UserInfo extends ResourceBase {
 
       $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($moduleIds);
 
-      $modules = array_map(function ($node){
-        return $node->field_module_machine_name[0]->value;
-      }, $nodes);
+      $modules = [];
+
+      foreach($nodes as $node){
+        $modules[] = $node->field_module_machine_name[0]->value;
+      }
 
       return array_values($modules);
     }
