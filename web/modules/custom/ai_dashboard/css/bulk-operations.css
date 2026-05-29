@@ -167,17 +167,20 @@
 }
 
 /* Link styling */
-.module-import-table a[href*="drupal.org"] {
+.module-import-table a[href*="drupal.org"],
+.module-import-table a[href*="git.drupalcode.org"] {
   color: #0078d4;
   text-decoration: none;
   font-weight: 500;
 }
 
-.module-import-table a[href*="drupal.org"]:hover {
+.module-import-table a[href*="drupal.org"]:hover,
+.module-import-table a[href*="git.drupalcode.org"]:hover {
   text-decoration: underline;
 }
 
-.module-import-table a[href*="drupal.org"]::after {
+.module-import-table a[href*="drupal.org"]::after,
+.module-import-table a[href*="git.drupalcode.org"]::after {
   content: "↗";
   font-size: 0.75rem;
   margin-left: 0.25rem;
