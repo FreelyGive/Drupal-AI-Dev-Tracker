@@ -203,3 +203,8 @@ test-kanban-login.js
 
 # Ignore local development code scratchpad
 .code/
+.ddev/docker-compose.phpmyadmin_norouter.yaml
+.ddev/docker-compose.phpmyadmin.yaml
+.ddev/addon-metadata/phpmyadmin/manifest.yaml
+.ddev/commands/host/phpmyadmin
+private
