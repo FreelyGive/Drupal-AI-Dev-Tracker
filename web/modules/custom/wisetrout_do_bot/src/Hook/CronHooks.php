@@ -208,7 +208,7 @@ class CronHooks {
     $notifications = [];
 
     foreach($subscriptions as $subscription){
-      if($moduleSummaries[$subscription->module_id]){
+      if(isset($moduleSummaries[$subscription->module_id])){
         $notifications[] = [
           "chatId" => $subscription->chat_id,
           "message" => $moduleSummaries[$subscription->module_id],
