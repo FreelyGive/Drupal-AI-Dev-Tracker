@@ -5,18 +5,21 @@ namespace Drupal\wisetrout_do_bot\Hook;
 use Drupal\Core\Entity\EntityEvents;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\node\NodeInterface;
+use GuzzleHttp\Exception\RequestException;
 
 /**
  * Hook implementations for wisetrout_do_bot.
  */
 class NodeHooks {
 
+  const MAX_MESSAGE_LENGTH = 4096;
+
   /**
    * Reacts to node insertion.
    */
   #[Hook('node_insert')]
   public function onNodeInsert(NodeInterface $node): void {
-    if ($node->isPublished()){
+    if ($node->isPublished()) {
       if ($node->getType() === 'ai_issue') {
       $this->notifyAboutIssueCreation($node);
       }
@@ -28,20 +31,20 @@ class NodeHooks {
 
   #[Hook('node_update')]
   public function onNodeUpdate(NodeInterface $node): void {
-    if ($node->isPublished() && $node->getType() === 'ai_issue'){
-      if($node->original->isPublished()) {
+    if ($node->isPublished() && $node->getType() === 'ai_issue') {
+      if ($node->original->isPublished()) {
         $this->notifyAboutIssueUpdate($node);
-      }else {
+      } else {
         $this->notifyAboutIssueCreation($node);
       }
     }
 
-    if ($node->isPublished() && $node->getType() === 'ai_module' && !($node->original->isPublished())){
+    if ($node->isPublished() && $node->getType() === 'ai_module' && !($node->original->isPublished())) {
       $this->notifyAboutModuleCreation($node);
     }
   }
 
-  protected function notifyAboutIssueCreation(NodeInterface $node): void{
+  protected function notifyAboutIssueCreation(NodeInterface $node): void {
 
     $chatIds = $this->getModuleChatIds($node);
 
@@ -61,13 +64,13 @@ class NodeHooks {
     $chatIds = $this->getModuleChatIds($node);
     $updates = $this->findNodeChanges($node);
 
-    if(!count($updates)) {
+    if (!count($updates)) {
       return;
     }
 
     $message = "✏️<b>Issue updated </b>: {$node->label()}";
 
-    foreach($updates as $update){
+    foreach ($updates as $update) {
       $message = $message . "\n{$update['title']}: {$update['old_value']} -> {$update['new_value']}";
     }
 
@@ -92,14 +95,14 @@ class NodeHooks {
     ])
     ->fetchCol();
     $activeChatIds = $db
-    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) and status = 1 AND type = 'instant'", [
+    ->query("SELECT chat_id FROM {telegram_subscribers} WHERE chat_id IN (:chat_ids[]) AND status = 1 AND type = 'instant'", [
         ':chat_ids[]' => $chatIds,
     ])
     ->fetchCol();
     return $activeChatIds;
   }
 
-  protected function getActiveUserIds(){
+  protected function getActiveUserIds() {
     $db = \Drupal::database();
     $activeUserIds = $db
     ->query("SELECT chat_id FROM {telegram_subscribers} WHERE status = 1 AND type = 'instant'")
@@ -135,7 +138,7 @@ class NodeHooks {
     $values = [];
     foreach ($field as $item) {
       $itemValues = $item->getValue();
-      $values[] = $itemValues['value'] ?? $item_values['target_id'] ?? (string) reset($itemValues);
+      $values[] = strip_tags($itemValues['value'] ?? $item_values['target_id'] ?? (string) reset($itemValues));
     }
 
     return implode(', ', $values);
@@ -145,11 +148,16 @@ class NodeHooks {
 
 
     $httpClient = \Drupal::httpClient();
+    $bot_token = \Drupal::service('settings')->get('tgbot_token');
+
+    if (strlen($message) > self::MAX_MESSAGE_LENGTH) {
+      $message = substr($message, 0, self::MAX_MESSAGE_LENGTH - 4) . '...';
+    }
 
     foreach($chatIds as $chatId){
     
       $url = 'https://api.telegram.org/bot' 
-      . $_ENV['BOT_TOKEN']
+      . $bot_token
       . '/sendMessage';
       $payload = [
         'chat_id' => $chatId,
@@ -157,13 +165,18 @@ class NodeHooks {
         "parse_mode" => "HTML",
       ];
 
-      $response = $httpClient
-      ->post($url, [
-        'body' => json_encode($payload),
-        'headers' => [
-          'Content-Type' => 'application/json',
-        ]
-      ]);
+      try{
+        $response = $httpClient
+        ->post($url, [
+          'body' => json_encode($payload),
+          'headers' => [
+            'Content-Type' => 'application/json',
+          ]
+        ]);
+      }catch (RequestException $e) {
+        \Drupal::logger('wtbot')->warning($e->getMessage() . ': ' . $message);
+      }
     }
+    
   }
 }
