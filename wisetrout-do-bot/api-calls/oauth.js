@@ -1,3 +1,6 @@
+const OAUTH_MAX_ATTEMPTS = 5;
+const RETRY_INTERVAL_MS = 10000;
+
 export async function getOAuthToken(){
 
     const data = {
@@ -9,20 +12,30 @@ export async function getOAuthToken(){
 
     const body = new URLSearchParams(data);
 
-    try{
-        const res = await fetch(process.env.BASE_URL + '/oauth/token',  {
-        method: 'POST',
-        body: body
-        })
+    let attemptsDone = 0;
 
-        if(!res.ok) throw new Error(res.status);
+    do{
+        attemptsDone++;
+        try{
+            const res = await fetch(process.env.BASE_URL + '/oauth/token',  {
+            method: 'POST',
+            body: body
+            });
+            if(!res.ok) throw new Error(res.status);
+            const responseData = await res.json();
+            return responseData;
+        }catch(err){
+            console.log('Failed attempt No ' + attemptsDone);
+            console.log(err);
+            await new Promise(res => {
+            setTimeout(()=> {res()}, RETRY_INTERVAL_MS);
+            });
+            continue;
+        }
+        
 
-        const responseData = await res.json();
+    }while(attempts_done < OAUTH_MAX_ATTEMPTS);
 
-        return responseData;
 
-    }catch(err){
-        console.log(err);
-        return null;
-    }
+
 }
