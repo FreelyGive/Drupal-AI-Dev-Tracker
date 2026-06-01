@@ -51,10 +51,8 @@ class NodeHooks {
 
     $moduleName = $node->get('field_issue_module')->entity->label();
 
-    $authorName = $node->getOwner()->getDisplayName();
-
     $label = strip_tags($node->label());
-    $message = "🌱 <b>New issue created</b> in {$moduleName} by {$authorName}: $label
+    $message = "🌱 <b>New issue created</b> in {$moduleName}: $label
     <b>project URL</b>: {$node->get('field_issue_url')->uri}";
 
     $this->sendBotNotifications($chatIds, $message);
