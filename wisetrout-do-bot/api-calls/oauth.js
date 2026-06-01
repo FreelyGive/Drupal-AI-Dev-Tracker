@@ -34,7 +34,7 @@ export async function getOAuthToken(){
         }
         
 
-    }while(attempts_done < OAUTH_MAX_ATTEMPTS);
+    }while(attemptsDone < OAUTH_MAX_ATTEMPTS);
 
 
 
