@@ -1,0 +1,22 @@
+uuid: 1b51bbcb-3db3-48f2-b20d-0d84e5f7b923
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.daily_digest
+id: node.daily_digest.promote
+field_name: promote
+entity_type: node
+bundle: daily_digest
+label: 'Promoted to front page'
+description: ''
+required: false
+translatable: true
+default_value:
+  -
+    value: 1
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

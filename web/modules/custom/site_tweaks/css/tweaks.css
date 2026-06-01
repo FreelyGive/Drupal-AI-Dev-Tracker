@@ -1,0 +1,107 @@
+/**
+ * Site-specific CSS tweaks for the Gin theme.
+ */
+
+h1.page-title {
+  max-width: 100%;
+  text-align: center;
+}
+#block-gin-page-title {
+  text-align: center;
+}
+.region-header nav#block-gin-mainnavigation {
+  background: linear-gradient(135deg, #0073aa, #005a87);
+  padding: 1rem;
+  margin-bottom: 0;
+}
+.region-header nav#block-gin-mainnavigation ul.menu {
+  display: flex;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto;
+
+  list-style: none;
+  gap: 0.5rem 1rem;
+}
+.region-header nav#block-gin-mainnavigation ul.menu li {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.region-header nav#block-gin-mainnavigation ul.menu li a{
+  padding: 0.5rem 1rem;
+  display: block;
+  text-decoration: none;
+  box-shadow: .1em .25em .5em var(--gin-color-primary-light);
+  color: var(--gin-color-button-text);
+  border-radius: var(--gin-border-m);
+}
+.region-header nav#block-gin-mainnavigation ul.menu li.menu-item--active-trail a {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form {
+  text-align: center;
+
+}
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .js-form-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .gin-sticky-form-actions ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .gin-sticky-form-actions {
+  height: auto !important;
+  width: auto !important;
+  position: relative !important;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/** Remove the sticky button **/
+/*#simplenews-subscriber-account-form .gin-sticky-form-actions ,*/
+/*#user-form .gin-sticky-form-actions ,*/
+/*#user-pass-reset .gin-sticky-form-actions ,*/
+/*#user-register-form .gin-sticky-form-actions {*/
+/*  height: auto !important;*/
+/*  width: auto !important;*/
+/*  position: relative !important;*/
+/*}*/
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form {
+  text-align: center;
+
+}
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .js-form-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .gin-sticky-form-actions ,
+body.path-newsletter #mailchimp-signup-subscribe-page-drupal-ai-initiative-daily-summa-form .gin-sticky-form-actions {
+  height: auto !important;
+  width: auto !important;
+  position: relative !important;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+body.path-newsletter #mailchimp-signup-subscribe-page-signup-form-form .js-form-item-mergevars-persona {
+  display: block;
+}

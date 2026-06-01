@@ -56,9 +56,11 @@ if $PECL_UPDATED && sudo /etc/init.d/apache2 status > /dev/null; then
   sudo /etc/init.d/apache2 reload
 fi
 
-#== Set up AI Dashboard cron job (every 30 minutes).
-echo 'Set up AI Dashboard cron job.'
+#== Set up AI Dashboard cron jobs.
+echo 'Set up AI Dashboard cron jobs.'
 chmod +x $APP_ROOT/.devpanel/ai-dashboard-cron.sh
-CRON_CMD="*/30 * * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin /var/www/html/.devpanel/ai-dashboard-cron.sh"
-(crontab -u www -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh'; echo "$CRON_CMD") | crontab -u www -
-echo 'AI Dashboard cron job configured.'
+CRON_DASHBOARD="*/30 * * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin /var/www/html/.devpanel/ai-dashboard-cron.sh"
+CRON_DAILY="0 5 * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-daily >> .logs/drush.log 2>&1"
+CRON_BIWEEKLY="0 6 1,16 * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-biweekly >> .logs/drush.log 2>&1"
+(crontab -u www -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh' | grep -v 'ia-daily' | grep -v 'ia-biweekly'; echo "$CRON_DASHBOARD"; echo "$CRON_DAILY"; echo "$CRON_BIWEEKLY") | crontab -u www -
+echo 'AI Dashboard cron jobs configured.'

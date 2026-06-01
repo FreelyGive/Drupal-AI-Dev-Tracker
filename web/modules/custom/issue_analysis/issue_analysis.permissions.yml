@@ -1,0 +1,4 @@
+generate issue analysis newsletter:
+  title: 'Generate Issue Analysis newsletter'
+  description: 'Trigger the daily digest generation from the admin UI.'
+  restrict access: true

@@ -11,3 +11,4 @@ $settings['hash_salt'] = file_get_contents(__DIR__ . '/salt.txt');
 $settings['config_sync_directory'] = '../config/sync';
 $settings['file_private_path'] = '../private';
 $settings['trusted_host_patterns'] = [getenv('DP_HOSTNAME') ?: '.*'];
+$settings['issue_analysis_cron_token'] = '987jhk984fjkn23r98fwlnv9u3r8f';

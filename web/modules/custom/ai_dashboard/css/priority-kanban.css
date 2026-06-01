@@ -116,8 +116,6 @@ body[class*="path-ai-dashboard/priority-kanban"] .main-content,
 body[class*="path-ai-dashboard/priority-kanban"] .layout-content {
   max-width: none !important;
   width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
   overflow-x: hidden !important;
 }
 
@@ -130,12 +128,6 @@ body[class*="path-ai-dashboard/priority-kanban"] .site-footer,
 body[class*="path-ai-dashboard/priority-kanban"] .site-navigation,
 body[class*="path-ai-dashboard/priority-kanban"] .sidebar {
   display: none !important;
-}
-
-body.path-ai-dashboard-priority-kanban,
-body[class*="path-ai-dashboard/priority-kanban"] {
-  margin: 0;
-  padding: 0;
 }
 
 .ai-priority-kanban .kanban-board {
@@ -192,7 +184,7 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 .ai-priority-kanban .column-count {
   font-size: 1rem;
   font-weight: 500;
-  color: #9ca3af;
+  color: #4b5563;
 }
 
 .ai-priority-kanban .column-description {
@@ -406,6 +398,26 @@ body[class*="path-ai-dashboard/priority-kanban"] {
   max-width: 120px;
 }
 
+.ai-priority-kanban .issue-tags-wrapper {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 10px;
+}
+
+.ai-priority-kanban .issue-tags {
+  font-size: 0.625rem;
+  background: #fefefe;
+  color: #111;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  display: inline-block;
+}
+
 .ai-priority-kanban .issue-link {
   color: #0073bb;
   text-decoration: none;
@@ -503,17 +515,17 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 }
 
 .ai-priority-kanban .issue-card.active .issue-status {
-  background: #3b82f6;
+  background: #0161ff;
   color: white;
 }
 
 .ai-priority-kanban .issue-card.needs-review .issue-status {
-  background: #f59e0b;
+  background: #de7300;
   color: white;
 }
 
 .ai-priority-kanban .issue-card.needs-work .issue-status {
-  background: #ea580c;
+  background: #ca4400;
   color: white;
 }
 
@@ -533,22 +545,22 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 
 .ai-priority-kanban .issue-priority.priority-critical {
     background: #fecaca;
-    color: #dc2626;
+    color: #991b1b;
 }
 
 .ai-priority-kanban .issue-priority.priority-major {
     background: #fed7aa;
-    color: #ea580c;
+    color: #9a3412;
 }
 
 .ai-priority-kanban .issue-priority.priority-normal {
     background: #dbeafe;
-    color: #3b82f6;
+    color: #1e40af;
 }
 
 .ai-priority-kanban .issue-priority.priority-minor {
     background: #f3f4f6;
-    color: #6b7280;
+    color: #1f2937;
 }
 
 .ai-priority-kanban .issue-blocked {
@@ -570,7 +582,7 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 }
 
 .ai-priority-kanban .issue-deadline.overdue {
-  color: #ea580c;
+  color: #ff1900;
 }
 
 .ai-priority-kanban .issue-deadline.due-soon {
@@ -667,7 +679,7 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 
 .ai-priority-kanban .issue-update-summary {
   font-size: 0.75rem;
-  color: #6b7280;
+   color: #3f4a5e;
   margin: 0 0 0.25rem 0;
   line-height: 1.3;
   cursor: help;
@@ -687,7 +699,7 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 
 .ai-priority-kanban .issue-meta-badge {
   background: rgba(253, 244, 255, 1);
-  color: #9333ea;
+  color: #7400de;
   border: 1px solid rgba(243, 232, 255, 0.8);
   font-weight: 500;
 }
@@ -718,12 +730,12 @@ body[class*="path-ai-dashboard/priority-kanban"] {
 
 .ai-priority-kanban .issue-tags .issue-track {
   background: #ddd6fe;
-  color: #7c3aed;
+  color: #5300e1;
 }
 
 .ai-priority-kanban .issue-tags .issue-workstream {
   background: #fef3c7;
-  color: #d97706;
+  color: #aa5b00;
 }
 
 /* Kanban Filters */

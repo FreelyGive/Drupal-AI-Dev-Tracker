@@ -1,0 +1,5 @@
+name: 'Site Tweaks'
+type: module
+description: 'CSS overrides and template tweaks for the Gin theme.'
+package: Custom
+core_version_requirement: ^10 || ^11

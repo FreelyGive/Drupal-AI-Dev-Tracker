@@ -1,0 +1,22 @@
+uuid: ac185342-93b4-4025-a6e9-12f0186203e6
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.ai_resource_allocation
+id: node.ai_resource_allocation.promote
+field_name: promote
+entity_type: node
+bundle: ai_resource_allocation
+label: 'Promoted to front page'
+description: ''
+required: false
+translatable: true
+default_value:
+  -
+    value: 1
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

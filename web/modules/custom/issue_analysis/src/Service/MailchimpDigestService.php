@@ -1,0 +1,476 @@
+<?php
+
+namespace Drupal\issue_analysis\Service;
+
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\node\NodeInterface;
+use Mailchimp\MailchimpCampaigns;
+
+/**
+ * Creates Mailchimp campaign drafts from a daily_digest node.
+ *
+ * Two campaigns are created per digest targeting the same audience but with
+ * inline interest-group conditions:
+ *   - Executive: field_executive_summary → subscribers who chose "Executive"
+ *   - Developer: field_developer_summary → subscribers who chose "Developer"
+ *
+ * When a test tag ID is configured, both campaigns target the main audience
+ * filtered to only subscribers with that tag (no interest segmentation).
+ * When a test audience ID is configured, both campaigns target that list
+ * with no segmentation (useful for smoke-testing before going live).
+ */
+class MailchimpDigestService {
+
+  public function __construct(
+    protected ConfigFactoryInterface $configFactory,
+    protected LoggerChannelFactoryInterface $loggerFactory,
+    protected RendererInterface $renderer,
+  ) {}
+
+  /**
+   * Creates two Mailchimp campaign drafts (executive + developer) for the node.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   A published daily_digest node.
+   *
+   * @return array
+   *   Keyed ['executive' => string|null, 'developer' => string|null].
+   */
+  public function createCampaignDraft(NodeInterface $node): array {
+    if (!\Drupal::moduleHandler()->moduleExists('mailchimp_campaign')) {
+      return ['executive' => NULL, 'developer' => NULL];
+    }
+
+    $config      = $this->configFactory->get('issue_analysis.settings');
+    $test_list   = $config->get('mailchimp_list_id_test') ?: NULL;
+    $tag_id_test = $config->get('mailchimp_tag_id_test') ?: NULL;
+    $list_id     = $test_list ?: ($config->get('mailchimp_list_id') ?: NULL);
+
+    if (empty($list_id)) {
+      $this->loggerFactory->get('issue_analysis')->notice(
+        'Mailchimp campaigns not created: no audience ID configured.'
+      );
+      return ['executive' => NULL, 'developer' => NULL];
+    }
+
+    $from_name   = $config->get('mailchimp_from_name') ?: 'Drupal AI Initiative';
+    $reply_to    = $config->get('mailchimp_reply_to') ?: '';
+    $category_id      = $config->get('mailchimp_interest_category_id') ?: NULL;
+    $exec_id          = $config->get('mailchimp_interest_executive') ?: NULL;
+    $dev_id           = $config->get('mailchimp_interest_developer') ?: NULL;
+    $freq_category_id = $config->get('mailchimp_freq_category_id') ?: NULL;
+    $freq_1d_id       = $config->get('mailchimp_freq_1d') ?: NULL;
+    $freq_2w_id       = $config->get('mailchimp_freq_2w') ?: NULL;
+    $freq_1m_id       = $config->get('mailchimp_freq_1m') ?: NULL;
+
+    $subject = $node->getTitle();
+
+    $digest_period = $node->hasField('field_digest_period')
+      ? ($node->get('field_digest_period')->value ?: '1d')
+      : '1d';
+
+    $freq_interest_id = match ($digest_period) {
+      '2w'    => $freq_2w_id,
+      '1m'    => $freq_1m_id,
+      default => $freq_1d_id,
+    };
+
+    $personas = [
+      'executive' => [
+        'label'       => 'Executive',
+        'field'       => 'field_executive_summary',
+        'interest_id' => $exec_id,
+      ],
+      'developer' => [
+        'label'       => 'Developer',
+        'field'       => 'field_developer_summary',
+        'interest_id' => $dev_id,
+      ],
+    ];
+
+    $results = [];
+    foreach ($personas as $key => $persona) {
+      $html = $this->renderFieldWithTldr($node, $persona['field']);
+      if (empty($html)) {
+        $this->loggerFactory->get('issue_analysis')->notice(
+          'Skipping @label Mailchimp campaign: @field is empty on node @nid.',
+          ['@label' => $persona['label'], '@field' => $persona['field'], '@nid' => $node->id()]
+        );
+        $results[$key] = NULL;
+        continue;
+      }
+
+      // Build segment_opts based on mode:
+      // - Tag ID set: target only subscribers with that tag (no interest segmentation).
+      // - No test override and interest IDs configured: use interest-group segmentation.
+      // - Otherwise: no segmentation (send to full list).
+      $segment_opts = NULL;
+      if ($tag_id_test) {
+        $segment_opts = (object) [
+          'match' => 'all',
+          'conditions' => [
+            (object) [
+              'condition_type' => 'StaticSegment',
+              'field'          => 'static_segment',
+              'op'             => 'static_is',
+              'value'          => (int) $tag_id_test,
+            ],
+          ],
+        ];
+      }
+      elseif (!$test_list && $category_id && $persona['interest_id']) {
+        $conditions = [
+          (object) [
+            'condition_type' => 'Interests',
+            'field'          => 'interests-' . $category_id,
+            'op'             => 'interestcontains',
+            'value'          => [$persona['interest_id']],
+          ],
+        ];
+        if ($freq_category_id && $freq_interest_id) {
+          $conditions[] = (object) [
+            'condition_type' => 'Interests',
+            'field'          => 'interests-' . $freq_category_id,
+            'op'             => 'interestcontains',
+            'value'          => [$freq_interest_id],
+          ];
+        }
+        $segment_opts = (object) [
+          'match'      => 'all',
+          'conditions' => $conditions,
+        ];
+      }
+
+      $results[$key] = $this->createSingleCampaign(
+        $list_id,
+        $segment_opts,
+        $subject . ' — ' . $persona['label'],
+        $from_name,
+        $reply_to,
+        $html,
+        $node->id()
+      );
+    }
+
+    // Send each successfully created campaign immediately, unless sending is disabled.
+    if ($config->get('disable_sending')) {
+      $this->loggerFactory->get('issue_analysis')->notice(
+        'Mailchimp sending is disabled — campaigns created as drafts only.'
+      );
+    }
+    else {
+      foreach ($results as $campaignId) {
+        if (!$campaignId) {
+          continue;
+        }
+        $entities = \Drupal::entityTypeManager()
+          ->getStorage('mailchimp_campaign')
+          ->loadByProperties(['mc_campaign_id' => $campaignId]);
+        $entity = reset($entities);
+        if ($entity) {
+          mailchimp_campaign_send_campaign($entity);
+        }
+        else {
+          $this->loggerFactory->get('issue_analysis')->error(
+            'Could not load mailchimp_campaign entity for @id — campaign not sent.',
+            ['@id' => $campaignId]
+          );
+        }
+      }
+    }
+
+    return $results;
+  }
+
+  /**
+   * Returns the Mailchimp campaign ID of a draft matching the given subject, or NULL.
+   *
+   * Only searches campaigns with status 'save' (unsent drafts). Sent or
+   * sending campaigns are never returned, so they cannot be overwritten.
+   */
+  private function findDraftCampaignBySubject(\Mailchimp\MailchimpCampaigns $mc, string $subject): ?string {
+    try {
+      $result = $mc->getCampaigns(['count' => 10, 'status' => 'save', 'sort_field' => 'create_time', 'sort_dir' => 'DESC']);
+      foreach ($result->campaigns ?? [] as $campaign) {
+        if (($campaign->settings->subject_line ?? '') === $subject) {
+          return $campaign->id;
+        }
+      }
+    }
+    catch (\Exception) {
+      // If we can't fetch drafts, fall through to creating a new campaign.
+    }
+    return NULL;
+  }
+
+  /**
+   * Creates a single campaign draft and registers the Drupal entity.
+   */
+  private function createSingleCampaign(
+    string $list_id,
+    ?object $segment_opts,
+    string $subject,
+    string $from_name,
+    string $reply_to,
+    string $html,
+    int $nid,
+  ): ?string {
+    try {
+      /** @var \Mailchimp\MailchimpCampaigns $mc */
+      $mc = \Drupal::service('mailchimp.api')->getApiObject('MailchimpCampaigns');
+      if (!$mc) {
+        throw new \Exception('Mailchimp API not available. Check API key.');
+      }
+
+      $recipients = (object) ['list_id' => $list_id];
+      if ($segment_opts) {
+        $recipients->segment_opts = $segment_opts;
+      }
+
+      $settings = (object) [
+        'subject_line' => $subject,
+        'title'        => $subject,
+        'from_name'    => $from_name,
+        'reply_to'     => $reply_to,
+      ];
+
+      // Check for an existing unsent draft with the same subject so re-running
+      // the digest for the same day updates rather than duplicates.
+      $existingId = $this->findDraftCampaignBySubject($mc, $subject);
+      if ($existingId) {
+        $mc->updateCampaign($existingId, MailchimpCampaigns::CAMPAIGN_TYPE_REGULAR, $recipients, $settings);
+        $mc->setCampaignContent($existingId, ['html' => $html]);
+
+        $entities = \Drupal::entityTypeManager()
+          ->getStorage('mailchimp_campaign')
+          ->loadByProperties(['mc_campaign_id' => $existingId]);
+        if ($entity = reset($entities)) {
+          $entity->set('template', serialize(['html' => ['value' => $html, 'format' => 'content_format']]));
+          $entity->save();
+        }
+
+        $this->loggerFactory->get('issue_analysis')->notice(
+          'Updated existing Mailchimp campaign draft: @id (subject: @subject) for node @nid.',
+          ['@id' => $existingId, '@subject' => $subject, '@nid' => $nid]
+        );
+
+        return $existingId;
+      }
+
+      $result = $mc->addCampaign(MailchimpCampaigns::CAMPAIGN_TYPE_REGULAR, $recipients, $settings);
+
+      if (empty($result->id)) {
+        throw new \Exception('Mailchimp API returned no campaign ID.');
+      }
+
+      $mc->setCampaignContent($result->id, ['html' => $html]);
+
+      \Drupal::entityTypeManager()
+        ->getStorage('mailchimp_campaign')
+        ->create([
+          'mc_campaign_id' => $result->id,
+          'template' => serialize(['html' => ['value' => $html, 'format' => 'content_format']]),
+        ])
+        ->save();
+
+      $this->loggerFactory->get('issue_analysis')->notice(
+        'Mailchimp campaign draft created: @id (subject: @subject) for node @nid.',
+        ['@id' => $result->id, '@subject' => $subject, '@nid' => $nid]
+      );
+
+      return $result->id;
+    }
+    catch (\Exception $e) {
+      $this->loggerFactory->get('issue_analysis')->error(
+        'Failed to create Mailchimp campaign draft "@subject": @msg',
+        ['@subject' => $subject, '@msg' => $e->getMessage()]
+      );
+      return NULL;
+    }
+  }
+
+  /**
+   * Returns field HTML with the TL;DR summary prepended at the top.
+   *
+   * The summary subfield holds the TL;DR generated during digest assembly.
+   * It is rendered first under an "In this edition" heading, followed by an
+   * <hr> separator, then the full body value.
+   */
+  private function renderFieldWithTldr(NodeInterface $node, string $field_name): string {
+    if (!$node->hasField($field_name) || $node->get($field_name)->isEmpty()) {
+      return '';
+    }
+
+    $item = $node->get($field_name)->first();
+    $tldr = trim($item->summary ?? '');
+    $body = trim($item->value ?? '');
+
+    if (empty($body)) {
+      return '';
+    }
+
+    // Extract the footer meta line (Period | Generated) so it can be
+    // re-appended after the disclaimer. assembleNewsletter() places it as
+    // <p class="digest-meta">...</p> at the very end of the body.
+    $metaLine = '';
+    $body = preg_replace_callback(
+      '/<hr[^>]*>\n<p class="digest-meta"[^>]*>(.*?)<\/p>\s*$/s',
+      function (array $m) use (&$metaLine): string {
+        $metaLine = $m[1];
+        return '';
+      },
+      $body
+    );
+    $body = trim($body);
+
+    // Build the prod node URL for anchor links.
+    $titleSuffix = preg_replace('/^Daily Digest\s*[–-]\s*/u', '', $node->getTitle());
+    $slug = 'daily-digest-' . strtolower(str_replace(' ', '-', $titleSuffix));
+    $digestUrl = 'https://www.drupalstarforge.ai/' . $slug;
+
+    // Extract the references section before any restructuring so it can be
+    // re-appended at the bottom of the email with absolute anchor URLs.
+    $referencesHtml = '';
+    $body = preg_replace_callback(
+      '/<hr[^>]*>\s*\n(<section class="digest-references">.*?<\/section>)/s',
+      function (array $m) use (&$referencesHtml): string {
+        $referencesHtml = $m[1];
+        return '';
+      },
+      $body
+    );
+
+    // Rewrite #ref-N citation hrefs to absolute URLs so they resolve in email.
+    if ($referencesHtml) {
+      $body = str_replace('href="#ref-', 'href="' . $digestUrl . '#ref-', $body);
+      $referencesHtml = str_replace(' id="ref-', ' id="ref-', $referencesHtml);
+    }
+
+    // For the executive newsletter, strip digest-module sections and replace
+    // with a list of anchor links pointing to the prod node page.
+    if ($field_name === 'field_executive_summary') {
+      $projectLinks = [];
+      preg_match_all(
+        '/<section class="digest-module"[^>]*id="([^"]+)"[^>]*>.*?<h[23][^>]*>(.*?)<\/h[23]>/s',
+        $body,
+        $matches,
+        PREG_SET_ORDER
+      );
+      foreach ($matches as $match) {
+        $anchorId = htmlspecialchars($match[1]);
+        $heading  = strip_tags($match[2]);
+        $projectLinks[] = '<li><a href="' . $digestUrl . '#' . $anchorId . '" style="color:#0056b3;">'
+          . htmlspecialchars($heading) . '</a></li>';
+      }
+
+      // Keep capabilities and TL;DR blocks; strip module sections.
+      $capabilitiesHtml = '';
+      if (preg_match('/<section class="digest-capabilities-2026">.*?<\/section>/s', $body, $cap)) {
+        $capabilitiesHtml = $this->inlineEmailStyles($cap[0]);
+      }
+      $tldrBlockHtml = '';
+      if (preg_match('/<div class="daily-digest__tldr">.*?<\/div>/s', $body, $tld)) {
+        $tldrBlockHtml = $this->inlineEmailStyles($tld[0]);
+      }
+
+      $body = $capabilitiesHtml;
+      if ($tldrBlockHtml) {
+        $body .= '<hr style="margin: 2em 0;">' . $tldrBlockHtml;
+      }
+      if ($projectLinks) {
+        $body .= '<hr style="margin: 2em 0;">'
+          . '<p style="font-weight:600;margin-bottom:0.5em;">Projects updated:</p>'
+          . '<ul style="margin:0;padding-left:1.5em;">' . implode('', $projectLinks) . '</ul>';
+      }
+    }
+
+    $parts = [];
+
+    $persona_label = ($field_name === 'field_executive_summary') ? 'Executive Edition' : 'Developer Edition';
+    $parts[] = '<div style="background:#003f8a;color:#ffffff;padding:1.5em 1.25em 1.25em;border-radius:4px 4px 0 0;margin-bottom:0;">';
+    $parts[] = '<p style="margin:0 0 0.25em;font-size:0.8em;text-transform:uppercase;letter-spacing:0.08em;opacity:0.8;">' . htmlspecialchars($persona_label) . '</p>';
+    $parts[] = '<h1 style="margin:0;font-size:1.4em;line-height:1.3;color:#ffffff;">' . htmlspecialchars($node->getTitle()) . '</h1>';
+    $parts[] = '</div>';
+    $parts[] = '<div style="height:4px;background:linear-gradient(90deg,#0056b3,#6b3fa0);margin-bottom:1.5em;border-radius:0 0 2px 2px;"></div>';
+
+    // For the developer newsletter, prepend the TL;DR from the summary subfield
+    // in a styled box. The executive TL;DR is already embedded in the body.
+    if ($field_name === 'field_developer_summary' && !empty($tldr)) {
+      $parts[] = '<div style="background:#f0f6ff;border-left:4px solid #0056b3;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">';
+      $parts[] = '<h2 style="margin-top:0;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">In this edition</h2>';
+      $parts[] = $this->inlineEmailStyles($tldr);
+      $parts[] = '</div>';
+    }
+
+    $parts[] = $body;
+
+    if ($referencesHtml) {
+      $parts[] = '<hr style="margin: 2em 0;">';
+      $parts[] = $this->inlineEmailStyles($referencesHtml);
+    }
+
+    $parts[] = '<hr>';
+    $parts[] = '<p style="text-align:center;font-size:0.9em;">'
+      . '<a href="' . $digestUrl . '">View this newsletter on the web</a>'
+      . '</p>';
+    $parts[] = '<p style="font-size:0.85em;color:#666;"><em>'
+      . 'This summary was generated by AI and may not be fully accurate. '
+      . 'Always verify details against the linked sources.'
+      . '</em></p>';
+    $parts[] = '<p>AI provided by <a href="https://www.amazee.io/" title="Amazee.io">Amazee.io</a></p>';
+
+    if ($metaLine) {
+      $parts[] = '<p style="font-size:0.85em;color:#666;">' . $metaLine . '</p>';
+    }
+
+    return '<div style="line-height:24px;">' . "\n" . implode("\n", $parts) . "\n</div>";
+  }
+
+  /**
+   * Replaces CSS class-based styles with equivalent inline styles for email.
+   *
+   * Email clients ignore external stylesheets, so all visual styling must be
+   * applied inline. This maps the classes used in digest HTML to their
+   * corresponding inline style declarations.
+   */
+  private function inlineEmailStyles(string $html): string {
+    $replacements = [
+      // Capabilities block wrapper — purple left border.
+      '<section class="digest-capabilities-2026">'
+        => '<section style="background:#f5f0ff;border-left:4px solid #6b3fa0;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">',
+      // Capabilities heading.
+      '<h4>2026 Capabilities Progress</h4>'
+        => '<h4 style="margin-top:0;color:#6b3fa0;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">2026 Capabilities Progress</h4>',
+      // Capabilities ordered list.
+      '<ol class="capabilities-2026">'
+        => '<ol style="margin:0.5em 0 0;padding-left:1.5em;">',
+      // TL;DR / Shipped+Ongoing block wrapper — blue left border.
+      '<div class="daily-digest__tldr">'
+        => '<div style="background:#f0f6ff;border-left:4px solid #0056b3;border-radius:4px;padding:1em 1.25em;margin-bottom:1.5em;">',
+      // TL;DR inner headings (Shipped / Ongoing).
+      '<h4>Shipped</h4>'
+        => '<h4 style="margin-top:0;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">Shipped</h4>',
+      '<h4>Ongoing</h4>'
+        => '<h4 style="margin-top:1em;color:#0056b3;font-size:1em;text-transform:uppercase;letter-spacing:0.04em;">Ongoing</h4>',
+      // References section.
+      '<section class="digest-references">'
+        => '<section style="margin-top:1.5em;">',
+      '<h5>References</h5>'
+        => '<h5 style="font-size:0.85em;text-transform:uppercase;letter-spacing:0.06em;color:#888;margin-bottom:0.5em;">References</h5>',
+      // Individual reference paragraphs.
+      'class="digest-reference"'
+        => 'style="font-size:0.85em;margin:0.3em 0;"',
+      // Citation links.
+      'class="digest-citation"'
+        => 'style="color:#0056b3;text-decoration:none;font-size:0.85em;vertical-align:super;"',
+      // ref-meta spans.
+      'class="ref-meta"'
+        => 'style="color:#888;font-size:0.85em;"',
+    ];
+
+    return str_replace(array_keys($replacements), array_values($replacements), $html);
+  }
+
+}

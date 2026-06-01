@@ -1,0 +1,17 @@
+{
+    "_hash": "6bb5a1d0b90466224ec3c7b6fc7b146ed6a30ca036cf1dbe40845a367f3ae9f1",
+    "patches": {
+        "drupal/mailchimp": [
+            {
+                "package": "drupal/mailchimp",
+                "description": "Fix stdClass default value crash in campaign edit form",
+                "url": "patches/mailchimp_campaign-stdclass-default-value.patch",
+                "sha256": "9f6154557f34c4209e2d741995ece398bb684e64ba8a04f74efcc10ada2bf8fa",
+                "depth": 1,
+                "extra": {
+                    "provenance": "root"
+                }
+            }
+        ]
+    }
+}
