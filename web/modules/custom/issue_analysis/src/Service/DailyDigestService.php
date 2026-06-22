@@ -3,6 +3,8 @@
 namespace Drupal\issue_analysis\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\file\Entity\File;
 
@@ -19,12 +21,20 @@ class DailyDigestService {
   /** @var array<int, array{label: string, prompt: string}> Prompts collected during a run. */
   private array $promptLog = [];
 
+  /**
+   * Logger channel for fact-check corrections and failures.
+   */
+  protected LoggerChannelInterface $logger;
+
   public function __construct(
     protected NewsletterDataFetcherService $fetcher,
     protected AiSummariserService $summariser,
     protected StateInterface $state,
     protected EntityTypeManagerInterface $entityTypeManager,
-  ) {}
+    LoggerChannelFactoryInterface $loggerFactory,
+  ) {
+    $this->logger = $loggerFactory->get('issue_analysis');
+  }
 
   /**
    * Runs the full daily digest and writes all output files.
@@ -901,6 +911,7 @@ PROMPT;
       $output = $this->sanitiseTldrHtml($output);
       if ($refMap) {
         $output = $this->linkCitations($output, $refMap);
+        $output = $this->factCheck($output, $refMap, $results, "tldr:$persona");
       }
     }
 
@@ -973,6 +984,7 @@ PROMPT;
 
     if ($refMap) {
       $output = $this->linkCitations($output, $refMap);
+      $output = $this->factCheck($output, $refMap, $results, 'capabilities:executive');
     }
 
     return $output;
@@ -988,10 +1000,10 @@ PROMPT;
    * @param array $results
    *   Raw module data as returned by NewsletterDataFetcherService.
    *
-   * @return array<int, array{n: int, url: string, title: string, type: string, module: string}>
+   * @return array<int, array{n: int, url: string, title: string, type: string, module: string, done: bool, status_label: string}>
    *   Ordered list of reference entries, keyed by 1-based index.
    */
-  private function buildReferenceMap(array $results): array {
+  public function buildReferenceMap(array $results): array {
     $map = [];
     $n = 1;
     foreach ($results as $mod) {
@@ -1004,12 +1016,16 @@ PROMPT;
         if (!$url) {
           continue;
         }
+        $done = ($issue['state'] ?? '') === 'closed';
+        $closedDate = !empty($issue['closed_at']) ? substr($issue['closed_at'], 0, 10) : '';
         $map[$n++] = [
           'n' => $n - 1,
           'url' => $url,
           'title' => $issue['title'] ?? '',
           'type' => 'issue',
           'module' => $machineName,
+          'done' => $done,
+          'status_label' => $done ? trim('closed ' . $closedDate) : ($issue['state'] ?? 'unknown'),
         ];
       }
       foreach ($mod['merge_requests'] ?? [] as $mr) {
@@ -1017,16 +1033,207 @@ PROMPT;
         if (!$url) {
           continue;
         }
+        $done = !empty($mr['merged_at']);
         $map[$n++] = [
           'n' => $n - 1,
           'url' => $url,
           'title' => $mr['title'] ?? '',
           'type' => 'mr',
           'module' => $machineName,
+          'done' => $done,
+          'status_label' => $done ? 'merged ' . substr($mr['merged_at'], 0, 10) : ($mr['state'] ?? 'unknown'),
         ];
       }
     }
     return $map;
+  }
+
+  /**
+   * Deterministic gate: corrects cited completion claims that contradict status.
+   *
+   * For each <li> that cites references by [N] (plain or linked), if the item
+   * uses a completion verb and EVERY cited known reference is not done, the
+   * verb is softened to match reality.
+   *
+   * @param string $html
+   *   Generated HTML (after linkCitations()).
+   * @param array $refMap
+   *   As returned by buildReferenceMap(), with 'done' per entry.
+   *
+   * @return array{html: string, corrections: array}
+   *   The corrected HTML and a list of corrections applied.
+   */
+  public function verifyCitedClaims(string $html, array $refMap): array {
+    $verbMap = [
+      'merged' => 'in progress',
+      'shipped' => 'in progress',
+      'released' => 'in progress',
+      'landed' => 'in progress',
+      'delivered' => 'in progress',
+      'completed' => 'in progress',
+      'fixed' => 'being worked on',
+      'done' => 'in progress',
+    ];
+    $verbPattern = '/\b(' . implode('|', array_keys($verbMap)) . ')\b/i';
+    $corrections = [];
+
+    $newHtml = preg_replace_callback('/<li\b[^>]*>.*?<\/li>/si', function (array $m) use ($refMap, $verbMap, $verbPattern, &$corrections): string {
+      $li = $m[0];
+
+      // Collect cited refs: plain [N] and linked #ref-N.
+      preg_match_all('/(?:href="#ref-(\d+)")|(?<![">])\[(\d+)\]/i', $li, $cm, PREG_SET_ORDER);
+      $refs = [];
+      foreach ($cm as $c) {
+        $refs[] = (int) ($c[1] !== '' ? $c[1] : $c[2]);
+      }
+      $refs = array_values(array_unique(array_filter($refs)));
+      if (!$refs) {
+        return $li;
+      }
+
+      // Only known refs count toward the "all not done" test.
+      $known = array_filter($refs, fn($r) => isset($refMap[$r]));
+      if (!$known) {
+        return $li;
+      }
+      foreach ($known as $r) {
+        if (!empty($refMap[$r]['done'])) {
+          // At least one cited ref is done; the claim stands.
+          return $li;
+        }
+      }
+
+      // Every cited known ref is not done: soften completion verbs, but only in
+      // text outside HTML tags (never inside an attribute or the citation <a>).
+      $parts = preg_split('/(<[^>]+>)/', $li, -1, PREG_SPLIT_DELIM_CAPTURE);
+      $replaced = '';
+      foreach ($parts as $part) {
+        // Tag segments start with '<'; leave them untouched.
+        if ($part !== '' && $part[0] === '<') {
+          $replaced .= $part;
+          continue;
+        }
+        $replaced .= preg_replace_callback($verbPattern, function (array $vm) use ($verbMap, &$corrections, $known): string {
+          $verb = $vm[1];
+          $replacement = $verbMap[strtolower($verb)];
+          $replacement = $this->matchCasing($verb, $replacement);
+          $corrections[] = ['verb' => $verb, 'replacement' => $replacement, 'refs' => array_values($known)];
+          return $replacement;
+        }, $part);
+      }
+
+      return $replaced;
+    }, $html);
+
+    return ['html' => $newHtml ?? $html, 'corrections' => $corrections];
+  }
+
+  /**
+   * Applies the casing of $source to $replacement (all-caps, leading-cap, else lower).
+   */
+  private function matchCasing(string $source, string $replacement): string {
+    if ($source === strtoupper($source)) {
+      return strtoupper($replacement);
+    }
+    if ($source !== '' && $source[0] === strtoupper($source[0])) {
+      return ucfirst($replacement);
+    }
+    return $replacement;
+  }
+
+  /**
+   * Builds a plain-text status table of all items, grouped by module.
+   *
+   * Used to give the LLM judge ground truth for evaluating uncited claims.
+   *
+   * @param array $results
+   *   Raw module data as returned by NewsletterDataFetcherService.
+   *
+   * @return string
+   *   Multi-line text, "### module" headings with "- Title (Type) — status".
+   */
+  public function buildModuleStatusTable(array $results): string {
+    $map = $this->buildReferenceMap($results);
+    $byModule = [];
+    foreach ($map as $entry) {
+      $type = $entry['type'] === 'mr' ? 'MR' : 'Issue';
+      $byModule[$entry['module']][] = sprintf('- %s (%s) — %s', $entry['title'], $type, $entry['status_label']);
+    }
+    $lines = [];
+    foreach ($byModule as $module => $items) {
+      $lines[] = "### $module";
+      foreach ($items as $item) {
+        $lines[] = $item;
+      }
+    }
+    return implode("\n", $lines);
+  }
+
+  /**
+   * LLM judge: flags sentences that overstate completion (cited or uncited).
+   *
+   * Returns flags only; never edits. Fails open: any error or unparseable
+   * response yields an empty array.
+   *
+   * @param string $html
+   *   The HTML to check (already passed through verifyCitedClaims()).
+   * @param array $refMap
+   *   As returned by buildReferenceMap().
+   * @param array $results
+   *   Raw module data, used to build the full module status table.
+   *
+   * @return array<int, array{quote: string, why: string, cited: bool}>
+   */
+  public function judgeOverstatements(string $html, array $refMap, array $results): array {
+    $citedTable = $refMap ? $this->buildReferenceIndex($refMap) : '';
+    $moduleTable = $this->buildModuleStatusTable($results);
+
+    $prompt = <<<PROMPT
+You are fact-checking a project digest. Below are the real statuses of all work items, plus a table for the items some sentences cite by [N].
+
+Flag any sentence that overstates completion given those statuses — including paraphrases like "now available", "wrapped up", "ready", "live".
+
+- For a sentence that cites items by [N]: judge it against those items' statuses.
+- For a sentence with NO citation: flag it ONLY if NOTHING in the relevant module is actually done (no merged MR / no closed issue) that could plausibly back the claim. If any item in that module shipped, leave the sentence alone.
+
+Do NOT rewrite. Return ONLY a JSON array of objects {"quote": "<exact sentence>", "why": "<reason>", "cited": <true|false>}. Return [] if nothing overstates completion.
+
+--- CITED REFERENCES ---
+$citedTable
+
+--- ALL ITEM STATUSES BY MODULE ---
+$moduleTable
+
+--- DIGEST HTML ---
+$html
+PROMPT;
+
+    try {
+      $response = $this->summariser->complete($prompt, ['newsletter_factcheck']);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Digest fact-check judge failed: @msg', ['@msg' => $e->getMessage()]);
+      return [];
+    }
+
+    $decoded = json_decode($response, TRUE);
+    if (!is_array($decoded)) {
+      $this->logger->warning('Digest fact-check judge returned unparseable output.');
+      return [];
+    }
+
+    $flags = [];
+    foreach ($decoded as $item) {
+      if (!is_array($item) || empty($item['quote'])) {
+        continue;
+      }
+      $flags[] = [
+        'quote' => (string) $item['quote'],
+        'why' => (string) ($item['why'] ?? ''),
+        'cited' => (bool) ($item['cited'] ?? FALSE),
+      ];
+    }
+    return $flags;
   }
 
   /**
@@ -1162,6 +1369,60 @@ PROMPT;
     );
 
     return $html;
+  }
+
+  /**
+   * Rewrites only the flagged sentences to match status, then backstops.
+   *
+   * Fails open: if there are no flags, or the rewrite call fails or returns
+   * nothing usable, the input HTML is used. verifyCitedClaims() always runs on
+   * the result as a final deterministic backstop.
+   *
+   * @param string $html
+   *   The HTML to fix (already layer-1 corrected upstream).
+   * @param array $flags
+   *   As returned by judgeOverstatements().
+   * @param array $refMap
+   *   As returned by buildReferenceMap().
+   * @param array $results
+   *   Raw module data, for the status table given to the rewrite call.
+   *
+   * @return string
+   *   The corrected HTML.
+   */
+  public function rewriteFlagged(string $html, array $flags, array $refMap, array $results): string {
+    $candidate = $html;
+
+    if ($flags) {
+      $flagList = implode("\n", array_map(fn($f) => '- "' . $f['quote'] . '" (' . $f['why'] . ')', $flags));
+      $moduleTable = $this->buildModuleStatusTable($results);
+
+      $prompt = <<<PROMPT
+You are correcting a project digest. The sentences listed below overstate completion. Rewrite ONLY those sentences so they accurately reflect the real statuses given. Leave every other sentence, tag, and character exactly as-is. Keep all [N] citations and HTML tags intact. Output the full corrected HTML fragment and nothing else.
+
+--- SENTENCES TO FIX ---
+$flagList
+
+--- REAL STATUSES BY MODULE ---
+$moduleTable
+
+--- DIGEST HTML ---
+$html
+PROMPT;
+
+      try {
+        $rewritten = $this->summariser->complete($prompt, ['newsletter_factcheck_rewrite']);
+        if (trim($rewritten) !== '') {
+          $candidate = $rewritten;
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Digest fact-check rewrite failed: @msg', ['@msg' => $e->getMessage()]);
+      }
+    }
+
+    // Final deterministic backstop on whatever we ended up with.
+    return $this->verifyCitedClaims($candidate, $refMap)['html'];
   }
 
   /**
@@ -1689,6 +1950,57 @@ PROMPT;
         }
       }
     }
+  }
+
+  /**
+   * Runs the full fact-check pipeline on generated digest HTML.
+   *
+   * Layer 1 (deterministic gate) → LLM judge → targeted rewrite + backstop.
+   * Logs all corrections and flags. Always returns usable HTML.
+   *
+   * @param string $html
+   *   Generated HTML, after linkCitations().
+   * @param array $refMap
+   *   As returned by buildReferenceMap().
+   * @param array $results
+   *   Raw module data.
+   * @param string $label
+   *   Label for the prompt log (e.g. "tldr:developer").
+   *
+   * @return string
+   *   Fact-checked HTML.
+   */
+  private function factCheck(string $html, array $refMap, array $results, string $label): string {
+    // Layer 1: deterministic gate.
+    $gate = $this->verifyCitedClaims($html, $refMap);
+    $html = $gate['html'];
+    foreach ($gate['corrections'] as $c) {
+      $this->logger->warning('Digest fact-check corrected "@verb" to "@rep" (refs: @refs) in @label', [
+        '@verb' => $c['verb'],
+        '@rep' => $c['replacement'],
+        '@refs' => implode(',', $c['refs']),
+        '@label' => $label,
+      ]);
+    }
+
+    // Layer 2: judge + rewrite.
+    $flags = $this->judgeOverstatements($html, $refMap, $results);
+    foreach ($flags as $f) {
+      $this->logger->warning('Digest fact-check flagged (@label): @quote — @why', [
+        '@label' => $label,
+        '@quote' => $f['quote'],
+        '@why' => $f['why'],
+      ]);
+    }
+    $html = $this->rewriteFlagged($html, $flags, $refMap, $results);
+
+    // Record in the prompt log for the admin/debug view.
+    $this->promptLog[] = [
+      'label' => "factcheck:$label",
+      'prompt' => sprintf("Layer-1 corrections: %d\nJudge flags: %d", count($gate['corrections']), count($flags)),
+    ];
+
+    return $html;
   }
 
   public function resolveOutputPath(string $period, string $since, string $ext, string $suffix = ''): string {
