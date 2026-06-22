@@ -23,6 +23,7 @@ services:
       - '@issue_analysis.summariser'
       - '@state'
       - '@entity_type.manager'
+      - '@logger.factory'
 
   issue_analysis.commands:
     class: Drupal\issue_analysis\Drush\Commands\IssueAnalysisCommands

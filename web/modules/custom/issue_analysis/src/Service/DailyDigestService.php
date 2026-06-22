@@ -3,6 +3,8 @@
 namespace Drupal\issue_analysis\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\file\Entity\File;
 
@@ -19,12 +21,20 @@ class DailyDigestService {
   /** @var array<int, array{label: string, prompt: string}> Prompts collected during a run. */
   private array $promptLog = [];
 
+  /**
+   * Logger channel for fact-check corrections and failures.
+   */
+  protected LoggerChannelInterface $logger;
+
   public function __construct(
     protected NewsletterDataFetcherService $fetcher,
     protected AiSummariserService $summariser,
     protected StateInterface $state,
     protected EntityTypeManagerInterface $entityTypeManager,
-  ) {}
+    LoggerChannelFactoryInterface $loggerFactory,
+  ) {
+    $this->logger = $loggerFactory->get('issue_analysis');
+  }
 
   /**
    * Runs the full daily digest and writes all output files.
@@ -1202,13 +1212,13 @@ PROMPT;
       $response = $this->summariser->complete($prompt, ['newsletter_factcheck']);
     }
     catch (\Throwable $e) {
-      \Drupal::logger('issue_analysis')->warning('Digest fact-check judge failed: @msg', ['@msg' => $e->getMessage()]);
+      $this->logger->warning('Digest fact-check judge failed: @msg', ['@msg' => $e->getMessage()]);
       return [];
     }
 
     $decoded = json_decode($response, TRUE);
     if (!is_array($decoded)) {
-      \Drupal::logger('issue_analysis')->warning('Digest fact-check judge returned unparseable output.');
+      $this->logger->warning('Digest fact-check judge returned unparseable output.');
       return [];
     }
 
@@ -1407,7 +1417,7 @@ PROMPT;
         }
       }
       catch (\Throwable $e) {
-        \Drupal::logger('issue_analysis')->warning('Digest fact-check rewrite failed: @msg', ['@msg' => $e->getMessage()]);
+        $this->logger->warning('Digest fact-check rewrite failed: @msg', ['@msg' => $e->getMessage()]);
       }
     }
 
@@ -1965,7 +1975,7 @@ PROMPT;
     $gate = $this->verifyCitedClaims($html, $refMap);
     $html = $gate['html'];
     foreach ($gate['corrections'] as $c) {
-      \Drupal::logger('issue_analysis')->warning('Digest fact-check corrected "@verb" to "@rep" (refs: @refs) in @label', [
+      $this->logger->warning('Digest fact-check corrected "@verb" to "@rep" (refs: @refs) in @label', [
         '@verb' => $c['verb'],
         '@rep' => $c['replacement'],
         '@refs' => implode(',', $c['refs']),
@@ -1976,7 +1986,7 @@ PROMPT;
     // Layer 2: judge + rewrite.
     $flags = $this->judgeOverstatements($html, $refMap, $results);
     foreach ($flags as $f) {
-      \Drupal::logger('issue_analysis')->warning('Digest fact-check flagged (@label): @quote — @why', [
+      $this->logger->warning('Digest fact-check flagged (@label): @quote — @why', [
         '@label' => $label,
         '@quote' => $f['quote'],
         '@why' => $f['why'],

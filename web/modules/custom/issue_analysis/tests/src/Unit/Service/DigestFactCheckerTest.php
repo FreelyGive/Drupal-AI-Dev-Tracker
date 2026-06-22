@@ -5,7 +5,6 @@ namespace Drupal\Tests\issue_analysis\Unit\Service;
 use Drupal\issue_analysis\Service\AiSummariserService;
 use Drupal\issue_analysis\Service\DailyDigestService;
 use Drupal\issue_analysis\Service\NewsletterDataFetcherService;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
@@ -23,21 +22,12 @@ class DigestFactCheckerTest extends TestCase {
 
   use ProphecyTrait;
 
-  protected function setUp(): void {
-    parent::setUp();
-    // \Drupal::logger() resolves via the 'logger.factory' service. Install a
-    // minimal container so fail-open logging in judge/rewrite paths does not
-    // fatal under plain unit tests (no kernel bootstrap).
-    $channel = $this->prophesize(LoggerChannelInterface::class);
-    $factory = $this->prophesize(LoggerChannelFactoryInterface::class);
-    $factory->get(\Prophecy\Argument::any())->willReturn($channel->reveal());
-    $container = new ContainerBuilder();
-    $container->set('logger.factory', $factory->reveal());
-    \Drupal::setContainer($container);
-  }
-
   /**
    * Builds a DailyDigestService with mocked dependencies.
+   *
+   * The logger is injected (not resolved via \Drupal::logger()), so the
+   * fact-check fail-open logging paths exercise a real mock rather than the
+   * static container.
    *
    * @param \Drupal\issue_analysis\Service\AiSummariserService|null $summariser
    *   Optional summariser mock; a dummy is used when NULL.
@@ -47,7 +37,10 @@ class DigestFactCheckerTest extends TestCase {
     $summariser = $summariser ?? $this->prophesize(AiSummariserService::class)->reveal();
     $state = $this->prophesize(StateInterface::class)->reveal();
     $etm = $this->prophesize(EntityTypeManagerInterface::class)->reveal();
-    return new DailyDigestService($fetcher, $summariser, $state, $etm);
+    $channel = $this->prophesize(LoggerChannelInterface::class)->reveal();
+    $loggerFactory = $this->prophesize(LoggerChannelFactoryInterface::class);
+    $loggerFactory->get(\Prophecy\Argument::any())->willReturn($channel);
+    return new DailyDigestService($fetcher, $summariser, $state, $etm, $loggerFactory->reveal());
   }
 
   public function testReferenceMapMarksMergedMrDone(): void {
