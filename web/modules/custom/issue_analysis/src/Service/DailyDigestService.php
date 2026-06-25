@@ -489,6 +489,263 @@ class DailyDigestService {
   // ---------------------------------------------------------------------------
 
   /**
+   * Builds the deduplicated set of people who were active in the period.
+   *
+   * "Active" means the person actually did something inside [$since, $until]:
+   * authored a comment, authored an MR created/updated/merged in-window,
+   * authored a commit in-window, or had an MR of theirs merged in-window. A
+   * stale assignee who took no action in the window is deliberately excluded —
+   * we credit participation, not assignment.
+   *
+   * Used to render a neutral "Contributors:" list per module so the digest
+   * prose never has to attribute a specific action to a specific person.
+   *
+   * @param array $module
+   *   Module data array as returned by NewsletterDataFetcherService.
+   * @param string $since
+   *   ISO 8601 start datetime string (inclusive lower bound).
+   * @param string $until
+   *   ISO 8601 end datetime string (inclusive upper bound).
+   *
+   * @return string[]
+   *   Display strings ("Real Name (username)" where a name differs from the
+   *   username, otherwise the bare username), deduplicated and sorted.
+   */
+  public function buildContributors(array $module, string $since, string $until): array {
+    $sinceTs = strtotime($since) ?: 0;
+    $untilTs = strtotime($until) ?: PHP_INT_MAX;
+
+    // Keyed by a stable identity (username, or name when no username exists)
+    // so each person is counted once regardless of how they participated.
+    // $nameToKey maps a real name back to its key so a username-less commit
+    // author does not create a duplicate of someone already keyed by username.
+    // $commits tracks per-person in-window commit count, shown as "[N]".
+    $people = [];
+    $nameToKey = [];
+    $commits = [];
+    // Records a participant and returns their stable key (or NULL if empty).
+    $add = function (string $user, string $name) use (&$people, &$nameToKey, &$commits): ?string {
+      $user = trim($user);
+      $name = trim($name);
+      if ($user === '' && $name === '') {
+        return NULL;
+      }
+      // A name-only contributor (e.g. a commit author) folds into an existing
+      // person if that name is already known under a username-based key.
+      $key = $user !== '' ? $user : ($nameToKey[$name] ?? $name);
+      // If this person was first seen name-only (keyed by their name) and now
+      // arrives with a username, retire the name-only entry in favour of the
+      // username key so the two never coexist. Carry any commit tally across.
+      if ($user !== '' && $name !== '' && isset($people[$name]) && !isset($nameToKey[$name])) {
+        if (!empty($commits[$name])) {
+          $commits[$key] = ($commits[$key] ?? 0) + $commits[$name];
+          unset($commits[$name]);
+        }
+        unset($people[$name]);
+      }
+      // Prefer the "Real Name (username)" form; fall back to whichever we have.
+      $display = ($name !== '' && $user !== '' && $name !== $user)
+        ? "$name ($user)"
+        : ($user !== '' ? $user : $name);
+      // First non-empty display wins, but upgrade a bare username to the
+      // richer "Name (username)" form if we later learn the real name.
+      if (!isset($people[$key]) || (str_contains($display, '(') && !str_contains($people[$key], '('))) {
+        $people[$key] = $display;
+      }
+      if ($name !== '') {
+        $nameToKey[$name] = $key;
+      }
+      return $key;
+    };
+
+    $inWindow = function (?string $ts) use ($sinceTs, $untilTs): bool {
+      if (!$ts) {
+        return FALSE;
+      }
+      $t = strtotime($ts);
+      return $t !== FALSE && $t >= $sinceTs && $t <= $untilTs;
+    };
+
+    foreach ($module['issues'] ?? [] as $issue) {
+      if (!empty($issue['confidential'])) {
+        continue;
+      }
+      foreach ($issue['comments'] ?? [] as $comment) {
+        if ($inWindow($comment['created_at'] ?? NULL)) {
+          $add($comment['author'] ?? '', $comment['author_name'] ?? '');
+        }
+      }
+    }
+
+    foreach ($module['merge_requests'] ?? [] as $mr) {
+      // An MR counts if it was opened, touched, or merged within the window.
+      if ($inWindow($mr['created_at'] ?? NULL)
+        || $inWindow($mr['updated_at'] ?? NULL)
+        || $inWindow($mr['merged_at'] ?? NULL)) {
+        $add($mr['author'] ?? '', $mr['author_name'] ?? '');
+      }
+    }
+
+    foreach ($module['commits'] ?? [] as $commit) {
+      // Commits carry an author name but no GitLab username.
+      if ($inWindow($commit['authored_date'] ?? NULL)) {
+        $key = $add('', $commit['author_name'] ?? '');
+        if ($key !== NULL) {
+          $commits[$key] = ($commits[$key] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Append the in-window commit count as "[N]" where N > 0.
+    $list = [];
+    foreach ($people as $key => $display) {
+      $count = $commits[$key] ?? 0;
+      $list[] = $count > 0 ? "$display [$count]" : $display;
+    }
+    sort($list, SORT_NATURAL | SORT_FLAG_CASE);
+    return $list;
+  }
+
+  /**
+   * Extracts the searchable name tokens from a contributor display string.
+   *
+   * "Real Name (username)" yields both "Real Name" and "username"; a bare
+   * value yields just itself. A trailing commit-count suffix ("[3]") is
+   * ignored. Tokens shorter than 3 characters are dropped to avoid matching
+   * common words.
+   *
+   * @param string[] $contributors
+   *   Display strings from buildContributors().
+   *
+   * @return string[]
+   *   Distinct lower-cased tokens to scan the prose for.
+   */
+  private function contributorNameTokens(array $contributors): array {
+    $tokens = [];
+    foreach ($contributors as $display) {
+      // Strip the trailing "[N]" commit-count suffix before parsing.
+      $display = preg_replace('/\s*\[\d+\]\s*$/', '', $display);
+      if (preg_match('/^(.*?)\s*\(([^)]+)\)\s*$/', $display, $m)) {
+        $tokens[] = trim($m[1]);
+        $tokens[] = trim($m[2]);
+      }
+      else {
+        $tokens[] = trim($display);
+      }
+    }
+    $tokens = array_filter(array_unique($tokens), fn($t) => mb_strlen($t) >= 3);
+    return array_values($tokens);
+  }
+
+  /**
+   * Finds contributor names that appear in the prose outside the "Contributors:" line.
+   *
+   * @param string $html
+   *   The generated section.
+   * @param string[] $contributors
+   *   Display strings from buildContributors().
+   *
+   * @return string[]
+   *   The name tokens that leaked into the prose body.
+   */
+  public function findNameLeaks(string $html, array $contributors): array {
+    $tokens = $this->contributorNameTokens($contributors);
+    if (!$tokens) {
+      return [];
+    }
+
+    // Strip the legitimate "Contributors:" line(s) before scanning so the list
+    // itself never counts as a leak. Matches from the label to end of line.
+    $body = preg_replace('/Contributors:.*$/mi', '', $html);
+
+    $leaks = [];
+    foreach ($tokens as $token) {
+      // Word-boundary, case-insensitive. Usernames can contain non-word chars
+      // (dots, hyphens), so anchor on surrounding whitespace/punctuation.
+      $pattern = '/(?<![\w@.\-])' . preg_quote($token, '/') . '(?![\w@.\-])/i';
+      if (preg_match($pattern, $body)) {
+        $leaks[] = $token;
+      }
+    }
+    return $leaks;
+  }
+
+  /**
+   * Backstop that removes per-person action attribution from a module section.
+   *
+   * The generation prompt instructs the LLM to keep names out of the prose and
+   * confine them to a trailing "Contributors:" line. This catches the cases
+   * where it slips: it scans only for the known active contributors (no
+   * heuristic name detection, so no false positives), and if any leak into the
+   * prose it asks the LLM to rewrite the offending sentences in passive voice.
+   * Fails open — if the rewrite errors or still leaks, the original is logged
+   * and shipped rather than blocking the digest.
+   *
+   * @param string $html
+   *   The generated section.
+   * @param string[] $contributors
+   *   Display strings from buildContributors().
+   * @param string $machineName
+   *   Module machine name, for log context.
+   *
+   * @return string
+   *   The section with name attribution removed where possible.
+   */
+  public function stripNameAttribution(string $html, array $contributors, string $machineName = ''): string {
+    $leaks = $this->findNameLeaks($html, $contributors);
+    if (!$leaks) {
+      return $html;
+    }
+
+    $this->logger->warning('Digest name-attribution leak in module @module: @names', [
+      '@module' => $machineName,
+      '@names' => implode(', ', $leaks),
+    ]);
+
+    $leakList = implode(', ', $leaks);
+    $contributorsList = implode(', ', $contributors);
+    $prompt = <<<PROMPT
+You are correcting a project digest section. The prose wrongly attributes work to specific people. Rewrite only the sentences that name any of these people so they describe the work in the passive voice without naming anyone: $leakList
+
+Rules:
+- Do not name any of those people anywhere except a trailing "Contributors:" line.
+- Keep the trailing "Contributors: $contributorsList" line exactly as-is (add it if missing).
+- Leave every other sentence, HTML tag, link, and citation exactly as-is.
+- Output the full corrected fragment and nothing else.
+
+--- SECTION ---
+$html
+PROMPT;
+
+    $this->promptLog[] = ['label' => "stripNameAttribution:{$machineName}", 'prompt' => $prompt];
+
+    $candidate = $html;
+    try {
+      $rewritten = $this->summariser->complete($prompt, ['newsletter_name_strip']);
+      if (trim($rewritten) !== '') {
+        $candidate = $rewritten;
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Digest name-strip rewrite failed for @module: @msg', [
+        '@module' => $machineName,
+        '@msg' => $e->getMessage(),
+      ]);
+    }
+
+    // Re-scan once. If the rewrite still leaks, log and ship (fail-open).
+    $remaining = $this->findNameLeaks($candidate, $contributors);
+    if ($remaining) {
+      $this->logger->warning('Digest name-attribution still present after rewrite in @module: @names', [
+        '@module' => $machineName,
+        '@names' => implode(', ', $remaining),
+      ]);
+    }
+
+    return $candidate;
+  }
+
+  /**
    * Calls the LLM to produce a summary section for a single module.
    *
    * @param array $module
@@ -638,7 +895,7 @@ class DailyDigestService {
         "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a non-technical executive. Suggest 2-3 concrete, high-level ways a leader could support or unblock progress (e.g. resourcing, stakeholder alignment, decision-making, funding, advocacy). Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.\nCRITICAL: Before writing each suggestion, verify it against the issue data. Do not suggest actions that are already in progress or covered by an existing MR — for example, do not suggest that work needs to be started if an issue already has a Related MR.",
       ],
       default => [
-        "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, contributors, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
+        "You are writing for a technical developer audience.\nFocus on: what was merged or shipped, specific bugs fixed, APIs changed, and what is blocking progress.\nBe specific — mention function names, module names, and MR references where relevant.",
         "After the project summary prose, add a single subsection titled \"$howToHelpHeading\" aimed at a developer. Suggest 2-3 concrete technical actions a contributor could take right now. Keep it under 60 words. Do not add any other 'How can I help' text anywhere else in the section.\nCRITICAL: Before writing each suggestion, check the data for each issue:\n- If an issue shows a Related MR with state 'opened', do NOT suggest creating a patch or MR — one already exists. Suggest reviewing it instead.\n- If all Related MRs for an issue are merged, do NOT suggest reviewing them — they are already done.\n- If an issue is unassigned with no Related MRs, it is a good candidate to pick up.\n- Only suggest actions that are genuinely still needed given the current state in the data above.",
       ],
     };
@@ -646,6 +903,15 @@ class DailyDigestService {
     $confidentialNote = $confidentialCount > 0
       ? "Note: $confidentialCount confidential issue(s) existed in this period but have been excluded from the data below. Mention briefly at the end of your section that $confidentialCount confidential issue(s) were not included in this analysis."
       : '';
+
+    // People who were actually active in the window. The prose must not
+    // attribute actions to anyone; these names appear only in the trailing
+    // "Contributors:" line.
+    $contributors = $this->buildContributors($module, $since, $until);
+    $contributorsList = $contributors ? implode(', ', $contributors) : '(none active this period)';
+    $contributorsInstruction = $contributors
+      ? "End your section with a single line listing the people who were active this period, exactly in this form (plain text, no <strong>): \"Contributors: $contributorsList\". Use only the names from that list, verbatim, keeping any trailing \"[N]\" commit count exactly as shown. Do not introduce any other names."
+      : "Do not name any individual people in this section. No one was active enough this period to list.";
 
     $prompt = <<<PROMPT
 You are a technical writer producing a newsletter section about recent Drupal module activity.
@@ -659,7 +925,8 @@ Focus your report on activity that occurred within the reporting period (comment
 Do not list every issue/MR individually — synthesise into prose. Keep it under 200 words.
 Do not use emoticons or mdashes. Do not wrap usernames or contributor names in <strong> tags — mention them as plain text.
 When mentioning a specific issue or MR, always hyperlink it using the URL provided in the data (e.g. <a href="URL">Issue Title</a> or the Markdown equivalent). Do not reference issues or MRs by number alone — always use their title as the link text.
-When mentioning contributors, use the format "Real Name (username)" when a real name is available in the data, otherwise use just the username.
+Do NOT attribute any action to a named individual. Do not say who merged, fixed, reviewed, authored, or opened anything. The "Author" and "Assigned" labels in the data are context only — never surface them as "X did Y". Describe the work itself in the passive voice (e.g. "the provider refactor was merged"), not the person who did it. The author of a merge request is often not the person who completed or merged the work, so naming them is misleading.
+$contributorsInstruction
 $confidentialNote
 $formatInstruction
 
@@ -679,6 +946,9 @@ PROMPT;
 
     $this->promptLog[] = ['label' => "summariseModule:{$machineName}:{$persona}", 'prompt' => $prompt];
     $output = $this->summariser->complete($prompt, ['newsletter_summarise']);
+    // Backstop: if a contributor name slipped into the prose despite the
+    // instruction, rewrite the offending sentences before linkifying.
+    $output = $this->stripNameAttribution($output, $contributors, $machineName);
     return $this->linkifyHtml($output, $module);
   }
 
