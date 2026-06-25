@@ -204,5 +204,8 @@ test-kanban-login.js
 # Ignore local development code scratchpad
 .code/
 
+# Superpowers brainstorming/planning docs are local-only, never committed
+docs/superpowers/
+
 .devpanel/salt.txt
 config/sync/mailchimp.settings.yml
