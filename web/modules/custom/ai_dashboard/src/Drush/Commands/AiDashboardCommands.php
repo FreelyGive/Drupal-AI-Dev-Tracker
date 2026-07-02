@@ -8,6 +8,7 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drush\Attributes as CLI;
+use Drush\Attributes\Command;
 use Drush\Commands\DrushCommands;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -67,7 +68,7 @@ class AiDashboardCommands extends DrushCommands {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container) {
+  public static function create($container) {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->queueFactory = $container->get('queue');
@@ -77,7 +78,7 @@ class AiDashboardCommands extends DrushCommands {
     $instance->fileSystem = $container->get('file_system');
     $instance->httpClient = $container->get('http_client');
     return $instance;
-   }
+  }
 
 
 
