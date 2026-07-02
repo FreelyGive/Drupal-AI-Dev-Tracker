@@ -72,16 +72,21 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
     }
 
     if ($machine_name) {
-      $row['machine_name'] = [
+      if ($url_string) {
+        $row['machine_name'] = [
         'data' => [
           '#type' => 'link',
           '#title' => $machine_name,
           '#url' => Url::fromUri($url_string),
           '#attributes' => ['target' => '_blank', 'rel' => 'noopener'],
-        ],
-      ];
+          ],
+        ];
+      } else {
+        $row['machine_name'] = $machine_name;
+      }
+      
     } else {
-      $row['machine_name'] = $machine_name ?: $this->t('N/A');
+      $row['machine_name'] = $this->t('N/A');
     }
 
     // Show filter tags (label filter).
