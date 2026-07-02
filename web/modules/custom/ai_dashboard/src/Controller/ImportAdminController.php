@@ -62,7 +62,8 @@ class ImportAdminController extends ControllerBase {
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, IssueImportProcessService $issue_process_service, IssueImportOrchestrationService $issue_orchestration_service, MessengerInterface $messenger) {
     $this->entityTypeManager = $entity_type_manager;
-    $this->issueProcessService = $issue_process_service;
+    $this->issueImportProcessService = $issue_process_service;
+    $this->issueImportOrchestrationService = $issue_orchestration_service;
     $this->messenger = $messenger;
   }
 
@@ -216,7 +217,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function runImport(NodeInterface $node) {
     try {
-      $results = $this->issueOrchestrationService->importFromConfig($node, TRUE);
+      $results = $this->issueImportOrchestrationService->importFromConfig($node, TRUE);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -245,7 +246,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function runModuleImport(ModuleImport $module_import) {
     try {
-      $results = $this->issueOrchestrationService->import($module_import);
+      $results = $this->issueImportOrchestrationService->import($module_import);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -321,7 +322,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function deleteAllIssues(Request $request) {
     try {
-      $deleted_count = $this->issueProcessService->deleteAllIssues();
+      $deleted_count = $this->issueImportProcessService->deleteAllIssues();
       $this->messenger->addStatus(sprintf('Deleted %d issues.', $deleted_count));
     }
     catch (\Exception $e) {
