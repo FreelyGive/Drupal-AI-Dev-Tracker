@@ -1313,8 +1313,7 @@ class IssueImportProcessService {
             $project_id = $data['id'];
             $project_cache[$machine_name] = $project_id;
             return $project_id;
-          }
-        }
+      }
 
     throw new \Exception("Could not find project id for {$machine_name}.");
 
