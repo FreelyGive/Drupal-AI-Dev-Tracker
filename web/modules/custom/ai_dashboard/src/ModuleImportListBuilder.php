@@ -67,7 +67,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         $url_string = "https://www.drupal.org/project/{$machine_name}";
         break;
       case 'gitlab':
-        $url_string = "https://git.drupalcode.org/project/${machine_name}";
+        $url_string = "https://git.drupalcode.org/project/{$machine_name}";
         break;
     }
 

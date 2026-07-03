@@ -451,7 +451,7 @@ class IssueImportOrchestrationService {
 
       // Import all issues for this single status.
       $results = $process_service->importFromApi(
-        $$config,
+        $config,
         $limit,
         $single_status,
       );
@@ -464,13 +464,13 @@ class IssueImportOrchestrationService {
 
       // Update user message.
       $context['message'] = t('Completed @status: @imported imported, @skipped skipped', [
-        '@status' => $status_name,
+        '@status' => $single_status,
         '@imported' => $results['imported'],
         '@skipped' => $results['skipped'],
       ]);
 
       $logger->info('Single status import completed for @status: @imported imported, @skipped skipped, @errors errors', [
-        '@status' => $status_name,
+        '@status' => $single_status,
         '@imported' => $results['imported'],
         '@skipped' => $results['skipped'],
         '@errors' => $results['errors'],
@@ -482,7 +482,7 @@ class IssueImportOrchestrationService {
     }
     catch (\Exception $e) {
       $logger->error('Single status batch operation failed for @status: @message', [
-        '@status' => $status_name,
+        '@status' => $single_status,
         '@message' => $e->getMessage(),
       ]);
       $context['results']['errors']++;

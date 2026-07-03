@@ -281,7 +281,7 @@ class ImportAdminController extends ControllerBase {
     }
 
     // For multiple configurations, use the dedicated batch import service.
-    $batch_service = \Drupal::service('ai_dashboard.import_orchestration');
+    $batch_service = \Drupal::service('ai_dashboard.issue_import_orchestration');
     $total_imported = 0;
     $total_errors = 0;
     $batch_started = FALSE;

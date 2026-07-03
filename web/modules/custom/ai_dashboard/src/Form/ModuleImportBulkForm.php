@@ -47,9 +47,9 @@ class ModuleImportBulkForm extends FormBase {
    *   The messenger service.
    */
    public function __construct(IssueImportOrchestrationService $issue_import_orchestration_service, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger) {
-     $this->issueImportOrchestrationservice = $issue_import_orchestration_service;
-     $this->entityTypeManager = $entity_type_manager;
-     $this->messenger = $messenger;
+    $this->issueImportOrchestrationService = $issue_import_orchestration_service;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->messenger = $messenger;
    }
 
   /**
@@ -217,7 +217,7 @@ class ModuleImportBulkForm extends FormBase {
 
       try {
         // Use batch import for multiple configurations.
-         $result = $this->issueImportOrchestrationService->import($config);
+        $result = $this->issueImportOrchestrationService->import($config);
         
         if ($result['success']) {
           $count++;
