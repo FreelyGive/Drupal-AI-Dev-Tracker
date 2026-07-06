@@ -212,34 +212,6 @@ class ImportAdminController extends ControllerBase {
     return $build;
   }
 
-  /**
-   * Run import from specific configuration.
-   */
-  public function runImport(NodeInterface $node) {
-    try {
-      $results = $this->issueImportOrchestrationService->importFromConfig($node, TRUE);
-
-      // Check if this is a batch import that requires redirection.
-      if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
-        // The batch has been set up and will be processed by Drupal.
-        // Don't add a message here as the batch system will handle messaging.
-        return batch_process('/ai-dashboard/admin/import');
-      }
-
-      if ($results['success']) {
-        $this->messenger->addStatus($results['message']);
-      }
-      else {
-        $this->messenger->addError($results['message']);
-      }
-    }
-    catch (\Exception $e) {
-      $this->messenger->addError('Import failed: ' . $e->getMessage());
-    }
-
-    return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
-  }
-
 
   /**
    * Run import from specific configuration.
