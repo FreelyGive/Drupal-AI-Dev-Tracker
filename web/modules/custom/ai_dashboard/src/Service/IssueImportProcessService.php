@@ -587,14 +587,15 @@ class IssueImportProcessService {
                 'timeout' =>10,
               ]);
               $apiData = json_decode($apiResponse->getBody()->getContents(), TRUE);
-              $do_username = $apiData["data"]["attributes"]["name"];
+              $do_username = $apiData["data"][0]["attributes"]["name"];
+              if (!$do_username) throw new Exception('No data received from API');
               $candidates = $nodeStorage->loadByProperties([
                 'type' => 'ai_contributor',
                 'field_drupal_username' => $do_username,
               ]);
             } catch (\Exception $err) {
               \Drupal::logger('ai_dashboard')->warning('Failed to find GitLab user @username in Drupal.org: @error', [
-                '@username' => $do_username,
+                '@username' => $gl_username,
                 '@error' => $err,
               ]);
             }
@@ -612,7 +613,7 @@ class IssueImportProcessService {
           $do_assignees[] = $contributor;
         } else {
           \Drupal::logger('ai_dashboard')->warning('Failed to find user @username among Drupal users', [
-            '@username' => $do_username,
+            '@username' => $gl_username,
           ]);
         }
 
@@ -635,7 +636,7 @@ class IssueImportProcessService {
     $assignee_ids = [];
 
     foreach($do_assignees as $do_assignee){
-        $assignee_usernames[] = $do_assignee->get->get('field_drupal_username')->getString();
+        $assignee_usernames[] = $do_assignee->get('field_drupal_username')->getString();
         $assignee_ids[] = $do_assignee->id();
     }
 
