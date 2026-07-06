@@ -387,6 +387,14 @@ class IssueImportOrchestrationService {
         $context['results']['total_operations'] = 0;
       }
 
+      // Initialize sandbox progress tracking if not present.
+      if (!isset($context['sandbox']['current_operation'])) {
+        $context['sandbox']['current_operation'] = 0;
+      }
+      if (!isset($context['sandbox']['total_processed'])) {
+        $context['sandbox']['total_processed'] = 0;
+      }
+
       $context['results']['imported'] += $results['imported'];
       $context['results']['updated'] += $results['updated'];
       $context['results']['skipped'] += $results['skipped'];
