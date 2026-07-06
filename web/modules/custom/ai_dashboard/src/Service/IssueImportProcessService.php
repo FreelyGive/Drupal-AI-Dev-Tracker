@@ -536,7 +536,7 @@ class IssueImportProcessService {
     /** @var NodeStorageInterface $nodeStorage */
     static $nodeStorage;
     // Array of contributor nodes, keyed by d.o. username.
-    static $contributors;
+    static $contributors = [];
 
 
     // Extract tags and key-value labels from GitLab issue labels.
@@ -566,23 +566,50 @@ class IssueImportProcessService {
       }
       foreach ($issue_data['assignees'] as $assignee) {
 
-        $do_username = $assignee['username'];
-        $contributor = $contributors[$do_username];
+        $gl_username = $assignee['username'];
+        $contributor = $contributors[$gl_username];
 
         if (!$contributor) {
-          // Try to find d.o. user by their username
+          // Try to find contributor node by GL username
           $candidates = $nodeStorage->loadByProperties([
             'type' => 'ai_contributor',
-            'field_drupal_username' => $do_username,
+            'field_gitlab_username' => $gl_username,
           ]);
+
+          if(empty($candidates)){
+
+            // Try to find user by GL username via Drupal api
+            try {
+              $apiUrl = "https://new.drupal.org/jsonapi/user/user?filter[field_git_username]=" . $gl_username;
+              $headers = ['User-Agent' => self::USER_AGENT];
+              $apiResponse = $this->httpClient->request('GET', $apiUrl, [
+                'headers' => $headers,
+                'timeout' =>10,
+              ]);
+              $apiData = json_decode($apiResponse->getBody()->getContents(), TRUE);
+              $do_username = $apiData["data"]["attributes"]["name"];
+              $candidates = $nodeStorage->loadByProperties([
+                'type' => 'ai_contributor',
+                'field_drupal_username' => $do_username,
+              ]);
+            } catch (\Exception $err) {
+              \Drupal::logger('ai_dashboard')->warning('Failed to find GitLab user @username in Drupal.org: @error', [
+                '@username' => $do_username,
+                '@error' => $err,
+              ]);
+            }
+            
+            
+          }
+
           if (!empty($candidates)){
             $contributor = reset($candidates);
-            $contributors[$do_username] = $contributor;
+            $contributors[$gl_username] = $contributor;
           }
         }
 
         if ($contributor) {
-          $do_assignees[] = $ontributor;
+          $do_assignees[] = $contributor;
         } else {
           \Drupal::logger('ai_dashboard')->warning('Failed to find user @username among Drupal users', [
             '@username' => $do_username,
