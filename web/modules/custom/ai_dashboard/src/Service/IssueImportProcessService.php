@@ -587,12 +587,26 @@ class IssueImportProcessService {
                 'timeout' =>10,
               ]);
               $apiData = json_decode($apiResponse->getBody()->getContents(), TRUE);
-              $do_username = $apiData["data"][0]["attributes"]["name"];
+              $user_info = $apiData["data"][0]["attributes"];
+              $do_username = $user_info["name"];
               if (!$do_username) throw new Exception('No data received from API');
               $candidates = $nodeStorage->loadByProperties([
                 'type' => 'ai_contributor',
                 'field_drupal_username' => $do_username,
               ]);
+              
+              // If no such contributor exists among contributor nodes - create one
+              if(!count($candidates)){
+                $contributor = $nodeStorage->create([
+                  'type' => 'ai_contributor',
+                  'title' => $user_info["field_first_name"] . ' ' . $user_info["field_last_name"],
+                  'field_drupal_username' => $do_username,
+                  'field_gitlab_username' => $gl_username,
+                ]);
+                $contributor->save();
+                $candidates = [ $contributor ];
+              }
+
             } catch (\Exception $err) {
               \Drupal::logger('ai_dashboard')->warning('Failed to find GitLab user @username in Drupal.org: @error', [
                 '@username' => $gl_username,
@@ -1661,7 +1675,7 @@ class IssueImportProcessService {
         }
       }
       catch (ClientException $e) {
-          \Drupal::logger('Issue Process service')->debug('Client exception: ' . $e->getCode());
+          \Drupal::logger('Issue Process service')->debug('Client exception: ' . $e->getCode() . '. ' . 'URL: ' . $url);
           sleep(self::RETRY_AFTER);
           continue;
       }
