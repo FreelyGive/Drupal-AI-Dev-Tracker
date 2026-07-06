@@ -46,11 +46,11 @@ class ModuleImportBulkForm extends FormBase {
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger service.
    */
-   public function __construct(IssueImportOrchestrationService $issue_import_orchestration_service, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger) {
-    $this->issueImportOrchestrationService = $issue_import_orchestration_service;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->messenger = $messenger;
-   }
+  public function __construct(IssueImportOrchestrationService $issue_import_orchestration_service, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger) {
+  $this->issueImportOrchestrationService = $issue_import_orchestration_service;
+  $this->entityTypeManager = $entity_type_manager;
+  $this->messenger = $messenger;
+  }
 
   /**
    * {@inheritdoc}

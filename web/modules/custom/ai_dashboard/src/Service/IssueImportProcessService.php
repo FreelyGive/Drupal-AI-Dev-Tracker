@@ -576,7 +576,7 @@ class IssueImportProcessService {
             'field_gitlab_username' => $gl_username,
           ]);
 
-          if(empty($candidates)){
+          if (empty($candidates)) {
 
             // Try to find user by GL username via Drupal api
             try {
@@ -602,7 +602,7 @@ class IssueImportProcessService {
             
           }
 
-          if (!empty($candidates)){
+          if (!empty($candidates)) {
             $contributor = reset($candidates);
             $contributors[$gl_username] = $contributor;
           }
