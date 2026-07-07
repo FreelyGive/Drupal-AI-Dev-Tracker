@@ -464,11 +464,14 @@ class IssueImportProcessService {
                 $contributors[$user_id]->save();
               }
               else {
-                // Contributor not found, but we have the username from API
-                // Store it so the untracked users report can find it
-                $do_assignee = $userData['name'];
-                // Mark as not found in our system
-                $contributors[$user_id] = FALSE;
+                // Contributor not found - create new contributor node
+                $contributor = $nodeStorage->create([
+                  'type' => 'ai_contributor',
+                  'title' => $user_data['field_first_name'] . ' ' . $user_data['field_last_name'],
+                  'field_drupal_username' => $userData['name'],
+                ]);
+                $contributor->save();
+                $contributors[$user_id] = $contributor;
               }
             }
           }
@@ -535,7 +538,7 @@ class IssueImportProcessService {
   protected function mapGitLabIssue(array $issue_data, ModuleImport $config): array {
     /** @var NodeStorageInterface $nodeStorage */
     static $nodeStorage;
-    // Array of contributor nodes, keyed by d.o. username.
+    // Array of contributor nodes, keyed by GitLab username.
     static $contributors = [];
 
 
