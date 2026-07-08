@@ -2,12 +2,16 @@ services:
   ai_dashboard.tag_mapping:
     class: Drupal\ai_dashboard\Service\TagMappingService
     arguments: ['@entity_type.manager', '@cache.default']
-  ai_dashboard.issue_import_process:
+  Drupal\ai_dashboard\Service\IssueImportProcessService:
     class: Drupal\ai_dashboard\Service\IssueImportProcessService
     arguments: ['@entity_type.manager', '@http_client', '@logger.factory', '@ai_dashboard.tag_mapping', '@ai_dashboard.metadata_parser', '@settings']
-  ai_dashboard.issue_import_orchestration:
+  ai_dashboard.issue_import_process:
+    alias: Drupal\ai_dashboard\Service\IssueImportProcessService
+  Drupal\ai_dashboard\Service\IssueImportOrchestrationService:
     class: Drupal\ai_dashboard\Service\IssueImportOrchestrationService
     arguments: ['@entity_type.manager', '@logger.factory', '@messenger', '@ai_dashboard.issue_import_process']
+  ai_dashboard.issue_import_orchestration:
+    alias: Drupal\ai_dashboard\Service\IssueImportOrchestrationService
   ai_dashboard.metadata_parser:
     class: Drupal\ai_dashboard\Service\MetadataParserService
     arguments: ['@logger.factory']

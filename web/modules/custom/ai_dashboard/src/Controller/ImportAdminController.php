@@ -21,62 +21,24 @@ use Drupal\Core\Messenger\MessengerInterface;
 class ImportAdminController extends ControllerBase {
 
   /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * The issue import process service.
-   *
-   * @var \Drupal\ai_dashboard\Service\IssueImportProcessService
-   */
-  protected $issueImportProcessService;
-
-  /**
-   * The issue import orchestration service.
-   *
-   * @var \Drupal\ai_dashboard\Service\IssueImportOrchestrationService
-   */
-  protected $issueImportOrchestrationService;
-
-  /**
-   * The messenger service.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
-   */
-  protected $messenger;
-
-  /**
    * Constructs a new ImportAdminController object.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\ai_dashboard\Service\IssueImportProcessService $issue_process_service
+   * @param \Drupal\ai_dashboard\Service\IssueImportProcessService $issueImportProcessService
    *   The issue import process service.
-   * @param \Drupal\ai_dashboard\Service\IssueImportOrchestrationService $issue_orchestration_service
+   * @param \Drupal\ai_dashboard\Service\IssueImportOrchestrationService $issueImportOrchestrationService
    *   The issue import orchestration service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, IssueImportProcessService $issue_process_service, IssueImportOrchestrationService $issue_orchestration_service, MessengerInterface $messenger) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->issueImportProcessService = $issue_process_service;
-    $this->issueImportOrchestrationService = $issue_orchestration_service;
+  public function __construct(
+    protected IssueImportProcessService $issueImportProcessService,
+    protected IssueImportOrchestrationService $issueImportOrchestrationService,
+    EntityTypeManagerInterface $entityTypeManager,
+    MessengerInterface $messenger) {
+    $this->entityTypeManager = $entityTypeManager;
     $this->messenger = $messenger;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('entity_type.manager'),
-      $container->get('ai_dashboard.issue_import_process'),
-      $container->get('ai_dashboard.issue_import_orchestration'),
-      $container->get('messenger')
-    );
   }
 
   /**
