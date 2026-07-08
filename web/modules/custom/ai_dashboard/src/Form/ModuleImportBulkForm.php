@@ -6,7 +6,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\ai_dashboard\Service\IssueImportOrchestrationService;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 
@@ -16,11 +16,11 @@ use Drupal\Core\Messenger\MessengerInterface;
 class ModuleImportBulkForm extends FormBase {
 
   /**
-   * The issue import service.
+   * The issue import orchestration service.
    *
-   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   * @var \Drupal\ai_dashboard\Service\IssueImportOrchestrationService
    */
-  protected $issueImportService;
+  protected $issueImportOrchestrationService;
 
   /**
    * The entity type manager.
@@ -39,17 +39,17 @@ class ModuleImportBulkForm extends FormBase {
   /**
    * Constructs a new ModuleImportBulkForm object.
    *
-   * @param \Drupal\ai_dashboard\Service\IssueImportService $issue_import_service
-   *   The issue import service.
+   * @param \Drupal\ai_dashboard\Service\IssueImportOrchestrationService $issue_import_orchestration_service
+   *   The issue import orchestration service.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger service.
    */
-  public function __construct(IssueImportService $issue_import_service, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger) {
-    $this->issueImportService = $issue_import_service;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->messenger = $messenger;
+  public function __construct(IssueImportOrchestrationService $issue_import_orchestration_service, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger) {
+  $this->issueImportOrchestrationService = $issue_import_orchestration_service;
+  $this->entityTypeManager = $entity_type_manager;
+  $this->messenger = $messenger;
   }
 
   /**
@@ -57,7 +57,7 @@ class ModuleImportBulkForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('ai_dashboard.issue_import'),
+      $container->get('ai_dashboard.issue_import_orchestration'),
       $container->get('entity_type.manager'),
       $container->get('messenger')
     );
@@ -217,7 +217,7 @@ class ModuleImportBulkForm extends FormBase {
 
       try {
         // Use batch import for multiple configurations.
-        $result = $this->issueImportService->import($config);
+        $result = $this->issueImportOrchestrationService->import($config);
         
         if ($result['success']) {
           $count++;

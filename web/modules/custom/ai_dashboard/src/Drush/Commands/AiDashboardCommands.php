@@ -3,7 +3,7 @@
 namespace Drupal\ai_dashboard\Drush\Commands;
 
 use Drupal\ai_dashboard\Entity\ModuleImport;
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\ai_dashboard\Service\IssueImportProcessService;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\Core\State\StateInterface;
@@ -38,9 +38,11 @@ class AiDashboardCommands extends DrushCommands {
   protected QueueWorkerManagerInterface $workerManager;
 
   /**
-   * @var \Drupal\ai_dashboard\Service\IssueImportService
+   * The issue import process service.
+   *
+   * @var \Drupal\ai_dashboard\Service\IssueImportProcessService
    */
-  protected IssueImportService $importService;
+  protected IssueImportProcessService $issueProcessService;
 
   /**
    * The state service.
@@ -66,12 +68,12 @@ class AiDashboardCommands extends DrushCommands {
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container) {
+  public static function create($container) {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
     $instance->queueFactory = $container->get('queue');
     $instance->workerManager = $container->get('plugin.manager.queue_worker');
-    $instance->importService = $container->get('ai_dashboard.issue_import');
+    $instance->issueProcessService = $container->get('ai_dashboard.issue_import_process');
     $instance->state = $container->get('state');
     $instance->fileSystem = $container->get('file_system');
     $instance->httpClient = $container->get('http_client');
@@ -103,7 +105,7 @@ class AiDashboardCommands extends DrushCommands {
     'full-from' => NULL,
   ]) {
     $output = $this->output();
-    $output->writeln('Importing issues from drupal.org');
+    
 
     // Load import configuration.
     /** @var ModuleImport $config */
@@ -113,6 +115,8 @@ class AiDashboardCommands extends DrushCommands {
       $output->writeln('<error>Import configuration is not found or invalid.</error>');
       return;
     }
+
+    $output->writeln("Importing issues from {$config->getSourceType()}");
 
     $output->writeln('Configuration: ' . $config->label());
     if (!empty($options['full-from'])) {
@@ -124,7 +128,7 @@ class AiDashboardCommands extends DrushCommands {
     }
     $output->writeln('Importing issue updates since '
       . ($start ? date('Y-m-d H:i:s', $start) : ' beginning of time'));
-    $chunks = $this->importService->getModuleIssuesSince($config, $start);
+    $chunks = $this->issueProcessService->getModuleIssuesSince($config, $start);
     if (!$chunks) {
       $this->output()->writeln('<error>No issues found.</error>');
       return;
@@ -135,7 +139,7 @@ class AiDashboardCommands extends DrushCommands {
     foreach ($chunks as $chunk) {
       // Issues are sorted by updated time.
       if (!$lastUpdate) {
-        $lastUpdate = $chunk[0]['changed'];
+        $lastUpdate = $this->issueProcessService->getUpdateTime($chunk[0], $config);
       }
       $numIssues += count($chunk);
       $queue->createItem([$config_id, $chunk]);
@@ -168,7 +172,7 @@ class AiDashboardCommands extends DrushCommands {
   /**
    * Import all active configurations.
    */
-  #[Command(name: 'ai-dashboard:import-all')]
+  #[CLI\Command(name: 'ai-dashboard:import-all')]
   #[CLI\Option(name: 'full-from', description: 'Force full sync from specified date (YYYY-mm-dd). Ignores last run timestamp.')]
   public function importAllConfigurations($options = ['full-from' => NULL]) {
     $storage = $this->entityTypeManager->getStorage('module_import');
@@ -182,7 +186,7 @@ class AiDashboardCommands extends DrushCommands {
     }
 
     // Sync drupal.org assignments after importing all issues
-    $this->output()->writeln("\n📋 Starting assignment sync from drupal.org...");
+    $this->output()->writeln("\n📋 Starting assignment sync from api...");
     $this->syncAllAssignments();
 
     // Update organizations for any new untracked users
@@ -196,18 +200,13 @@ class AiDashboardCommands extends DrushCommands {
   /**
    * Sync all drupal.org assignments for current week with history preservation.
    *
-   * @command ai-dashboard:sync-assignments
-   * @aliases aid-sync
-   * @option week-offset Week offset from current week (0 = current, 1 = next, -1 = previous)
-   * @usage ai-dashboard:sync-assignments
-   *   Sync all drupal.org assignments for the current week
-   * @usage ai-dashboard:sync-assignments --week-offset=1
-   *   Sync all drupal.org assignments for next week
    */
+  #[CLI\Command(name: 'ai-dashboard:sync-assignments')]
+  #[CLI\Option(name: 'week-offset', description: 'Week offset from current week (0 = current, 1 = next, -1 = previous)')]
   public function syncAllAssignments(array $options = ['week-offset' => 0]) {
     $week_offset = (int) $options['week-offset'];
-    $this->output()->writeln("Syncing drupal.org assignments with history preservation...");
-    
+    $this->output()->writeln("Syncing api assignments with history preservation...");
+
     // Calculate the target week.
     $target_date = new \DateTime();
     if ($week_offset !== 0) {
@@ -215,7 +214,7 @@ class AiDashboardCommands extends DrushCommands {
     }
     $target_date->modify('Monday this week');
     $week_string = $target_date->format('Y-m-d');
-    
+
     if ($week_offset === 0) {
       $this->output()->writeln("Target week: {$week_string} (current week)");
     } elseif ($week_offset > 0) {
@@ -254,17 +253,12 @@ class AiDashboardCommands extends DrushCommands {
   /**
    * Fetch and update organization data for untracked users.
    *
-   * @command ai-dashboard:update-organizations
-   * @aliases aid-orgs
-   * @option full-from Reprocess all users from specified date (YYYY-MM-DD) to refresh organization data
-   * @usage ai-dashboard:update-organizations
-   *   Fetch organization data from drupal.org for all untracked users without organizations
-   * @usage ai-dashboard:update-organizations --full-from=2025-01-01
-   *   Refresh organization data for all untracked users from specified date
    */
+  #[CLI\Command(name: 'ai-dashboard:update-organizations')]
+  #[CLI\Option(name: 'full-from', description: 'Force full refresh from specified date (YYYY-MM-DD). Ignores last run timestamp.')]
   public function updateOrganizations(array $options = ['full-from' => NULL]) {
     $this->output()->writeln("Fetching organization data for untracked users...");
-    $this->output()->writeln("Note: This will make multiple API calls to drupal.org and may take a while.");
+    $this->output()->writeln("Note: This will make multiple API calls to api and may take a while.");
     $this->output()->writeln("");
 
     $database = \Drupal::database();
@@ -433,15 +427,11 @@ class AiDashboardCommands extends DrushCommands {
 
   /**
    * Apply current tag mappings to all existing AI issues.
-   *
-   * @command ai-dashboard:update-tag-mappings
-   * @aliases aid-map
-   * @usage ai-dashboard:update-tag-mappings
-   *   Apply current tag mappings to all existing AI issues
    */
+  #[CLI\Command(name: 'ai-dashboard:update-tag-mappings')]
   public function updateTagMappings() {
     $this->output()->writeln("Applying current tag mappings to all existing AI issues...");
-    
+
     try {
       // Create calendar controller instance to use its tag mapping update functionality.
       $calendar_controller = new \Drupal\ai_dashboard\Controller\CalendarController(
@@ -455,27 +445,27 @@ class AiDashboardCommands extends DrushCommands {
         ->condition('type', 'ai_issue')
         ->condition('status', 1)
         ->accessCheck(FALSE);
-      
+
       $issue_ids = $query->execute();
-      
+
       if (empty($issue_ids)) {
         $this->output()->writeln("No AI issues found to update.");
         return;
       }
-      
+
       $issues = $node_storage->loadMultiple($issue_ids);
       $total_count = count($issues);
       $this->output()->writeln("Found {$total_count} AI issues to update.");
-      
+
       // Use the calendar controller's updateIssueMappings method.
       $reflection = new \ReflectionClass($calendar_controller);
       $method = $reflection->getMethod('updateIssueMappings');
       $method->setAccessible(true);
-      
+
       $updated_count = $method->invoke($calendar_controller, $issues);
-      
+
       $this->output()->writeln("✅ Successfully updated {$updated_count} AI issues with current tag mappings.");
-      
+
       if ($updated_count < $total_count) {
         $skipped = $total_count - $updated_count;
         $this->output()->writeln("   {$skipped} issues had no changes and were skipped.");
@@ -489,19 +479,15 @@ class AiDashboardCommands extends DrushCommands {
 
   /**
    * Process AI Tracker metadata for all existing AI issues.
-   *
-   * @command ai-dashboard:process-metadata
-   * @aliases aid-meta
-   * @usage ai-dashboard:process-metadata
-   *   Re-process AI Tracker metadata and meta issue detection for all existing AI issues
    */
+  #[CLI\Command(name: 'ai-dashboard:process-metadata')]
   public function processMetadata() {
     $this->output()->writeln("Re-processing AI Tracker metadata and meta issue detection for all existing AI issues...");
-    
+
     try {
       // Get metadata parser service
       $metadata_parser = \Drupal::service('ai_dashboard.metadata_parser');
-      
+
       // Get all AI issues that have summaries
       $node_storage = $this->entityTypeManager->getStorage('node');
       $query = $node_storage->getQuery()
@@ -509,25 +495,25 @@ class AiDashboardCommands extends DrushCommands {
         ->condition('status', 1)
         ->exists('field_issue_summary')
         ->accessCheck(FALSE);
-      
+
       $issue_ids = $query->execute();
-      
+
       if (empty($issue_ids)) {
         $this->output()->writeln("No AI issues with summaries found to process.");
         return;
       }
-      
+
       $issues = $node_storage->loadMultiple($issue_ids);
       $total_count = count($issues);
       $processed_count = 0;
       $updated_count = 0;
-      
+
       $this->output()->writeln("Found {$total_count} AI issues with summaries to process.");
-      
+
       foreach ($issues as $issue) {
         $issue_number = $issue->hasField('field_issue_number') ? $issue->get('field_issue_number')->value : 'unknown';
         $this->output()->write("Processing issue #{$issue_number}... ");
-        
+
         $needs_save = false;
         $parsed_metadata = [];
 
@@ -539,11 +525,11 @@ class AiDashboardCommands extends DrushCommands {
           $parsed_metadata = $metadata_parser->parseMetadata($summary);
 
           if (!empty($parsed_metadata)) {
-            
+
             // Apply metadata to fields using the same logic as the import service
             foreach ($parsed_metadata as $key => $value) {
               if (empty($value)) continue;
-              
+
               switch ($key) {
                 case 'update_summary':
                   if ($issue->hasField('field_update_summary')) {
@@ -554,7 +540,7 @@ class AiDashboardCommands extends DrushCommands {
                     }
                   }
                   break;
-                  
+
                 case 'checkin_date':
                   if ($issue->hasField('field_checkin_date')) {
                     $converted_date = $this->convertDateFormat($value);
@@ -565,7 +551,7 @@ class AiDashboardCommands extends DrushCommands {
                     }
                   }
                   break;
-                  
+
                 case 'due_date':
                   if ($issue->hasField('field_due_date')) {
                     $converted_date = $this->convertDateFormat($value);
@@ -576,7 +562,7 @@ class AiDashboardCommands extends DrushCommands {
                     }
                   }
                   break;
-                  
+
                 case 'blocked_by':
                   if ($issue->hasField('field_issue_blocked_by')) {
                     $current = $issue->get('field_issue_blocked_by')->value ?? '';
@@ -586,7 +572,7 @@ class AiDashboardCommands extends DrushCommands {
                     }
                   }
                   break;
-                  
+
                 case 'additional_collaborators':
                   if ($issue->hasField('field_additional_collaborators')) {
                     $current = $issue->get('field_additional_collaborators')->value ?? '';
@@ -620,7 +606,7 @@ class AiDashboardCommands extends DrushCommands {
                   break;
               }
             }
-            
+
           }
         }
 
@@ -672,15 +658,15 @@ class AiDashboardCommands extends DrushCommands {
             $this->output()->writeln("- No updates needed");
           }
         }
-        
+
         $processed_count++;
       }
-      
+
       $this->output()->writeln("✅ Processing complete!");
       $this->output()->writeln("   Processed: {$processed_count} issues");
       $this->output()->writeln("   Updated: {$updated_count} issues");
       $this->output()->writeln("   Skipped: " . ($processed_count - $updated_count) . " issues");
-      
+
     }
     catch (\Exception $e) {
       $this->output()->writeln("❌ Error processing metadata: " . $e->getMessage());

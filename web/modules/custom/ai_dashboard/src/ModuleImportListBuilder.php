@@ -36,7 +36,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     /** @var \Drupal\ai_dashboard\Entity\ModuleImport $entity */
-    
+
     // Add checkbox for bulk operations.
     $row['select'] = [
       'data' => [
@@ -47,7 +47,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         '#attributes' => ['class' => ['bulk-select']],
       ],
     ];
-    
+
     $row['label'] = $entity->label();
 
     // Get source type label.
@@ -59,19 +59,39 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
     $source_type = $entity->getSourceType();
     $row['source_type'] = $source_types[$source_type] ?? $source_type;
 
-    // Show machine name as link to drupal.org project page.
+    // Show machine name as link to drupal.org/GitLab project page.
     $machine_name = $entity->getProjectMachineName();
-    if ($machine_name && $source_type === 'drupal_org') {
-      $row['machine_name'] = [
+
+    switch ($source_type) {
+      case 'drupal_org':
+        $url_string = "https://www.drupal.org/project/{$machine_name}";
+        break;
+      case 'gitlab':
+        $url_string = "https://git.drupalcode.org/project/{$machine_name}";
+        break;
+
+      default:
+        assert(FALSE, "Unknown source type: {$source_type}");
+        $url_string = '';
+        return $row;
+    }
+
+    if ($machine_name) {
+      if ($url_string) {
+        $row['machine_name'] = [
         'data' => [
           '#type' => 'link',
           '#title' => $machine_name,
-          '#url' => Url::fromUri("https://www.drupal.org/project/{$machine_name}"),
+          '#url' => Url::fromUri($url_string),
           '#attributes' => ['target' => '_blank', 'rel' => 'noopener'],
-        ],
-      ];
+          ],
+        ];
+      } else {
+        $row['machine_name'] = $machine_name;
+      }
+
     } else {
-      $row['machine_name'] = $machine_name ?: $this->t('N/A');
+      $row['machine_name'] = $this->t('N/A');
     }
 
     // Show filter tags (label filter).
@@ -157,9 +177,9 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         'style' => 'margin-right: 0.5rem;',
       ],
     ];
-    
+
     $operations['run'] = [
-      '#type' => 'link', 
+      '#type' => 'link',
       '#title' => $this->t('Run'),
       '#url' => \Drupal\Core\Url::fromRoute('ai_dashboard.module_import.run', ['module_import' => $entity->id()]),
       '#attributes' => [
@@ -196,20 +216,20 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
    */
   public function render() {
     $build = parent::render();
-    
+
     // Get statistics for display.
     $storage = $this->getStorage();
     $total_configs = $storage->getQuery()->count()->execute();
     $active_configs = $storage->getQuery()->condition('active', TRUE)->count()->execute();
     $inactive_configs = $total_configs - $active_configs;
-    
+
     // Add statistics summary.
     $build['summary'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['import-configs-summary']],
       '#weight' => -10,
     ];
-    
+
     $build['summary']['stats'] = [
       '#type' => 'markup',
       '#markup' => '<div class="config-stats">' .
@@ -218,31 +238,31 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         '<span class="stat-item"><strong>' . $inactive_configs . '</strong> Inactive</span>' .
         '</div>',
     ];
-    
+
     // Wrap the entire content in a form to handle bulk operations.
     $form_build = \Drupal::formBuilder()->getForm('Drupal\ai_dashboard\Form\ModuleImportBulkForm');
-    
+
     // Add the summary and table to the form.
     $form_build['summary'] = $build['summary'];
     $form_build['table'] = $build['table'];
     $form_build['pager'] = $build['pager'] ?? [];
-    
+
     // Set proper order: bulk operations (10), import controls (20), status (30)
     $form_build['bulk_operations']['#weight'] = 10;
-    
+
     // Add CSS class to table for styling.
     $form_build['table']['#attributes']['class'][] = 'module-import-table';
-    
+
     // Add JavaScript for select all functionality.
     $form_build['#attached']['library'][] = 'ai_dashboard/bulk_operations';
-    
+
     // Add import controls block.
     $form_build['import_controls'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['import-controls-block']],
       '#weight' => 20,
     ];
-    
+
     $form_build['import_controls']['controls'] = [
       '#type' => 'markup',
       '#markup' => '<div class="import-controls">
@@ -260,7 +280,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         </div>
       </div>',
     ];
-    
+
     // Add current status block.
     $issue_count = $this->getIssueCount();
     $form_build['status_info'] = [
@@ -268,7 +288,7 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
       '#attributes' => ['class' => ['import-status-block']],
       '#weight' => 30,
     ];
-    
+
     $form_build['status_info']['status'] = [
       '#type' => 'markup',
       '#markup' => '<div class="import-status">
@@ -289,10 +309,10 @@ class ModuleImportListBuilder extends ConfigEntityListBuilder {
         </div>
       </div>',
     ];
-    
+
     return $form_build;
   }
-  
+
   /**
    * Get the total count of issues in the system.
    *

@@ -5,7 +5,8 @@ namespace Drupal\ai_dashboard\Controller;
 use Drupal\ai_dashboard\Entity\ModuleImport;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\ai_dashboard\Service\IssueImportService;
+use Drupal\ai_dashboard\Service\IssueImportProcessService;
+use Drupal\ai_dashboard\Service\IssueImportOrchestrationService;
 use Drupal\Core\Link;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,51 +21,24 @@ use Drupal\Core\Messenger\MessengerInterface;
 class ImportAdminController extends ControllerBase {
 
   /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * The issue import service.
-   *
-   * @var \Drupal\ai_dashboard\Service\IssueImportService
-   */
-  protected $importService;
-
-  /**
-   * The messenger service.
-   *
-   * @var \Drupal\Core\Messenger\MessengerInterface
-   */
-  protected $messenger;
-
-  /**
    * Constructs a new ImportAdminController object.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\ai_dashboard\Service\IssueImportService $import_service
-   *   The import service.
+   * @param \Drupal\ai_dashboard\Service\IssueImportProcessService $issueImportProcessService
+   *   The issue import process service.
+   * @param \Drupal\ai_dashboard\Service\IssueImportOrchestrationService $issueImportOrchestrationService
+   *   The issue import orchestration service.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, IssueImportService $import_service, MessengerInterface $messenger) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->importService = $import_service;
+  public function __construct(
+    protected IssueImportProcessService $issueImportProcessService,
+    protected IssueImportOrchestrationService $issueImportOrchestrationService,
+    EntityTypeManagerInterface $entityTypeManager,
+    MessengerInterface $messenger) {
+    $this->entityTypeManager = $entityTypeManager;
     $this->messenger = $messenger;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('entity_type.manager'),
-      $container->get('ai_dashboard.issue_import'),
-      $container->get('messenger')
-    );
   }
 
   /**
@@ -200,41 +174,13 @@ class ImportAdminController extends ControllerBase {
     return $build;
   }
 
-  /**
-   * Run import from specific configuration.
-   */
-  public function runImport(NodeInterface $node) {
-    try {
-      $results = $this->importService->importFromConfig($node, TRUE);
-
-      // Check if this is a batch import that requires redirection.
-      if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
-        // The batch has been set up and will be processed by Drupal.
-        // Don't add a message here as the batch system will handle messaging.
-        return batch_process('/ai-dashboard/admin/import');
-      }
-
-      if ($results['success']) {
-        $this->messenger->addStatus($results['message']);
-      }
-      else {
-        $this->messenger->addError($results['message']);
-      }
-    }
-    catch (\Exception $e) {
-      $this->messenger->addError('Import failed: ' . $e->getMessage());
-    }
-
-    return new RedirectResponse(Url::fromRoute('ai_dashboard.admin.import')->toString());
-  }
-
 
   /**
    * Run import from specific configuration.
    */
   public function runModuleImport(ModuleImport $module_import) {
     try {
-      $results = $this->importService->import($module_import);
+      $results = $this->issueImportOrchestrationService->import($module_import);
 
       // Check if this is a batch import that requires redirection.
       if ($results['success'] && isset($results['redirect']) && $results['redirect']) {
@@ -269,7 +215,7 @@ class ImportAdminController extends ControllerBase {
     }
 
     // For multiple configurations, use the dedicated batch import service.
-    $batch_service = \Drupal::service('ai_dashboard.batch_import');
+    $batch_service = \Drupal::service('ai_dashboard.issue_import_orchestration');
     $total_imported = 0;
     $total_errors = 0;
     $batch_started = FALSE;
@@ -310,7 +256,7 @@ class ImportAdminController extends ControllerBase {
    */
   public function deleteAllIssues(Request $request) {
     try {
-      $deleted_count = $this->importService->deleteAllIssues();
+      $deleted_count = $this->issueImportProcessService->deleteAllIssues();
       $this->messenger->addStatus(sprintf('Deleted %d issues.', $deleted_count));
     }
     catch (\Exception $e) {
