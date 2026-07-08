@@ -33,7 +33,7 @@ class IssueImportProcessService {
     '1' => 'active',
     '8' => 'needs_review',
     '13' => 'needs_work',
-    '14' => 'rtbc',
+    '14' => 'accepted',
     '2' => 'fixed',
     '3' => 'closed_duplicate',
     '17' => 'closed_outdated',
@@ -96,7 +96,7 @@ class IssueImportProcessService {
    *   The metadata parser service.
    * @param Drupal\Core\Site\Settings
    *   The Drupal settings object.
-   * 
+   *
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, ClientInterface $http_client, LoggerChannelFactoryInterface $logger_factory, TagMappingService $tag_mapping_service, MetadataParserService $metadata_parser_service, Settings $settings) {
     $this->entityTypeManager = $entity_type_manager;
@@ -597,7 +597,7 @@ class IssueImportProcessService {
                 'type' => 'ai_contributor',
                 'field_drupal_username' => $do_username,
               ]);
-              
+
               // If no such contributor exists among contributor nodes - create one
               if(!count($candidates)){
                 $contributor = $nodeStorage->create([
@@ -616,8 +616,8 @@ class IssueImportProcessService {
                 '@error' => $err,
               ]);
             }
-            
-            
+
+
           }
 
           if (!empty($candidates)) {
@@ -1241,20 +1241,20 @@ class IssueImportProcessService {
     return NULL;
   }
 
-  
+
 
   /**
    * Resolve project ID from machine name via drupal.org API.
    *
    * @param string $machine_name
    *   The project machine name.
-   * 
+   *
    * @param string $source_type
    *   The project source type.
    *
    * @return string
    *   The project ID.
-   * 
+   *
    */
 
     public function resolveProjectIdFromMachineName(string $machine_name, string $source_type){
@@ -1518,9 +1518,9 @@ class IssueImportProcessService {
 
   public function getUpdateTime($issue_data, $config){
         switch ($config->getSourceType()){
-          case 'drupal_org': 
+          case 'drupal_org':
             return $issue_data['changed'];
-          case 'gitlab': 
+          case 'gitlab':
             $changed = 0;
             if(isset($issue_data['updated_at'])){
               return strtotime($issue_data['updated_at']);
