@@ -15,20 +15,7 @@ fi
 # Install APT packages.
 if ! command -v npm >/dev/null 2>&1; then
   sudo apt-get update
-  sudo apt-get install -y cron jq nano npm
-fi
-
-# Install cron if not already installed.
-if ! command -v cron >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y cron
-fi
-
-# Start cron daemon if not already running.
-if command -v cron >/dev/null 2>&1; then
-  if ! pgrep -x cron > /dev/null; then
-    cron
-  fi
+  sudo apt-get install -y jq nano npm
 fi
 
 # Enable AVIF support in GD extension if not already enabled.
@@ -56,11 +43,24 @@ if $PECL_UPDATED && sudo /etc/init.d/apache2 status > /dev/null; then
   sudo /etc/init.d/apache2 reload
 fi
 
-#== Set up AI Dashboard cron jobs.
+#== Set up AI Dashboard cron jobs via supercronic.
 echo 'Set up AI Dashboard cron jobs.'
 chmod +x $APP_ROOT/.devpanel/ai-dashboard-cron.sh
-CRON_DASHBOARD="*/30 * * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin /var/www/html/.devpanel/ai-dashboard-cron.sh"
-CRON_DAILY="0 5 * * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-daily >> .logs/drush.log 2>&1"
-CRON_BIWEEKLY="0 6 1,16 * * cd /var/www/html && APP_ROOT=/var/www/html PATH=/usr/local/bin:/usr/bin:/bin drush ia-biweekly >> .logs/drush.log 2>&1"
-(crontab -u www -l 2>/dev/null | grep -v 'ai-dashboard-cron.sh' | grep -v 'ia-daily' | grep -v 'ia-biweekly'; echo "$CRON_DASHBOARD"; echo "$CRON_DAILY"; echo "$CRON_BIWEEKLY") | crontab -u www -
+
+if [ -f "$APP_ROOT/.devpanel/crontab" ]; then
+  # Install supercronic.
+  if ! command -v supercronic >/dev/null 2>&1; then
+    curl -fsSL "https://github.com/aptible/supercronic/releases/latest/download/supercronic-linux-$(dpkg --print-architecture)" \
+      -o /usr/local/bin/supercronic
+    chmod +x /usr/local/bin/supercronic
+  fi
+  # Load project cron file.
+  if command -v supercronic >/dev/null 2>&1; then
+    # Start only if no existing supercronic is watching this file.
+    if ! pgrep -f "supercronic -inotify ${APP_ROOT}/\.devpanel/crontab" >/dev/null 2>&1; then
+      echo "Starting supercronic to watch ${APP_ROOT}/.devpanel/crontab"
+      runuser -u "${SUDO_USER:-$USER}" -- supercronic -inotify "$APP_ROOT/.devpanel/crontab" &
+    fi
+  fi
+fi
 echo 'AI Dashboard cron jobs configured.'
